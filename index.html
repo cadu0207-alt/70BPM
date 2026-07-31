@@ -214,7 +214,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 31/07/2026 16:06</span>
+      <span>Gerado em 31/07/2026 16:10</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -284,7 +284,8 @@ function renderHome() {
   const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
   html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div></div>`;
   html += `</div>`;
-  html += renderCumprimentoMatrix();
+  html += renderCumprimentoMatrix('mes');
+  html += renderCumprimentoMatrix('acum');
   document.getElementById('main').innerHTML = html;
 }
 
@@ -335,8 +336,10 @@ function statusQualidade(v) {
   return 'vermelho';
 }
 
-function renderCumprimentoMatrix() {
-  const mi = 6; // mês mais recente (Julho)
+function renderCumprimentoMatrix(modo) {
+  // modo: 'mes' (mês mais recente) ou 'acum' (acumulado jan-mês mais recente)
+  const mi = 6; // Julho = último mês disponível
+  const sufixo = modo === 'acum' ? '_acum' : '_mes';
   const idxOf = (list) => {
     const idx = {};
     list.forEach((m,i) => idx[normKey(m.nome)] = i);
@@ -357,50 +360,52 @@ function renderCumprimentoMatrix() {
     rows += `<tr><td style="text-align:left;font-weight:600">${nomeBonito}</td>`;
 
     const mv = DATA.mv.municipios[idxMv[key]];
-    rows += semaforoCell(statusTeto(mv.realizado_mes[mi], mv.meta_mes[mi]), mv.realizado_mes[mi]);
+    rows += semaforoCell(statusTeto(mv['realizado'+sufixo][mi], mv['meta'+sufixo][mi]), mv['realizado'+sufixo][mi]);
 
     const cvpe = DATA.cvpe.municipios[idxCvpe[key]];
-    rows += semaforoCell(statusTeto(cvpe.realizado_mes[mi], cvpe.meta_mes[mi]), cvpe.realizado_mes[mi]);
+    rows += semaforoCell(statusTeto(cvpe['realizado'+sufixo][mi], cvpe['meta'+sufixo][mi]), cvpe['realizado'+sufixo][mi]);
 
     const cvpa = DATA.cvpa.municipios[idxCvpa[key]];
-    rows += semaforoCell(statusTeto(cvpa.realizado_mes[mi], cvpa.meta_mes[mi]), cvpa.realizado_mes[mi]);
+    rows += semaforoCell(statusTeto(cvpa['realizado'+sufixo][mi], cvpa['meta'+sufixo][mi]), cvpa['realizado'+sufixo][mi]);
 
     const furto = DATA.furto.municipios[idxFurto[key]];
-    rows += semaforoCell(statusTeto(furto.realizado_mes[mi], furto.meta_mes[mi]), furto.realizado_mes[mi]);
+    rows += semaforoCell(statusTeto(furto['realizado'+sufixo][mi], furto['meta'+sufixo][mi]), furto['realizado'+sufixo][mi]);
 
     const pog = DATA.pog.municipios[idxPog[key]];
-    const pogPctV = pog.meta_mes[mi] ? (pog.realizado_mes[mi]/pog.meta_mes[mi]*100) : 100;
+    const pogR = pog['realizado'+sufixo][mi], pogM = pog['meta'+sufixo][mi];
+    const pogPctV = pogM ? (pogR/pogM*100) : 100;
     rows += semaforoCell(statusPog(pogPctV), pogPctV.toFixed(0)+'%');
 
     const y1 = DATA.ppag.y15001.municipios[idxY15001[key]];
-    rows += semaforoCell(statusPiso(y1.realizado_mes[mi], y1.meta_mes[mi]), y1.realizado_mes[mi]+'/'+y1.meta_mes[mi]);
+    rows += semaforoCell(statusPiso(y1['realizado'+sufixo][mi], y1['meta'+sufixo][mi]), y1['realizado'+sufixo][mi]+'/'+y1['meta'+sufixo][mi]);
 
     const y2 = DATA.ppag.y07012.municipios[idxY07012[key]];
-    rows += semaforoCell(statusPiso(y2.realizado_mes[mi], y2.meta_mes[mi]), y2.realizado_mes[mi]+'/'+y2.meta_mes[mi]);
+    rows += semaforoCell(statusPiso(y2['realizado'+sufixo][mi], y2['meta'+sufixo][mi]), y2['realizado'+sufixo][mi]+'/'+y2['meta'+sufixo][mi]);
 
     const y3 = DATA.ppag.y07014.municipios[idxY07014[key]];
-    rows += semaforoCell(statusPiso(y3.realizado_mes[mi], y3.meta_mes[mi]), y3.realizado_mes[mi]+'/'+y3.meta_mes[mi]);
+    rows += semaforoCell(statusPiso(y3['realizado'+sufixo][mi], y3['meta'+sufixo][mi]), y3['realizado'+sufixo][mi]+'/'+y3['meta'+sufixo][mi]);
 
     const cav = DATA.cavaloaco.municipios[idxCav[key]];
-    rows += semaforoCell(statusPiso(cav.realizado_mes[mi], cav.meta_mes[mi]), cav.realizado_mes[mi]+'/'+cav.meta_mes[mi]);
+    rows += semaforoCell(statusPiso(cav['realizado'+sufixo][mi], cav['meta'+sufixo][mi]), cav['realizado'+sufixo][mi]+'/'+cav['meta'+sufixo][mi]);
 
     const pad = DATA.padesc.municipios[idxPadesc[key]];
-    rows += semaforoCell(statusPiso(pad.realizado_mes[mi], pad.meta_mes[mi]), pad.realizado_mes[mi]+'/'+pad.meta_mes[mi]);
+    rows += semaforoCell(statusPiso(pad['realizado'+sufixo][mi], pad['meta'+sufixo][mi]), pad['realizado'+sufixo][mi]+'/'+pad['meta'+sufixo][mi]);
 
     const idobM = DATA.idob.municipios[idxIdob[key]];
-    const vitMes = idobM.mv_mes[mi]+idobM.cvpe_mes[mi]+idobM.cvpa_mes[mi];
-    const idobV = calcIdobLocal(idobM.qop_mes[mi], vitMes);
+    const vit = idobM['mv'+sufixo][mi]+idobM['cvpe'+sufixo][mi]+idobM['cvpa'+sufixo][mi];
+    const idobV = calcIdobLocal(idobM['qop'+sufixo][mi], vit);
     rows += semaforoCell(statusQualidade(idobV), idobV.toFixed(0)+'%');
 
     const itvdM = DATA.itvd.municipios[idxItvd[key]];
-    const itvdV = calcItvdLocal(itvdM.trafico_mes[mi], itvdM.vit_mes[mi]);
+    const itvdV = calcItvdLocal(itvdM['trafico'+sufixo][mi], itvdM['vit'+sufixo][mi]);
     rows += semaforoCell(statusQualidade(itvdV), itvdV.toFixed(0)+'%');
 
     rows += `</tr>`;
   });
 
+  const tituloPeriodo = modo === 'acum' ? `Acumulado Jan-${MESES[mi]}/2026` : `${MESES[mi]}/2026`;
   let html = `<div class="chart-box" style="margin-top:4px">
-    <h3>Quadro de Cumprimento por Cidade &middot; ${MESES[mi]}/2026</h3>
+    <h3>Quadro de Cumprimento por Cidade &middot; ${tituloPeriodo}</h3>
     <div class="table-wrap" style="margin-bottom:0">
     <table class="data-table"><thead><tr>
       <th style="text-align:left">Município</th><th>IMV</th><th>CVPe</th><th>CVPa</th><th>Furto Rural</th>
@@ -408,7 +413,7 @@ function renderCumprimentoMatrix() {
       <th>Pad.Escolar</th><th>IDOB</th><th>ITVD</th>
     </tr></thead><tbody>${rows}</tbody></table>
     </div>
-    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Verde = cumpriu a meta do mês &middot; Amarelo = próximo (tolerância) &middot; Vermelho = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Cavalo de Aço/Pad.Escolar: quanto maior, melhor. IDOB/ITVD: índice de qualidade (não é meta numérica).</div>
+    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Verde = cumpriu a meta &middot; Amarelo = próximo (tolerância) &middot; Vermelho = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Cavalo de Aço/Pad.Escolar: quanto maior, melhor. IDOB/ITVD: índice de qualidade (não é meta numérica).</div>
   </div>`;
   return html;
 }
