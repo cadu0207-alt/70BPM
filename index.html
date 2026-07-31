@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>70º BPM &middot; Painel de Indicadores Operacionais</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #070c14;
+    --bg-1: #0b1420;
+    --bg-2: #101c2c;
+    --panel: #0e1b2b;
+    --panel-border: #1e3348;
+    --line: #16283c;
+    --amber: #e8a83c;
+    --amber-dim: #8a6a2c;
+    --signal: #21c98a;
+    --signal-dim: #14624a;
+    --alert: #e6484f;
+    --alert-dim: #6e2226;
+    --caution: #d4c22a;
+    --text: #eaf1f8;
+    --muted: #7891a8;
+    --muted-dim: #4d6478;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --display: 'Rajdhani', var(--sans);
+  }
+  * { box-sizing: border-box; }
+  html { scrollbar-color: var(--panel-border) var(--bg-0); }
+  body {
+    margin:0; font-family: var(--sans);
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 34px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 34px),
+      radial-gradient(ellipse 1200px 700px at 15% -10%, #14263a 0%, transparent 60%),
+      linear-gradient(160deg, var(--bg-0) 0%, var(--bg-1) 55%, var(--bg-0) 100%);
+    color: var(--text); display:flex; min-height:100vh;
+    font-variant-numeric: tabular-nums;
+  }
+  ::selection { background: var(--amber); color:#1a1200; }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar {
+    width: 216px; background: linear-gradient(180deg,#081019,#060b12);
+    border-right: 1px solid var(--panel-border);
+    padding: 0; flex-shrink:0; display:flex; flex-direction:column;
+    position: sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  .brand {
+    padding: 22px 18px 16px; border-bottom: 1px solid var(--panel-border);
+  }
+  .brand .unit { font-family: var(--display); font-size:20px; font-weight:700; letter-spacing:0.06em; color:var(--text); line-height:1.1; }
+  .brand .sub { font-family: var(--mono); font-size:9.5px; letter-spacing:0.14em; color:var(--amber); text-transform:uppercase; margin-top:6px; }
+  .nav-scroll { padding: 14px 10px 20px; flex:1; }
+  .nav-group { margin-bottom: 18px; }
+  .nav-group-label {
+    font-family: var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    color: var(--muted-dim); padding: 0 8px 6px; display:flex; align-items:center; gap:6px;
+  }
+  .nav-group-label::before { content:''; width:5px; height:5px; background:var(--muted-dim); flex-shrink:0; }
+  .nav-btn {
+    display:flex; align-items:center; gap:9px; width:100%;
+    background: transparent; color: var(--muted); border:none; border-left:2px solid transparent;
+    padding: 8px 10px; font-weight:500; cursor:pointer; text-align:left;
+    font-size: 12.5px; font-family:var(--sans); letter-spacing:0.01em;
+    border-radius: 0 3px 3px 0; margin-bottom:1px; transition: all .12s ease;
+  }
+  .nav-btn::before { content:''; width:6px; height:6px; border-radius:1px; background:var(--muted-dim); flex-shrink:0; transition: all .12s ease; }
+  .nav-btn:hover:not(.disabled) { background: rgba(232,168,60,0.06); color: var(--text); }
+  .nav-btn.active { background: rgba(232,168,60,0.1); color: var(--amber); border-left-color: var(--amber); font-weight:600; }
+  .nav-btn.active::before { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .nav-btn.disabled { opacity: 0.42; cursor: not-allowed; }
+  .nav-btn.disabled::before { background: var(--alert-dim); }
+
+  /* ---------- TOPBAR + CONTENT ---------- */
+  .app-col { flex:1; display:flex; flex-direction:column; min-width:0; height:100vh; }
+  .topbar {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 12px 30px; border-bottom: 1px solid var(--panel-border);
+    background: rgba(7,12,20,0.6); flex-shrink:0;
+  }
+  .topbar-title { font-family: var(--mono); font-size:11px; letter-spacing:0.1em; color:var(--muted); text-transform:uppercase; }
+  .topbar-title b { color:var(--text); font-weight:600; }
+  .topbar-status { display:flex; align-items:center; gap:16px; font-family:var(--mono); font-size:10.5px; color:var(--muted); letter-spacing:0.06em; }
+  .topbar-status .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--signal); box-shadow:0 0 8px var(--signal); margin-right:6px; }
+  .main { flex:1; padding: 26px 34px 50px; overflow:auto; }
+
+  /* ---------- PAGE HEADER ---------- */
+  .page-title {
+    font-family: var(--display); font-size: 25px; font-weight:700; letter-spacing:0.02em;
+    color: var(--text); margin: 0 0 4px; padding:0; border:none; display:block;
+    text-transform: uppercase;
+  }
+  .page-title::before { content:'// '; color: var(--amber); }
+  .updated {
+    font-size:11.5px; color: var(--muted); margin-bottom:22px; font-family: var(--mono);
+    padding-bottom:16px; border-bottom: 1px solid var(--line); letter-spacing:0.01em;
+  }
+
+  /* ---------- KPI CARDS ---------- */
+  .kpi-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom: 20px; }
+  .kpi-card {
+    position:relative; border-radius: 3px; padding: 18px 18px 16px; text-align:left; color:white;
+    background: var(--panel); border:1px solid var(--panel-border); border-left-width:3px;
+    overflow:hidden;
+  }
+  .kpi-card::after {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background: linear-gradient(135deg, rgba(255,255,255,0.035), transparent 55%);
+  }
+  .kpi-card .val { font-family: var(--mono); font-size: 28px; font-weight:600; letter-spacing:-0.01em; }
+  .kpi-card .lbl { font-family: var(--mono); font-size: 10px; margin-top:6px; opacity:0.85; text-transform:uppercase; letter-spacing:0.09em; }
+  .kpi-red { border-left-color: var(--alert); }
+  .kpi-red .val { color: var(--alert); }
+  .kpi-green { border-left-color: var(--signal); }
+  .kpi-green .val { color: var(--signal); }
+  .kpi-neutral { border-left-color: var(--muted); }
+  .kpi-neutral .val { color: var(--text); }
+
+  /* ---------- CONTROLS ---------- */
+  select.month-select {
+    background: var(--panel); color:var(--text); border:1px solid var(--panel-border); padding:8px 14px;
+    border-radius:3px; margin-bottom:18px; font-size:12.5px; font-family:var(--mono); letter-spacing:0.03em;
+    appearance:none; cursor:pointer;
+  }
+  select.month-select:focus { outline:1px solid var(--amber); }
+
+  /* ---------- TABLES ---------- */
+  .table-wrap { border:1px solid var(--panel-border); border-radius:4px; overflow:hidden; margin-bottom:26px; }
+  table.data-table { width:100%; border-collapse: collapse; font-size: 12.5px; font-family:var(--sans); margin-bottom:0; background:var(--panel); }
+  table.data-table th {
+    background: #142236; color: var(--muted); padding:9px 8px; text-align:center;
+    font-family: var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.07em; font-weight:500;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  table.data-table td { padding:7px 8px; text-align:center; border-bottom:1px solid rgba(234,241,248,0.10); font-family:var(--mono); font-size:12.5px; }
+  table.data-table tbody tr:last-child td { border-bottom:none; }
+  table.data-table tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+  table.data-table tr:hover td { background: rgba(232,168,60,0.045); }
+  table.data-table th.col-divider, table.data-table td.col-divider { border-left: 2px solid rgba(234,241,248,0.22); }
+  .pos { color: var(--alert); font-weight:600; }
+  .neg { color: var(--signal); font-weight:600; }
+
+  /* ---------- CHARTS ---------- */
+  .charts-row { display:flex; gap:16px; flex-wrap:wrap; }
+  .chart-box { background:var(--panel); border:1px solid var(--panel-border); border-radius:4px; padding:16px 18px; flex:1; min-width:380px; }
+  .chart-box h3 {
+    margin:0 0 14px; font-size:10.5px; color:var(--muted); font-family:var(--mono);
+    text-transform:uppercase; letter-spacing:0.09em; font-weight:500;
+    padding-bottom:10px; border-bottom:1px solid var(--line);
+  }
+  canvas { max-width:100%; }
+
+  .def-box {
+    background: var(--panel); border:1px solid var(--panel-border); border-left: 3px solid var(--amber);
+    border-radius:4px; padding:14px 18px; margin-bottom:22px; font-size:12.5px; color:var(--muted); line-height:1.65;
+  }
+  .def-box b { color: var(--text); font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; }
+  .def-box .formula { font-family:var(--mono); color:var(--text); font-size:12px; display:block; margin:8px 0; }
+  .def-box .polarity { color: var(--signal); font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
+  .def-box code { color: var(--amber); font-family:var(--mono); }
+
+  .pending-box {
+    background:var(--panel); border:1px dashed var(--panel-border); border-radius:4px; padding:44px; text-align:center; color:var(--muted);
+    font-size:14px; margin-top:30px; font-family:var(--mono); letter-spacing:0.02em;
+  }
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="brand">
+    <div class="unit">70&ordm; BPM</div>
+    <div class="sub">Painel de Indicadores &middot; 15&ordm; RPM</div>
+  </div>
+  <div class="nav-scroll">
+    <div class="nav-group">
+      <div class="nav-group-label">Visão Geral</div>
+      <button class="nav-btn active" data-page="home">Home</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Indicadores Criminais</div>
+      <button class="nav-btn" data-page="imv">IMV (Mortes Viol.)</button>
+      <button class="nav-btn" data-page="cvpe">CVPE</button>
+      <button class="nav-btn" data-page="cvpa">CVPa</button>
+      <button class="nav-btn" data-page="furto">Furto Rural</button>
+      <button class="nav-btn" data-page="armas">Armas de Fogo</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Operações Especiais</div>
+      <button class="nav-btn" data-page="idob">IDOB &middot; Boemia</button>
+      <button class="nav-btn disabled" title="Aguardando export RAT Cavalo de Aço">IDOCA</button>
+      <button class="nav-btn" data-page="itvd">ITVD &middot; Tráfico</button>
+      <button class="nav-btn" data-page="vd">VD &middot; Viol. Doméstica</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Policiamento Orientado</div>
+      <button class="nav-btn" data-page="pog">POG</button>
+      <button class="nav-btn" data-page="ppag">PPAG</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Programas Sociais</div>
+      <button class="nav-btn" data-page="padesc">Pad.Escolar</button>
+      <button class="nav-btn disabled" title="Aguardando export (A20.028 furto / A20.001 crimes violentos)">VT &middot; Visitas Tranquiliz.</button>
+      <button class="nav-btn disabled" title="Aguardando dados (Polícia Cidadã)">Pol.Cid.Em</button>
+    </div>
+  </div>
+</div>
+<div class="app-col">
+  <div class="topbar">
+    <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
+    <div class="topbar-status">
+      <span><span class="dot"></span>Base local sincronizada</span>
+      <span>Gerado em 31/07/2026 15:10</span>
+    </div>
+  </div>
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+const DATA = {"mv": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "ARACUAI", "realizado_mes": [0, 4, 0, 1, 1, 0, 1], "meta_mes": [0, 1, 1, 0, 0, 0, 0], "realizado_acum": [0, 4, 4, 5, 6, 6, 7], "meta_acum": [0, 1, 2, 2, 2, 2, 2]}, {"nome": "ITAOBIM", "realizado_mes": [0, 0, 0, 1, 2, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 1, 0], "realizado_acum": [0, 0, 0, 1, 3, 3, 3], "meta_acum": [0, 0, 0, 0, 0, 1, 1]}, {"nome": "PADRE PARAISO", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 1, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 1, 1, 1, 1, 1]}, {"nome": "MEDINA", "realizado_mes": [1, 0, 0, 0, 1, 0, 0], "meta_mes": [1, 0, 1, 0, 0, 0, 1], "realizado_acum": [1, 1, 1, 1, 2, 2, 2], "meta_acum": [1, 1, 2, 2, 2, 2, 3]}, {"nome": "COMERCINHO", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 1, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 1, 1, 1]}, {"nome": "CORONEL MURTA", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 1, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 1, 1]}, {"nome": "ITINGA", "realizado_mes": [1, 0, 0, 0, 0, 0, 0], "meta_mes": [1, 0, 0, 1, 1, 0, 0], "realizado_acum": [1, 1, 1, 1, 1, 1, 1], "meta_acum": [1, 1, 1, 2, 3, 3, 3]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [0, 0, 0, 0, 1, 0, 0], "meta_mes": [0, 0, 0, 1, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 1, 1, 1], "meta_acum": [0, 0, 0, 1, 1, 1, 1]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [0, 0, 0, 1, 0, 1, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 1, 1, 2, 2], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "PEDRA AZUL", "realizado_mes": [0, 1, 0, 0, 0, 0, 0], "meta_mes": [0, 1, 0, 0, 0, 0, 0], "realizado_acum": [0, 1, 1, 1, 1, 1, 1], "meta_acum": [0, 1, 1, 1, 1, 1, 1]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "AGUAS VERMELHAS", "realizado_mes": [1, 0, 0, 0, 1, 0, 0], "meta_mes": [1, 0, 0, 0, 0, 0, 1], "realizado_acum": [1, 1, 1, 1, 2, 2, 2], "meta_acum": [1, 1, 1, 1, 1, 1, 2]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}], "total_mes": [3, 5, 0, 3, 6, 1, 1], "total_meta_mes": [3, 2, 3, 2, 2, 2, 2], "total_acum": [3, 8, 8, 11, 17, 18, 19], "total_meta_acum": [3, 5, 8, 10, 12, 14, 16]}, "cvpe": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "ARACUAI", "realizado_mes": [0, 0, 0, 0, 2, 1, 1], "meta_mes": [1, 0, 1, 1, 0, 1, 0], "realizado_acum": [0, 0, 0, 0, 2, 3, 4], "meta_acum": [1, 1, 2, 3, 3, 4, 4]}, {"nome": "ITAOBIM", "realizado_mes": [0, 0, 1, 2, 0, 1, 0], "meta_mes": [1, 0, 1, 0, 1, 0, 0], "realizado_acum": [0, 0, 1, 3, 3, 4, 4], "meta_acum": [1, 1, 2, 2, 3, 3, 3]}, {"nome": "PADRE PARAISO", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "MEDINA", "realizado_mes": [0, 3, 0, 0, 0, 0, 0], "meta_mes": [0, 3, 0, 1, 0, 1, 1], "realizado_acum": [0, 3, 3, 3, 3, 3, 3], "meta_acum": [0, 3, 3, 4, 4, 5, 6]}, {"nome": "COMERCINHO", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "CORONEL MURTA", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "ITINGA", "realizado_mes": [0, 0, 0, 0, 0, 1, 1], "meta_mes": [0, 0, 0, 0, 1, 0, 1], "realizado_acum": [0, 0, 0, 0, 0, 1, 2], "meta_acum": [0, 0, 0, 0, 1, 1, 2]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "PEDRA AZUL", "realizado_mes": [1, 0, 0, 1, 0, 0, 1], "meta_mes": [1, 0, 0, 1, 0, 0, 0], "realizado_acum": [1, 1, 1, 2, 2, 2, 3], "meta_acum": [1, 1, 1, 2, 2, 2, 2]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "AGUAS VERMELHAS", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 1, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 1, 1]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}], "total_mes": [1, 3, 1, 3, 2, 3, 3], "total_meta_mes": [3, 3, 2, 3, 2, 3, 2], "total_acum": [1, 4, 5, 8, 10, 13, 16], "total_meta_acum": [3, 6, 8, 11, 13, 16, 18]}, "cvpa": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "ARACUAI", "realizado_mes": [1, 2, 0, 0, 1, 0, 2], "meta_mes": [1, 2, 1, 1, 1, 1, 1], "realizado_acum": [1, 3, 3, 3, 4, 4, 6], "meta_acum": [1, 3, 4, 5, 6, 7, 8]}, {"nome": "ITAOBIM", "realizado_mes": [0, 0, 3, 0, 0, 1, 0], "meta_mes": [0, 0, 0, 1, 0, 1, 0], "realizado_acum": [0, 0, 3, 3, 3, 4, 4], "meta_acum": [0, 0, 0, 1, 1, 2, 2]}, {"nome": "PADRE PARAISO", "realizado_mes": [2, 1, 1, 0, 0, 1, 0], "meta_mes": [2, 1, 1, 0, 1, 0, 0], "realizado_acum": [2, 3, 4, 4, 4, 5, 5], "meta_acum": [2, 3, 4, 4, 5, 5, 5]}, {"nome": "MEDINA", "realizado_mes": [1, 1, 0, 1, 1, 0, 1], "meta_mes": [1, 1, 1, 2, 1, 1, 1], "realizado_acum": [1, 2, 2, 3, 4, 4, 5], "meta_acum": [1, 2, 3, 5, 6, 7, 8]}, {"nome": "COMERCINHO", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "CORONEL MURTA", "realizado_mes": [0, 0, 1, 0, 2, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 1, 1, 3, 3, 3], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "ITINGA", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 1, 1, 0, 1, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 1, 2, 2, 3, 3]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 1, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 1, 1]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [0, 0, 0, 0, 0, 1, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 1, 1], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "PEDRA AZUL", "realizado_mes": [1, 0, 2, 0, 0, 1, 0], "meta_mes": [1, 0, 0, 1, 1, 0, 1], "realizado_acum": [1, 1, 3, 3, 3, 4, 4], "meta_acum": [1, 1, 1, 2, 3, 3, 4]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [0, 0, 0, 0, 0, 0, 1], "meta_mes": [0, 0, 1, 0, 1, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 1], "meta_acum": [0, 0, 1, 1, 2, 2, 2]}, {"nome": "AGUAS VERMELHAS", "realizado_mes": [1, 1, 0, 0, 0, 0, 1], "meta_mes": [1, 1, 1, 0, 0, 0, 1], "realizado_acum": [1, 2, 2, 2, 2, 2, 3], "meta_acum": [1, 2, 3, 3, 3, 3, 4]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [0, 0, 0, 2, 0, 0, 2], "meta_mes": [0, 0, 0, 1, 1, 0, 1], "realizado_acum": [0, 0, 0, 2, 2, 2, 4], "meta_acum": [0, 0, 0, 1, 2, 2, 3]}], "total_mes": [6, 5, 7, 3, 4, 4, 7], "total_meta_mes": [6, 5, 6, 7, 6, 5, 5], "total_acum": [6, 11, 18, 21, 25, 29, 36], "total_meta_acum": [6, 11, 17, 24, 30, 35, 40]}, "mv_local": [["VIA DE ACESSO PUBLICA", 9], ["CASA", 6], ["BAR / LANCHONETE / RESTAURANTE / SIMILAR", 2], ["POSTO DE COMBUSTIVEL", 1], ["OUTROS - RESIDENCIAS URBANAS", 1]], "mv_faixa": [["De 18:00 as 23:59", 6], ["De 00:00 as 05:59", 6], ["De 12:00 as 17:59", 5], ["De 06:00 as 11:59", 2]], "cvpe_local": [["VIA DE ACESSO PUBLICA", 8], ["CASA", 4], ["BAR / LANCHONETE / RESTAURANTE / SIMILAR", 2], ["HOTEL/APART-HOTEL/POUSADA/PENSAO", 1], ["ESCRITORIO", 1]], "cvpe_faixa": [["De 12:00 as 17:59", 6], ["De 18:00 as 23:59", 5], ["De 06:00 as 11:59", 3], ["De 00:00 as 05:59", 2]], "cvpa_local": [["VIA DE ACESSO PUBLICA", 24], ["CASA", 6], ["POSTO DE COMBUSTIVEL", 2], ["VIA DE ACESSO PARTICULAR/PRIVADA", 1], ["RESIDENCIA RURAL", 1], ["FEIRA LIVRE", 1], ["BAR / LANCHONETE / RESTAURANTE / SIMILAR", 1]], "cvpa_faixa": [["De 18:00 as 23:59", 14], ["De 00:00 as 05:59", 11], ["De 12:00 as 17:59", 6], ["De 06:00 as 11:59", 5]], "armas": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "realizado_mes": [0, 0, 0, 0, 1, 0, 1], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [0, 0, 0, 0, 1, 1, 2], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "ARACUAI", "realizado_mes": [1, 3, 4, 2, 1, 0, 1], "meta_mes": [2, 2, 2, 2, 2, 2, 2], "realizado_acum": [1, 4, 8, 10, 11, 11, 12], "meta_acum": [2, 4, 6, 8, 10, 12, 14]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [2, 0, 0, 0, 0, 0, 1], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [2, 2, 2, 2, 2, 2, 3], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "COMERCINHO", "realizado_mes": [0, 0, 2, 0, 0, 1, 0], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [0, 0, 2, 2, 2, 3, 3], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "CORONEL MURTA", "realizado_mes": [1, 0, 0, 0, 1, 0, 0], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [1, 1, 1, 1, 2, 2, 2], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [0, 1, 0, 0, 0, 1, 0], "meta_mes": [2, 2, 2, 2, 2, 2, 2], "realizado_acum": [0, 1, 1, 1, 1, 2, 2], "meta_acum": [2, 4, 6, 8, 10, 12, 14]}, {"nome": "ITAOBIM", "realizado_mes": [0, 0, 0, 0, 1, 0, 2], "meta_mes": [2, 2, 2, 2, 2, 2, 2], "realizado_acum": [0, 0, 0, 0, 1, 1, 3], "meta_acum": [2, 4, 6, 8, 10, 12, 14]}, {"nome": "ITINGA", "realizado_mes": [1, 8, 4, 3, 1, 2, 2], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [1, 9, 13, 16, 17, 19, 21], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "MEDINA", "realizado_mes": [2, 8, 5, 3, 2, 2, 6], "meta_mes": [2, 2, 2, 2, 2, 2, 2], "realizado_acum": [2, 10, 15, 18, 20, 22, 28], "meta_acum": [2, 4, 6, 8, 10, 12, 14]}, {"nome": "PADRE PARAISO", "realizado_mes": [2, 0, 1, 0, 0, 0, 0], "meta_mes": [2, 2, 2, 2, 2, 2, 2], "realizado_acum": [2, 2, 3, 3, 3, 3, 3], "meta_acum": [2, 4, 6, 8, 10, 12, 14]}, {"nome": "PEDRA AZUL", "realizado_mes": [2, 0, 1, 2, 0, 0, 1], "meta_mes": [2, 2, 2, 2, 2, 2, 2], "realizado_acum": [2, 2, 3, 5, 5, 5, 6], "meta_acum": [2, 4, 6, 8, 10, 12, 14]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [1, 0, 1, 0, 0, 0, 0], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [1, 1, 2, 2, 2, 2, 2], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [1, 1, 1, 1, 1, 1, 1], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [1, 2, 3, 4, 5, 6, 7], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}], "total_mes": [13, 21, 19, 11, 8, 7, 15], "total_meta_mes": [19, 19, 19, 19, 19, 19, 19], "total_acum": [13, 34, 53, 64, 72, 79, 94], "total_meta_acum": [19, 38, 57, 76, 95, 114, 133]}, "furto": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "realizado_mes": [0, 1, 2, 2, 0, 0, 0], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [0, 1, 3, 5, 5, 5, 5], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "ARACUAI", "realizado_mes": [3, 2, 3, 4, 3, 3, 2], "meta_mes": [3, 2, 3, 3, 4, 3, 4], "realizado_acum": [3, 5, 8, 12, 15, 18, 20], "meta_acum": [3, 5, 8, 11, 15, 18, 22]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [0, 2, 0, 0, 0, 0, 0], "meta_mes": [1, 1, 1, 1, 1, 1, 2], "realizado_acum": [0, 2, 2, 2, 2, 2, 2], "meta_acum": [1, 2, 3, 4, 5, 6, 8]}, {"nome": "COMERCINHO", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 1], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 1]}, {"nome": "CORONEL MURTA", "realizado_mes": [1, 0, 0, 0, 1, 0, 0], "meta_mes": [0, 0, 0, 1, 1, 1, 1], "realizado_acum": [1, 1, 1, 1, 2, 2, 2], "meta_acum": [0, 0, 0, 1, 2, 3, 4]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [2, 0, 0, 0, 0, 0, 0], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [2, 2, 2, 2, 2, 2, 2], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "ITAOBIM", "realizado_mes": [2, 1, 5, 1, 1, 0, 0], "meta_mes": [1, 1, 1, 2, 2, 2, 2], "realizado_acum": [2, 3, 8, 9, 10, 10, 10], "meta_acum": [1, 2, 3, 5, 7, 9, 11]}, {"nome": "ITINGA", "realizado_mes": [1, 0, 1, 2, 1, 0, 0], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [1, 1, 2, 4, 5, 5, 5], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "MEDINA", "realizado_mes": [0, 0, 1, 4, 0, 1, 4], "meta_mes": [1, 1, 2, 2, 2, 2, 2], "realizado_acum": [0, 0, 1, 5, 5, 6, 10], "meta_acum": [1, 2, 4, 6, 8, 10, 12]}, {"nome": "PADRE PARAISO", "realizado_mes": [1, 1, 0, 2, 1, 0, 1], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [1, 2, 2, 4, 5, 5, 6], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "PEDRA AZUL", "realizado_mes": [0, 1, 2, 0, 1, 0, 2], "meta_mes": [2, 1, 2, 2, 2, 2, 2], "realizado_acum": [0, 1, 3, 3, 4, 4, 6], "meta_acum": [2, 3, 5, 7, 9, 11, 13]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [0, 1, 1, 0, 1, 0, 1], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [0, 1, 2, 2, 3, 3, 4], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [1, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [1, 1, 1, 1, 1, 1, 1]}], "total_mes": [10, 9, 15, 15, 9, 4, 10], "total_meta_mes": [14, 11, 14, 16, 17, 16, 19], "total_acum": [10, 19, 34, 49, 58, 62, 72], "total_meta_acum": [14, 25, 39, 55, 72, 88, 107]}, "furto_causa": [["VANTAGEM ECONOMICA", 47], ["OUTRAS MOTIVACOES/CAUSAS ", 13], ["IGNORADO", 9], ["ENVOLVIMENTO COM DROGAS", 1]], "furto_logradouro": [["BR 116", 6], ["BR 367", 4], ["PPR0022 - POVOADO CORREGO DA CRUZETA - ZONA RURAL - PADRE PARAISO", 3], ["INVÁLIDO", 2], ["ACI0035 - BAIXA QUENTE - COMUNIDADE BAIXA", 2], ["WALLACE RHIGHI PAMPOLINE", 1], ["TRES", 1], ["SAO ITO0145 - JOSE", 1], ["SANTOS  - DUMONT", 1], ["PVO0036 - COMUNIDADE MARINHEIROS - PONTO DOS VOLANTES", 1], ["PPR0058 - CORREGO DO MACUCO - PADRE PARAISO", 1], ["PPR0054 - CORREGO GAMILEIRA - PADRE PARAISO", 1], ["PPR0034 - POVOADO DAS CRUZETAS - ZONA RURAL - PADRE PARAISO", 1], ["PAZ0158 - CALIFORNIA", 1], ["PAZ0056 - FAZENDA RANCHO ALEGRE - PEDRA AZUL", 1]], "furto_faixa": [["De 06:00 as 11:59", 22], ["De 00:00 as 05:59", 17], ["De 18:00 as 23:59", 16], ["De 12:00 as 17:59", 15]], "pog": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "realizado_mes": [20, 19, 30, 32, 28, 31, 30], "meta_mes": [20, 19, 30, 30, 30, 30, 30], "realizado_acum": [20, 39, 69, 101, 129, 160, 190], "meta_acum": [20, 39, 69, 99, 129, 159, 189]}, {"nome": "ARACUAI", "realizado_mes": [151, 146, 123, 49, 52, 49, 49], "meta_mes": [151, 145, 120, 49, 49, 49, 49], "realizado_acum": [151, 297, 420, 469, 521, 570, 619], "meta_acum": [151, 296, 416, 465, 514, 563, 612]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [17, 16, 31, 30, 30, 30, 29], "meta_mes": [17, 16, 30, 30, 30, 30, 30], "realizado_acum": [17, 33, 64, 94, 124, 154, 183], "meta_acum": [17, 33, 63, 93, 123, 153, 183]}, {"nome": "COMERCINHO", "realizado_mes": [16, 15, 30, 30, 30, 30, 31], "meta_mes": [16, 15, 30, 30, 30, 30, 30], "realizado_acum": [16, 31, 61, 91, 121, 151, 182], "meta_acum": [16, 31, 61, 91, 121, 151, 181]}, {"nome": "CORONEL MURTA", "realizado_mes": [17, 17, 30, 30, 30, 29, 31], "meta_mes": [17, 17, 30, 30, 30, 30, 30], "realizado_acum": [17, 34, 64, 94, 124, 153, 184], "meta_acum": [17, 34, 64, 94, 124, 154, 184]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [25, 26, 32, 32, 32, 30, 34], "meta_mes": [25, 26, 32, 32, 32, 32, 32], "realizado_acum": [25, 51, 83, 115, 147, 177, 211], "meta_acum": [25, 51, 83, 115, 147, 179, 211]}, {"nome": "ITAOBIM", "realizado_mes": [50, 55, 51, 40, 42, 39, 40], "meta_mes": [50, 53, 50, 40, 40, 40, 40], "realizado_acum": [50, 105, 156, 196, 238, 277, 317], "meta_acum": [50, 103, 153, 193, 233, 273, 313]}, {"nome": "ITINGA", "realizado_mes": [18, 21, 33, 32, 32, 32, 36], "meta_mes": [18, 21, 32, 32, 32, 32, 32], "realizado_acum": [18, 39, 72, 104, 136, 168, 204], "meta_acum": [18, 39, 71, 103, 135, 167, 199]}, {"nome": "MEDINA", "realizado_mes": [40, 39, 32, 32, 32, 32, 32], "meta_mes": [40, 39, 32, 32, 32, 32, 32], "realizado_acum": [40, 79, 111, 143, 175, 207, 239], "meta_acum": [40, 79, 111, 143, 175, 207, 239]}, {"nome": "PADRE PARAISO", "realizado_mes": [40, 41, 33, 32, 32, 32, 33], "meta_mes": [40, 41, 32, 32, 32, 32, 32], "realizado_acum": [40, 81, 114, 146, 178, 210, 243], "meta_acum": [40, 81, 113, 145, 177, 209, 241]}, {"nome": "PEDRA AZUL", "realizado_mes": [55, 57, 54, 41, 37, 41, 40], "meta_mes": [52, 52, 50, 40, 40, 40, 40], "realizado_acum": [55, 112, 166, 207, 244, 285, 325], "meta_acum": [52, 104, 154, 194, 234, 274, 314]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [17, 17, 30, 33, 30, 29, 30], "meta_mes": [17, 17, 30, 30, 30, 30, 30], "realizado_acum": [17, 34, 64, 97, 127, 156, 186], "meta_acum": [17, 34, 64, 94, 124, 154, 184]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [15, 16, 30, 30, 31, 30, 31], "meta_mes": [15, 16, 30, 30, 30, 30, 30], "realizado_acum": [15, 31, 61, 91, 122, 152, 183], "meta_acum": [15, 31, 61, 91, 121, 151, 181]}], "total_mes": [481, 485, 539, 443, 438, 434, 446], "total_meta_mes": [478, 477, 528, 437, 437, 437, 437], "total_acum": [481, 966, 1505, 1948, 2386, 2820, 3266], "total_meta_acum": [478, 955, 1483, 1920, 2357, 2794, 3231]}, "pog_bairros": [["CENTRO", 189], ["(sem bairro)", 26], ["BELA VISTA", 15], ["ALTO MERCADO", 12], ["VILA VIEIRA", 12], ["MANOEL GUSMAO", 12], ["SEBASTIAO FARIAS", 12], ["NOVO HORIZONTE", 8], ["ALVORADA", 8], ["GREBETHANIA", 8], ["PLANALTO", 8], ["DERALDO DANTAS", 7], ["PORTO ALEGRE", 7], ["ALTO SAO VICENTE", 6], ["ALTO DO CEMITERIO", 6]], "pog_natureza": [["OPERACAO PRESENCA", 209], ["OPERACAO DE BATIDA POLICIAL", 178], ["OPERACAO TRANSITO SEGURO", 32], ["OPERACAO DE INCURSAO EM ZONA QUENTE DE CRIMINALIDADE", 25], ["CUMPRIMENTO DE BUSCA E APREENSAO DE OBJETOS, PES ..", 2]], "ppag": {"y15001": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "realizado_mes": [0, 3, 1, 4, 1, 1, 1], "meta_mes": [0, 3, 3, 2, 1, 1, 1], "realizado_acum": [0, 3, 4, 8, 9, 10, 11], "meta_acum": [0, 3, 6, 8, 9, 10, 11]}, {"nome": "ARACUAI", "realizado_mes": [0, 8, 10, 5, 5, 6, 5], "meta_mes": [2, 8, 10, 5, 5, 6, 5], "realizado_acum": [0, 8, 18, 23, 28, 34, 39], "meta_acum": [2, 10, 20, 25, 30, 36, 41]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [2, 3, 0, 4, 2, 1, 2], "meta_mes": [2, 3, 2, 2, 1, 2, 2], "realizado_acum": [2, 5, 5, 9, 11, 12, 14], "meta_acum": [2, 5, 7, 9, 10, 12, 14]}, {"nome": "COMERCINHO", "realizado_mes": [2, 8, 6, 1, 2, 2, 2], "meta_mes": [2, 8, 6, 1, 2, 2, 2], "realizado_acum": [2, 10, 16, 17, 19, 21, 23], "meta_acum": [2, 10, 16, 17, 19, 21, 23]}, {"nome": "CORONEL MURTA", "realizado_mes": [0, 1, 0, 1, 2, 2, 2], "meta_mes": [0, 1, 0, 1, 2, 2, 2], "realizado_acum": [0, 1, 1, 2, 4, 6, 8], "meta_acum": [0, 1, 1, 2, 4, 6, 8]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [3, 3, 3, 3, 3, 3, 3], "meta_mes": [3, 2, 4, 3, 3, 3, 3], "realizado_acum": [3, 6, 9, 12, 15, 18, 21], "meta_acum": [3, 5, 9, 12, 15, 18, 21]}, {"nome": "ITAOBIM", "realizado_mes": [1, 2, 3, 4, 4, 5, 4], "meta_mes": [1, 1, 5, 4, 4, 5, 5], "realizado_acum": [1, 3, 6, 10, 14, 19, 23], "meta_acum": [1, 2, 7, 11, 15, 20, 25]}, {"nome": "ITINGA", "realizado_mes": [2, 5, 0, 1, 3, 3, 2], "meta_mes": [2, 5, 0, 1, 3, 3, 3], "realizado_acum": [2, 7, 7, 8, 11, 14, 16], "meta_acum": [2, 7, 7, 8, 11, 14, 17]}, {"nome": "MEDINA", "realizado_mes": [2, 2, 12, 4, 3, 3, 3], "meta_mes": [2, 2, 12, 4, 3, 3, 3], "realizado_acum": [2, 4, 16, 20, 23, 26, 29], "meta_acum": [2, 4, 16, 20, 23, 26, 29]}, {"nome": "PADRE PARAISO", "realizado_mes": [1, 2, 3, 3, 3, 3, 3], "meta_mes": [1, 2, 4, 2, 3, 3, 3], "realizado_acum": [1, 3, 6, 9, 12, 15, 18], "meta_acum": [1, 3, 7, 9, 12, 15, 18]}, {"nome": "PEDRA AZUL", "realizado_mes": [3, 8, 3, 10, 2, 5, 5], "meta_mes": [3, 8, 6, 5, 4, 5, 5], "realizado_acum": [3, 11, 14, 24, 26, 31, 36], "meta_acum": [3, 11, 17, 22, 26, 31, 36]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [0, 10, 6, 1, 2, 2, 2], "meta_mes": [0, 10, 6, 1, 2, 2, 2], "realizado_acum": [0, 10, 16, 17, 19, 21, 23], "meta_acum": [0, 10, 16, 17, 19, 21, 23]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [1, 6, 1, 1, 2, 2, 2], "meta_mes": [1, 6, 1, 1, 2, 2, 2], "realizado_acum": [1, 7, 8, 9, 11, 13, 15], "meta_acum": [1, 7, 8, 9, 11, 13, 15]}], "total_mes": [17, 61, 48, 42, 34, 38, 36], "total_meta_mes": [19, 59, 59, 32, 35, 39, 38], "total_acum": [17, 78, 126, 168, 202, 240, 276], "total_meta_acum": [19, 78, 137, 169, 204, 243, 281]}, "y07012": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "realizado_mes": [0, 0, 1, 5, 0, 0, 1], "meta_mes": [0, 0, 5, 1, 0, 0, 1], "realizado_acum": [0, 0, 1, 6, 6, 6, 7], "meta_acum": [0, 0, 5, 6, 6, 6, 7]}, {"nome": "ARACUAI", "realizado_mes": [0, 1, 0, 4, 4, 5, 4], "meta_mes": [0, 1, 0, 4, 4, 5, 4], "realizado_acum": [0, 1, 1, 5, 9, 14, 18], "meta_acum": [0, 1, 1, 5, 9, 14, 18]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [1, 0, 0, 3, 0, 0, 1], "meta_mes": [1, 0, 2, 1, 0, 0, 1], "realizado_acum": [1, 1, 1, 4, 4, 4, 5], "meta_acum": [1, 1, 3, 4, 4, 4, 5]}, {"nome": "COMERCINHO", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "CORONEL MURTA", "realizado_mes": [0, 0, 0, 0, 0, 0, 2], "meta_mes": [0, 0, 2, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 2], "meta_acum": [0, 0, 2, 2, 2, 2, 2]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [0, 0, 0, 1, 1, 1, 1], "meta_mes": [0, 0, 0, 1, 1, 1, 1], "realizado_acum": [0, 0, 0, 1, 2, 3, 4], "meta_acum": [0, 0, 0, 1, 2, 3, 4]}, {"nome": "ITAOBIM", "realizado_mes": [4, 2, 2, 3, 2, 3, 2], "meta_mes": [4, 2, 2, 3, 1, 3, 3], "realizado_acum": [4, 6, 8, 11, 13, 16, 18], "meta_acum": [4, 6, 8, 11, 12, 15, 18]}, {"nome": "ITINGA", "realizado_mes": [0, 0, 1, 0, 0, 0, 0], "meta_mes": [0, 0, 1, 0, 0, 0, 0], "realizado_acum": [0, 0, 1, 1, 1, 1, 1], "meta_acum": [0, 0, 1, 1, 1, 1, 1]}, {"nome": "MEDINA", "realizado_mes": [1, 1, 1, 1, 1, 1, 1], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [1, 2, 3, 4, 5, 6, 7], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "PADRE PARAISO", "realizado_mes": [2, 1, 3, 0, 0, 0, 1], "meta_mes": [2, 1, 0, 1, 1, 1, 1], "realizado_acum": [2, 3, 6, 6, 6, 6, 7], "meta_acum": [2, 3, 3, 4, 5, 6, 7]}, {"nome": "PEDRA AZUL", "realizado_mes": [0, 0, 12, 0, 0, 0, 0], "meta_mes": [0, 0, 7, 1, 1, 1, 1], "realizado_acum": [0, 0, 12, 12, 12, 12, 12], "meta_acum": [0, 0, 7, 8, 9, 10, 11]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [0, 0, 0, 0, 1, 0, 0], "meta_mes": [0, 0, 1, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 1, 1, 1], "meta_acum": [0, 0, 1, 1, 1, 1, 1]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [0, 0, 1, 0, 0, 0, 0], "meta_mes": [0, 0, 1, 0, 0, 0, 0], "realizado_acum": [0, 0, 1, 1, 1, 1, 1], "meta_acum": [0, 0, 1, 1, 1, 1, 1]}], "total_mes": [8, 5, 21, 17, 9, 10, 13], "total_meta_mes": [8, 5, 22, 13, 9, 12, 13], "total_acum": [8, 13, 34, 51, 60, 70, 83], "total_meta_acum": [8, 13, 35, 48, 57, 69, 82]}, "y07014": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "realizado_mes": [0, 0, 0, 2, 0, 0, 1], "meta_mes": [0, 0, 2, 1, 0, 1, 1], "realizado_acum": [0, 0, 0, 2, 2, 2, 3], "meta_acum": [0, 0, 2, 3, 3, 4, 5]}, {"nome": "ARACUAI", "realizado_mes": [0, 0, 0, 3, 4, 3, 5], "meta_mes": [4, 8, 8, 3, 4, 4, 4], "realizado_acum": [0, 0, 0, 3, 7, 10, 15], "meta_acum": [4, 12, 20, 23, 27, 31, 35]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [0, 0, 1, 2, 0, 1, 1], "meta_mes": [2, 1, 2, 1, 0, 1, 1], "realizado_acum": [0, 0, 1, 3, 3, 4, 5], "meta_acum": [2, 3, 5, 6, 6, 7, 8]}, {"nome": "COMERCINHO", "realizado_mes": [0, 0, 0, 0, 2, 3, 2], "meta_mes": [2, 5, 1, 1, 2, 2, 2], "realizado_acum": [0, 0, 0, 0, 2, 5, 7], "meta_acum": [2, 7, 8, 9, 11, 13, 15]}, {"nome": "CORONEL MURTA", "realizado_mes": [0, 0, 1, 1, 2, 1, 0], "meta_mes": [4, 2, 0, 1, 2, 2, 2], "realizado_acum": [0, 0, 1, 2, 4, 5, 5], "meta_acum": [4, 6, 6, 7, 9, 11, 13]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [0, 0, 1, 1, 1, 1, 1], "meta_mes": [3, 3, 3, 1, 1, 1, 1], "realizado_acum": [0, 0, 1, 2, 3, 4, 5], "meta_acum": [3, 6, 9, 10, 11, 12, 13]}, {"nome": "ITAOBIM", "realizado_mes": [0, 0, 2, 2, 1, 4, 4], "meta_mes": [3, 8, 10, 3, 3, 4, 4], "realizado_acum": [0, 0, 2, 4, 5, 9, 13], "meta_acum": [3, 11, 21, 24, 27, 31, 35]}, {"nome": "ITINGA", "realizado_mes": [0, 0, 0, 1, 1, 1, 1], "meta_mes": [2, 0, 1, 1, 1, 1, 1], "realizado_acum": [0, 0, 0, 1, 2, 3, 4], "meta_acum": [2, 2, 3, 4, 5, 6, 7]}, {"nome": "MEDINA", "realizado_mes": [0, 0, 0, 1, 3, 3, 3], "meta_mes": [3, 4, 4, 1, 3, 3, 3], "realizado_acum": [0, 0, 0, 1, 4, 7, 10], "meta_acum": [3, 7, 11, 12, 15, 18, 21]}, {"nome": "PADRE PARAISO", "realizado_mes": [0, 0, 0, 1, 2, 0, 2], "meta_mes": [3, 1, 6, 1, 2, 2, 2], "realizado_acum": [0, 0, 0, 1, 3, 3, 5], "meta_acum": [3, 4, 10, 11, 13, 15, 17]}, {"nome": "PEDRA AZUL", "realizado_mes": [0, 0, 0, 0, 2, 2, 3], "meta_mes": [7, 0, 4, 1, 2, 4, 4], "realizado_acum": [0, 0, 0, 0, 2, 4, 7], "meta_acum": [7, 7, 11, 12, 14, 18, 22]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [2, 2, 0, 1, 2, 1, 1], "meta_mes": [1, 6, 6, 1, 1, 1, 1], "realizado_acum": [2, 4, 4, 5, 7, 8, 9], "meta_acum": [1, 7, 13, 14, 15, 16, 17]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [0, 0, 0, 1, 1, 1, 1], "meta_mes": [1, 2, 0, 1, 1, 1, 1], "realizado_acum": [0, 0, 0, 1, 2, 3, 4], "meta_acum": [1, 3, 3, 4, 5, 6, 7]}], "total_mes": [2, 2, 5, 16, 21, 21, 25], "total_meta_mes": [35, 40, 47, 17, 22, 27, 27], "total_acum": [2, 4, 9, 25, 46, 67, 92], "total_meta_acum": [35, 75, 122, 139, 161, 188, 215]}}, "idob": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "qop_mes": [9, 5, 4, 10, 10, 5, 3], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 1], "qop_acum": [9, 14, 18, 28, 38, 43, 46], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 1]}, {"nome": "ARACUAI", "qop_mes": [22, 19, 20, 27, 43, 13, 74], "mv_mes": [0, 1, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [22, 41, 61, 88, 131, 144, 218], "mv_acum": [0, 1, 1, 1, 1, 1, 1], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "CACHOEIRA DE PAJEU", "qop_mes": [7, 12, 4, 3, 2, 2, 4], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [7, 19, 23, 26, 28, 30, 34], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "COMERCINHO", "qop_mes": [4, 8, 22, 20, 15, 7, 13], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [4, 12, 34, 54, 69, 76, 89], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "CORONEL MURTA", "qop_mes": [13, 13, 15, 15, 18, 10, 15], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [13, 26, 41, 56, 74, 84, 99], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "DIVISA ALEGRE", "qop_mes": [5, 20, 17, 16, 19, 12, 7], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [5, 25, 42, 58, 77, 89, 96], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "ITAOBIM", "qop_mes": [32, 21, 17, 23, 59, 49, 54], "mv_mes": [0, 0, 0, 1, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [32, 53, 70, 93, 152, 201, 255], "mv_acum": [0, 0, 0, 1, 1, 1, 1], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "ITINGA", "qop_mes": [3, 8, 12, 8, 11, 10, 10], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [3, 11, 23, 31, 42, 52, 62], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "MEDINA", "qop_mes": [34, 23, 16, 28, 46, 5, 20], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [34, 57, 73, 101, 147, 152, 172], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "PADRE PARAISO", "qop_mes": [4, 6, 9, 12, 10, 6, 13], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [4, 10, 19, 31, 41, 47, 60], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "PEDRA AZUL", "qop_mes": [8, 46, 33, 19, 19, 17, 14], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [8, 54, 87, 106, 125, 142, 156], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "PONTO DOS VOLANTES", "qop_mes": [14, 13, 11, 16, 12, 9, 14], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [14, 27, 38, 54, 66, 75, 89], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "VIRGEM DA LAPA", "qop_mes": [12, 6, 7, 15, 10, 5, 11], "mv_mes": [0, 0, 0, 0, 0, 0, 0], "cvpe_mes": [0, 0, 0, 0, 0, 0, 0], "cvpa_mes": [0, 0, 0, 0, 0, 0, 0], "qop_acum": [12, 18, 25, 40, 50, 55, 66], "mv_acum": [0, 0, 0, 0, 0, 0, 0], "cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "cvpa_acum": [0, 0, 0, 0, 0, 0, 0]}], "total_qtdeop_mes": [167, 200, 187, 212, 274, 150, 252], "total_qtdeop_acum": [167, 367, 554, 766, 1040, 1190, 1442], "total_mv_acum": [0, 1, 1, 2, 2, 2, 2], "total_cvpe_acum": [0, 0, 0, 0, 0, 0, 0], "total_cvpa_acum": [0, 0, 0, 0, 0, 0, 1]}, "padesc": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "realizado_mes": [0, 4, 14, 18, 15, 17, 8], "meta_mes": [0, 0, 16, 16, 16, 16, 8], "realizado_acum": [0, 4, 18, 36, 51, 68, 76], "meta_acum": [0, 0, 16, 32, 48, 64, 72]}, {"nome": "ARACUAI", "realizado_mes": [0, 3, 52, 81, 81, 82, 20], "meta_mes": [0, 0, 72, 72, 72, 72, 36], "realizado_acum": [0, 3, 55, 136, 217, 299, 319], "meta_acum": [0, 0, 72, 144, 216, 288, 324]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [0, 2, 12, 61, 28, 27, 27], "meta_mes": [0, 0, 32, 32, 32, 32, 16], "realizado_acum": [0, 2, 14, 75, 103, 130, 157], "meta_acum": [0, 0, 32, 64, 96, 128, 144]}, {"nome": "COMERCINHO", "realizado_mes": [0, 1, 27, 29, 27, 26, 18], "meta_mes": [0, 0, 24, 24, 24, 24, 12], "realizado_acum": [0, 1, 28, 57, 84, 110, 128], "meta_acum": [0, 0, 24, 48, 72, 96, 108]}, {"nome": "CORONEL MURTA", "realizado_mes": [1, 11, 36, 40, 37, 43, 25], "meta_mes": [0, 0, 36, 36, 36, 36, 18], "realizado_acum": [1, 12, 48, 88, 125, 168, 193], "meta_acum": [0, 0, 36, 72, 108, 144, 162]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [0, 2, 10, 10, 19, 9, 3], "meta_mes": [0, 0, 8, 8, 8, 8, 4], "realizado_acum": [0, 2, 12, 22, 41, 50, 53], "meta_acum": [0, 0, 8, 16, 24, 32, 36]}, {"nome": "ITAOBIM", "realizado_mes": [0, 3, 7, 24, 89, 83, 37], "meta_mes": [0, 0, 64, 64, 64, 64, 32], "realizado_acum": [0, 3, 10, 34, 123, 206, 243], "meta_acum": [0, 0, 64, 128, 192, 256, 288]}, {"nome": "ITINGA", "realizado_mes": [0, 1, 35, 37, 40, 39, 17], "meta_mes": [0, 0, 36, 36, 36, 36, 18], "realizado_acum": [0, 1, 36, 73, 113, 152, 169], "meta_acum": [0, 0, 36, 72, 108, 144, 162]}, {"nome": "MEDINA", "realizado_mes": [0, 22, 36, 40, 35, 42, 14], "meta_mes": [0, 0, 32, 32, 32, 32, 16], "realizado_acum": [0, 22, 58, 98, 133, 175, 189], "meta_acum": [0, 0, 32, 64, 96, 128, 144]}, {"nome": "PADRE PARAISO", "realizado_mes": [0, 0, 31, 39, 34, 30, 15], "meta_mes": [0, 0, 32, 32, 32, 32, 16], "realizado_acum": [0, 0, 31, 70, 104, 134, 149], "meta_acum": [0, 0, 32, 64, 96, 128, 144]}, {"nome": "PEDRA AZUL", "realizado_mes": [0, 0, 17, 31, 29, 27, 16], "meta_mes": [0, 0, 24, 24, 24, 24, 12], "realizado_acum": [0, 0, 17, 48, 77, 104, 120], "meta_acum": [0, 0, 24, 48, 72, 96, 108]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [0, 12, 24, 35, 32, 34, 21], "meta_mes": [0, 0, 32, 32, 32, 32, 16], "realizado_acum": [0, 12, 36, 71, 103, 137, 158], "meta_acum": [0, 0, 32, 64, 96, 128, 144]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [6, 25, 45, 35, 31, 31, 28], "meta_mes": [0, 0, 28, 28, 28, 28, 14], "realizado_acum": [6, 31, 76, 111, 142, 173, 201], "meta_acum": [0, 0, 28, 56, 84, 112, 126]}], "total_mes": [7, 86, 346, 480, 497, 490, 249], "total_meta_mes": [0, 0, 436, 436, 436, 436, 218], "total_acum": [7, 93, 439, 919, 1416, 1906, 2155], "total_meta_acum": [0, 0, 436, 872, 1308, 1744, 1962]}, "itvd": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "trafico_mes": [0, 0, 1, 0, 0, 0, 2], "vit_mes": [2, 1, 0, 0, 1, 0, 1], "trafico_acum": [0, 0, 1, 1, 1, 1, 3], "vit_acum": [2, 3, 3, 3, 4, 4, 5]}, {"nome": "ARACUAI", "trafico_mes": [4, 8, 6, 8, 15, 2, 9], "vit_mes": [1, 6, 0, 1, 4, 1, 2], "trafico_acum": [4, 12, 18, 26, 41, 43, 52], "vit_acum": [1, 7, 7, 8, 12, 13, 15]}, {"nome": "CACHOEIRA DE PAJEU", "trafico_mes": [0, 0, 1, 0, 0, 0, 3], "vit_mes": [0, 0, 0, 2, 0, 0, 2], "trafico_acum": [0, 0, 1, 1, 1, 1, 4], "vit_acum": [0, 0, 0, 2, 2, 2, 4]}, {"nome": "COMERCINHO", "trafico_mes": [0, 0, 0, 2, 0, 0, 0], "vit_mes": [0, 0, 0, 0, 0, 0, 0], "trafico_acum": [0, 0, 0, 2, 2, 2, 2], "vit_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "CORONEL MURTA", "trafico_mes": [0, 2, 0, 0, 0, 0, 1], "vit_mes": [0, 0, 1, 0, 0, 0, 0], "trafico_acum": [0, 2, 2, 2, 2, 2, 3], "vit_acum": [0, 0, 1, 1, 1, 1, 1]}, {"nome": "DIVISA ALEGRE", "trafico_mes": [0, 0, 0, 1, 0, 0, 0], "vit_mes": [0, 0, 0, 0, 0, 0, 1], "trafico_acum": [0, 0, 0, 1, 1, 1, 1], "vit_acum": [0, 0, 0, 0, 0, 0, 1]}, {"nome": "ITAOBIM", "trafico_mes": [8, 8, 3, 2, 6, 5, 9], "vit_mes": [0, 0, 2, 1, 2, 2, 0], "trafico_acum": [8, 16, 19, 21, 27, 32, 41], "vit_acum": [0, 0, 2, 3, 5, 7, 7]}, {"nome": "ITINGA", "trafico_mes": [1, 3, 1, 0, 0, 0, 0], "vit_mes": [1, 0, 0, 0, 0, 1, 1], "trafico_acum": [1, 4, 5, 5, 5, 5, 5], "vit_acum": [1, 1, 1, 1, 1, 2, 3]}, {"nome": "MEDINA", "trafico_mes": [0, 6, 3, 1, 7, 2, 2], "vit_mes": [2, 1, 0, 1, 2, 0, 1], "trafico_acum": [0, 6, 9, 10, 17, 19, 21], "vit_acum": [2, 3, 3, 4, 6, 6, 7]}, {"nome": "PADRE PARAISO", "trafico_mes": [2, 1, 1, 2, 1, 2, 1], "vit_mes": [0, 1, 1, 0, 0, 1, 0], "trafico_acum": [2, 3, 4, 6, 7, 9, 10], "vit_acum": [0, 1, 2, 2, 2, 3, 3]}, {"nome": "PEDRA AZUL", "trafico_mes": [11, 3, 3, 5, 3, 1, 4], "vit_mes": [2, 1, 0, 1, 0, 1, 1], "trafico_acum": [11, 14, 17, 22, 25, 26, 30], "vit_acum": [2, 3, 3, 4, 4, 5, 6]}, {"nome": "PONTO DOS VOLANTES", "trafico_mes": [0, 0, 0, 0, 0, 0, 0], "vit_mes": [0, 0, 0, 0, 1, 0, 0], "trafico_acum": [0, 0, 0, 0, 0, 0, 0], "vit_acum": [0, 0, 0, 0, 1, 1, 1]}, {"nome": "VIRGEM DA LAPA", "trafico_mes": [0, 1, 0, 2, 1, 1, 0], "vit_mes": [0, 0, 0, 1, 0, 2, 0], "trafico_acum": [0, 1, 1, 3, 4, 5, 5], "vit_acum": [0, 0, 0, 1, 1, 3, 3]}], "total_trafico_mes": [26, 32, 19, 23, 33, 13, 31], "total_trafico_acum": [26, 58, 77, 100, 133, 146, 177], "total_vit_mes": [8, 10, 4, 7, 10, 8, 9], "total_vit_acum": [8, 18, 22, 29, 39, 47, 56]}, "vd": {"meses": ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"], "municipios": [{"nome": "AGUAS VERMELHAS", "realizado_mes": [0, 0, 1, 5, 0, 0, 1], "meta_mes": [0, 0, 5, 1, 0, 0, 1], "realizado_acum": [0, 0, 1, 6, 6, 6, 7], "meta_acum": [0, 0, 5, 6, 6, 6, 7]}, {"nome": "ARACUAI", "realizado_mes": [0, 1, 0, 4, 4, 5, 4], "meta_mes": [0, 1, 0, 4, 4, 5, 4], "realizado_acum": [0, 1, 1, 5, 9, 14, 18], "meta_acum": [0, 1, 1, 5, 9, 14, 18]}, {"nome": "CACHOEIRA DE PAJEU", "realizado_mes": [1, 0, 0, 3, 0, 0, 1], "meta_mes": [1, 0, 2, 1, 0, 0, 1], "realizado_acum": [1, 1, 1, 4, 4, 4, 5], "meta_acum": [1, 1, 3, 4, 4, 4, 5]}, {"nome": "COMERCINHO", "realizado_mes": [0, 0, 0, 0, 0, 0, 0], "meta_mes": [0, 0, 0, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 0], "meta_acum": [0, 0, 0, 0, 0, 0, 0]}, {"nome": "CORONEL MURTA", "realizado_mes": [0, 0, 0, 0, 0, 0, 2], "meta_mes": [0, 0, 2, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 0, 0, 2], "meta_acum": [0, 0, 2, 2, 2, 2, 2]}, {"nome": "DIVISA ALEGRE", "realizado_mes": [0, 0, 0, 1, 1, 1, 1], "meta_mes": [0, 0, 0, 1, 1, 1, 1], "realizado_acum": [0, 0, 0, 1, 2, 3, 4], "meta_acum": [0, 0, 0, 1, 2, 3, 4]}, {"nome": "ITAOBIM", "realizado_mes": [4, 2, 2, 3, 2, 3, 2], "meta_mes": [4, 2, 2, 3, 1, 3, 3], "realizado_acum": [4, 6, 8, 11, 13, 16, 18], "meta_acum": [4, 6, 8, 11, 12, 15, 18]}, {"nome": "ITINGA", "realizado_mes": [0, 0, 1, 0, 0, 0, 0], "meta_mes": [0, 0, 1, 0, 0, 0, 0], "realizado_acum": [0, 0, 1, 1, 1, 1, 1], "meta_acum": [0, 0, 1, 1, 1, 1, 1]}, {"nome": "MEDINA", "realizado_mes": [1, 1, 1, 1, 1, 1, 1], "meta_mes": [1, 1, 1, 1, 1, 1, 1], "realizado_acum": [1, 2, 3, 4, 5, 6, 7], "meta_acum": [1, 2, 3, 4, 5, 6, 7]}, {"nome": "PADRE PARAISO", "realizado_mes": [2, 1, 3, 0, 0, 0, 1], "meta_mes": [2, 1, 0, 1, 1, 1, 1], "realizado_acum": [2, 3, 6, 6, 6, 6, 7], "meta_acum": [2, 3, 3, 4, 5, 6, 7]}, {"nome": "PEDRA AZUL", "realizado_mes": [0, 0, 12, 0, 0, 0, 0], "meta_mes": [0, 0, 7, 1, 1, 1, 1], "realizado_acum": [0, 0, 12, 12, 12, 12, 12], "meta_acum": [0, 0, 7, 8, 9, 10, 11]}, {"nome": "PONTO DOS VOLANTES", "realizado_mes": [0, 0, 0, 0, 1, 0, 0], "meta_mes": [0, 0, 1, 0, 0, 0, 0], "realizado_acum": [0, 0, 0, 0, 1, 1, 1], "meta_acum": [0, 0, 1, 1, 1, 1, 1]}, {"nome": "VIRGEM DA LAPA", "realizado_mes": [0, 0, 1, 0, 0, 0, 0], "meta_mes": [0, 0, 1, 0, 0, 0, 0], "realizado_acum": [0, 0, 1, 1, 1, 1, 1], "meta_acum": [0, 0, 1, 1, 1, 1, 1]}], "total_mes": [8, 5, 21, 17, 9, 10, 13], "total_meta_mes": [8, 5, 22, 13, 9, 12, 13], "total_acum": [8, 13, 34, 51, 60, 70, 83], "total_meta_acum": [8, 13, 35, 48, 57, 69, 82]}};
+const MESES = DATA.mv.meses;
+
+// Textos oficiais extraídos das caixas de definição do Power BI original (Report/Layout do .pbix)
+const DEFS = {
+  cvpe: '<b>Naturezas CVPe</b><br>Homicídio (B01.121) &middot; Feminicídio (B01.504) &middot; Sequestro e Cárcere Privado (B01.148) &middot; Tortura (B02.001). Consumados e tentados, desde que não resultem em lesão fatal.',
+  cvpa: '<b>Naturezas CVPa (qtde de vítimas)</b><br><code>C01.157</code> Roubo &middot; <code>C01.158</code> Extorsão &middot; <code>C01.159</code> Extorsão mediante sequestro. Consumados e tentados, desde que não resultem em lesão fatal.',
+  pog: '<b>Naturezas das operações de POG</b><br><code>Y04009</code> Operação Trânsito Seguro &middot; <code>Y07001</code> Batida Policial &middot; <code>Y07002</code> Operação Presença &middot; <code>Y07003</code> Incursão em Zona Quente de Criminalidade &middot; <code>Y07010</code> Divisas Seguras &middot; <code>Y10001</code> Cumprimento de Busca e Apreensão de Objetos, Pessoas e/ou Animais.',
+  ppag: '<b>Naturezas do PPAG (policiamento de proximidade)</b><br><code>Y15001</code> Patrulha Escolar/Prevenção às Drogas &middot; <code>Y07012</code> Prevenção à Violência Doméstica &middot; <code>Y15010</code> Ação/Operação em Zona Rural (na base atual do SiGOp esse tipo de operação é lançado como <code>Y07014</code>, a Metas26 ainda usa o nome legado Y15010) &middot; <code>Y15020</code> Ação/Operação em Área de Risco (sem indicador de meta definido ainda).',
+  idob: '<span class="formula">IDOB = [Qtde de Operações em Bares/Botecos &minus; Nº de Vítimas (MV + CVPe + CVPa) &times; 10] &divide; Qtde de Operações em Bares/Botecos &times; 100</span><span class="polarity">Polaridade: quanto maior (%), melhor</span>',
+};
+
+function pct(realizado, meta) {
+  if (!meta) return realizado > 0 ? 100 : 0;
+  return ((realizado - meta) / meta) * 100;
+}
+function fmtPct(v) {
+  const cls = v > 0 ? 'pos' : 'neg';
+  const sign = v > 0 ? '+' : '';
+  return `<span class="${cls}">${sign}${v.toFixed(1)}%</span>`;
+}
+
+function kpiCard(label, val, isGoodWhenNegative=true) {
+  let cls = 'kpi-neutral';
+  if (typeof val === 'number') {
+    cls = (val <= 0) === isGoodWhenNegative ? 'kpi-green' : 'kpi-red';
+  }
+  const display = typeof val === 'number' ? (val>0?'+':'') + val.toFixed(1) + '%' : val;
+  return `<div class="kpi-card ${cls}"><div class="val">${display}</div><div class="lbl">${label}</div></div>`;
+}
+
+function renderHome() {
+  const mvAcum = DATA.mv.total_acum[6], mvMeta = DATA.mv.total_meta_acum[6];
+  const cvpeAcum = DATA.cvpe.total_acum[6], cvpeMeta = DATA.cvpe.total_meta_acum[6];
+  const cvpaAcum = DATA.cvpa.total_acum[6], cvpaMeta = DATA.cvpa.total_meta_acum[6];
+  const armasAcum = DATA.armas.total_acum[6];
+  const furtoAcum = DATA.furto.total_acum[6], furtoMeta = DATA.furto.total_meta_acum[6];
+  const pogAcum = DATA.pog.total_acum[6], pogMeta = DATA.pog.total_meta_acum[6];
+  const padescAcum = DATA.padesc.total_acum[6], padescMeta = DATA.padesc.total_meta_acum[6];
+  const mvPct = pct(mvAcum, mvMeta);
+  const cvpePct = pct(cvpeAcum, cvpeMeta);
+  const cvpaPct = pct(cvpaAcum, cvpaMeta);
+  const furtoPct = pct(furtoAcum, furtoMeta);
+  const pogPct = (pogMeta ? (pogAcum/pogMeta*100) : 0) - 100; // aqui >0 é bom (ao contrário de MV/CVPE/CVPa)
+
+  let html = `<div class="page-title">Dashboard 70º BPM</div>`;
+  html += `<div class="updated">Baseado no export SiGOp (7.965 REDS + 3.861 RAT POG/PPAG + 1.442 RAT Boemia + 2.155 RAT Pad.Escolar, jan-jul/2026) + Metas26. Saque Seguro, Pol.Cid, IDOCA, ITVD, VD, VT ainda aguardando export específico.</div>`;
+  html += `<div class="kpi-grid">`;
+  html += kpiCard('Mortes Violentas (Acum)', mvPct);
+  html += kpiCard('CVpe Acum', cvpePct);
+  html += kpiCard('CVpa Acum', cvpaPct);
+  html += `<div class="kpi-card ${pogAcum>=pogMeta?'kpi-green':'kpi-red'}"><div class="val">${pogAcum}/${pogMeta}</div><div class="lbl">POG Acum (Res/Meta)</div></div>`;
+  html += `</div>`;
+  html += `<div class="kpi-grid">`;
+  html += `<div class="kpi-card ${padescAcum>=padescMeta?'kpi-green':'kpi-red'}"><div class="val">${padescAcum}/${padescMeta}</div><div class="lbl">Pad. Escolar Acum (Res/Meta)</div></div>`;
+  html += `<div class="kpi-card kpi-neutral"><div class="val">${armasAcum}</div><div class="lbl">Armas de Fogo e simu.</div></div>`;
+  html += kpiCard('Furto Rural Acum', furtoPct);
+  const idobQop = DATA.idob.total_qtdeop_acum[6];
+  const idobVit = DATA.idob.total_mv_acum[6]+DATA.idob.total_cvpe_acum[6]+DATA.idob.total_cvpa_acum[6];
+  const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
+  html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div></div>`;
+  html += `</div>`;
+  document.getElementById('main').innerHTML = html;
+}
+
+function drawBarChart(canvasId, labels, values, color) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.clientWidth * 2;
+  const H = canvas.height = 260 * 2;
+  ctx.scale(1,1);
+  ctx.clearRect(0,0,W,H);
+  const max = Math.max(...values, 1);
+  const n = labels.length;
+  const barW = Math.min(56, (W - 40) / n * 0.58);
+  const gap = (W-40) / n;
+  ctx.font = '600 19px "IBM Plex Mono", monospace';
+  values.forEach((v, i) => {
+    const barH = (v / max) * (H - 80);
+    const x = 20 + i*gap + (gap-barW)/2;
+    const y = H - 60 - barH;
+    const grad = ctx.createLinearGradient(0, y, 0, H-60);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, color + '55');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x, y, barW, barH);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, barW, barH);
+    ctx.fillStyle = '#eaf1f8';
+    ctx.textAlign = 'center';
+    ctx.fillText(v, x + barW/2, y - 8);
+    ctx.save();
+    ctx.translate(x + barW/2, H - 40);
+    ctx.rotate(-Math.PI/8);
+    ctx.font = '13px "IBM Plex Mono", monospace';
+    ctx.fillStyle = '#7891a8';
+    ctx.textAlign = 'right';
+    const lbl = (labels[i]||'').toString().slice(0, 22);
+    ctx.fillText(lbl, 0, 0);
+    ctx.restore();
+  });
+}
+
+function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=false) {
+  const d = DATA[key];
+  let monthIdx = 6; // julho por padrão (acumulado completo)
+  const showCharts = !!(localKey && faixaKey && DATA[localKey] && DATA[faixaKey]);
+
+  function fmtPctPolarity(v) {
+    const good = higherIsBetter ? v >= 0 : v <= 0;
+    const cls = good ? 'neg' : 'pos'; // 'neg' = verde, 'pos' = vermelho (ver fmtPct/kpiCard)
+    const sign = v > 0 ? '+' : '';
+    return `<span class="${cls}">${sign}${v.toFixed(1)}%</span>`;
+  }
+
+  function table(mi) {
+    let rows = '';
+    d.municipios.forEach(m => {
+      const realMes = m.realizado_mes[mi];
+      const metaMes = m.meta_mes[mi];
+      const realAcum = m.realizado_acum[mi];
+      const metaAcum = m.meta_acum[mi];
+      const pctAcum = pct(realAcum, metaAcum);
+      const saldo = metaAcum - realAcum;
+      rows += `<tr>
+        <td style="text-align:left">${m.nome}</td>
+        <td>${realMes}</td>
+        <td>${metaMes}</td>
+        <td class="col-divider">${realAcum}</td>
+        <td>${metaAcum}</td>
+        <td>${fmtPctPolarity(pctAcum)}</td>
+        <td>${saldo}</td>
+      </tr>`;
+    });
+    const totRealAcum = d.total_acum[mi], totMetaAcum = d.total_meta_acum[mi];
+    const totPct = pct(totRealAcum, totMetaAcum);
+    rows += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)">
+        <td style="text-align:left">TOTAL</td>
+        <td>${d.total_mes[mi]}</td>
+        <td>${d.total_meta_mes[mi]}</td>
+        <td class="col-divider">${totRealAcum}</td>
+        <td>${totMetaAcum}</td>
+        <td>${fmtPctPolarity(totPct)}</td>
+        <td>${totMetaAcum-totRealAcum}</td>
+      </tr>`;
+    return rows;
+  }
+
+  let html = `<div class="page-title">${title}</div>`;
+  if (DEFS[key]) html += `<div class="def-box">${DEFS[key]}</div>`;
+  html += `<select class="month-select" id="monthSel">`;
+  MESES.forEach((m,i) => html += `<option value="${i}" ${i===6?'selected':''}>${m}</option>`);
+  html += `</select>`;
+  html += `<table class="data-table" id="dataTable"><thead><tr>
+    <th style="text-align:left">Município</th><th>Realizado Mês</th><th>Meta Mês</th>
+    <th class="col-divider">Realizado Acum</th><th>Meta Acum</th><th>% vs Meta (Acum)</th><th>Saldo</th>
+  </tr></thead><tbody>${table(monthIdx)}</tbody></table>`;
+  if (showCharts) {
+    const labelLocal = key === 'furto' ? 'Causa' : 'Local Imediato';
+    const labelFaixa = key === 'furto' ? 'Logradouro' : 'Faixa Horária';
+    html += `<div class="charts-row">
+      <div class="chart-box"><h3>${labelLocal}</h3><canvas id="chartLocal" style="width:100%;height:260px"></canvas></div>
+      <div class="chart-box"><h3>${labelFaixa}</h3><canvas id="chartFaixa" style="width:100%;height:260px"></canvas></div>
+    </div>`;
+  }
+  document.getElementById('main').innerHTML = html;
+
+  document.getElementById('monthSel').addEventListener('change', (e) => {
+    document.querySelector('#dataTable tbody').innerHTML = table(parseInt(e.target.value));
+  });
+
+  if (showCharts) {
+    const localData = DATA[localKey].slice(0, 10);
+    const faixaData = DATA[faixaKey].slice(0, 10);
+    drawBarChart('chartLocal', localData.map(x=>x[0]), localData.map(x=>x[1]), '#e8a83c');
+    drawBarChart('chartFaixa', faixaData.map(x=>x[0]), faixaData.map(x=>x[1]), '#21c98a');
+  }
+}
+
+function pogBandColor(v) {
+  // Meta = 100%. Faixa 95-105 = verde, 90-95/105-110 = amarelo, fora disso = vermelho.
+  if (v >= 95 && v <= 105) return { bg: 'rgba(33,201,138,0.22)', fg: '#21c98a' };
+  if ((v >= 90 && v < 95) || (v > 105 && v <= 110)) return { bg: 'rgba(212,194,42,0.22)', fg: '#d4c22a' };
+  return { bg: 'rgba(230,72,79,0.22)', fg: '#e6484f' };
+}
+function pogCell(v) {
+  const c = pogBandColor(v);
+  return `<td style="background:${c.bg};color:${c.fg};font-weight:600">${v.toFixed(2)}%</td>`;
+}
+
+function renderPOGPage() {
+  const d = DATA.pog;
+  let modo = 'mensal'; // ou 'acumulado'
+  let mi = 6;
+
+  function rows(mi) {
+    let html = '';
+    d.municipios.forEach(m => {
+      const rMes=m.realizado_mes[mi], mMes=m.meta_mes[mi], rAc=m.realizado_acum[mi], mAc=m.meta_acum[mi];
+      const dMes = mMes ? (rMes/mMes*100) : 100; // meta 0 e resultado 0 = meta cumprida
+      const dAc = mAc ? (rAc/mAc*100) : 100;
+      html += `<tr><td style="text-align:left">${m.nome}</td>
+        <td>${mMes}</td><td>${rMes}</td>${pogCell(dMes)}
+        <td class="col-divider">${mAc}</td><td>${rAc}</td>${pogCell(dAc)}<td>${rAc-mAc}</td>
+      </tr>`;
+    });
+    const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
+    const tDMes = tMMes? tRMes/tMMes*100:100, tDAc = tMAc? tRAc/tMAc*100:100;
+    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
+      <td>${tMMes}</td><td>${tRMes}</td>${pogCell(tDMes)}
+      <td class="col-divider">${tMAc}</td><td>${tRAc}</td>${pogCell(tDAc)}<td>${tRAc-tMAc}</td>
+    </tr>`;
+    return html;
+  }
+
+  let html = `<div class="page-title">Operações de POG por frações em ${MESES[mi]} de 2026</div>`;
+  html += `<div class="def-box">${DEFS.pog}</div>`;
+  html += `<select class="month-select" id="pogMonthSel">`;
+  MESES.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
+  html += `</select>`;
+  html += `<table class="data-table" id="pogTable"><thead><tr>
+    <th style="text-align:left">Município</th><th>Meta Mês</th><th>Res Mês</th><th>Desemp. Mês</th>
+    <th class="col-divider">Meta Acum</th><th>Res Acum</th><th>Desemp. Acum</th><th>Saldo</th>
+  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
+  html += `<div class="charts-row">
+    <div class="chart-box"><h3>POG por Bairros</h3><canvas id="chartPogBairro" style="width:100%;height:260px"></canvas></div>
+    <div class="chart-box"><h3>POG por Natureza</h3><canvas id="chartPogNatureza" style="width:100%;height:260px"></canvas></div>
+  </div>`;
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('pogMonthSel').addEventListener('change', (e) => {
+    document.querySelector('#pogTable tbody').innerHTML = rows(parseInt(e.target.value));
+  });
+  const bairros = DATA.pog_bairros.slice(0,10);
+  const naturezas = DATA.pog_natureza;
+  drawBarChart('chartPogBairro', bairros.map(x=>x[0]), bairros.map(x=>x[1]), '#e8a83c');
+  drawBarChart('chartPogNatureza', naturezas.map(x=>x[0]), naturezas.map(x=>x[1]), '#21c98a');
+}
+
+function renderPPAGPage() {
+  let mi = 6;
+  const subs = [
+    {key:'y15001', label:'Y15001'},
+    {key:'y07012', label:'Y07012'},
+    {key:'y07014', label:'Y07014'},
+  ];
+
+  function rows(mi) {
+    let html = '';
+    const municipios = DATA.ppag.y15001.municipios.map(m => m.nome);
+    municipios.forEach((nome, idx) => {
+      html += `<tr><td style="text-align:left">${nome}</td>`;
+      subs.forEach((s, si) => {
+        const m = DATA.ppag[s.key].municipios[idx];
+        const meta = m.meta_mes[mi], res = m.realizado_mes[mi];
+        const desemp = meta ? (res/meta*100) : 100; // meta 0 e resultado 0 = meta cumprida
+        const cls = desemp>=100?'neg':'pos';
+        const dc = si>0 ? ' class="col-divider"' : '';
+        html += `<td${dc}>${meta}</td><td>${res}</td><td><span class="${cls}">${desemp.toFixed(0)}%</span></td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>`;
+    subs.forEach((s, si) => {
+      const d = DATA.ppag[s.key];
+      const meta = d.total_meta_mes[mi], res = d.total_mes[mi];
+      const desemp = meta ? (res/meta*100) : 100;
+      const dc = si>0 ? ' class="col-divider"' : '';
+      html += `<td${dc}>${meta}</td><td>${res}</td><td><span class="${desemp>=100?'neg':'pos'}">${desemp.toFixed(0)}%</span></td>`;
+    });
+    html += `</tr>`;
+    return html;
+  }
+
+  let html = `<div class="page-title">Policiamento de proximidade | Dados de ${MESES[mi]}</div>`;
+  html += `<div class="def-box">${DEFS.ppag}</div>`;
+  html += `<select class="month-select" id="ppagMonthSel">`;
+  MESES.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
+  html += `</select>`;
+  html += `<table class="data-table" id="ppagTable"><thead><tr>
+    <th style="text-align:left">Município</th>
+    <th>Meta Y15001</th><th>Res.</th><th>Des.</th>
+    <th>Meta Y07012</th><th>Res.</th><th>Des.</th>
+    <th>Meta Y07014</th><th>Res.</th><th>Des.</th>
+  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
+  html += `<div class="updated">Y15001 - Patrulha Escolar/Patrulha de Prevenção às Drogas; Y07012 - Operação de Prevenção a Violência Doméstica; Y07014 - Ação/Operação em Zonal Rural (meta herdada da coluna legada Meta_Y15010 na planilha).</div>`;
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('ppagMonthSel').addEventListener('change', (e) => {
+    document.querySelector('#ppagTable tbody').innerHTML = rows(parseInt(e.target.value));
+  });
+}
+
+function idobColor(v) {
+  if (v >= 95) return 'rgba(33,201,138,0.22)';
+  if (v >= 85) return 'rgba(212,194,42,0.22)';
+  return 'rgba(230,72,79,0.22)';
+}
+function idobTextColor(v) {
+  if (v >= 95) return '#21c98a';
+  if (v >= 85) return '#d4c22a';
+  return '#e6484f';
+}
+
+function renderIDOBPage() {
+  const d = DATA.idob;
+  let mi = 6;
+
+  function calcIdob(qop, vit) {
+    if (!qop) return 0;
+    return ((qop - vit*10) / qop) * 100;
+  }
+
+  function rows(mi) {
+    let html = '';
+    const list = d.municipios.map(m => {
+      const vitMes = m.mv_mes[mi]+m.cvpe_mes[mi]+m.cvpa_mes[mi];
+      const vitAcum = m.mv_acum[mi]+m.cvpe_acum[mi]+m.cvpa_acum[mi];
+      return {
+        nome:m.nome, qopMes:m.qop_mes[mi], qopAcum:m.qop_acum[mi],
+        mvMes:m.mv_mes[mi], cvpeMes:m.cvpe_mes[mi], cvpaMes:m.cvpa_mes[mi],
+        mvAcum:m.mv_acum[mi], cvpeAcum:m.cvpe_acum[mi], cvpaAcum:m.cvpa_acum[mi],
+        idobMvMes: calcIdob(m.qop_mes[mi], m.mv_mes[mi]),
+        idobCvpeMes: calcIdob(m.qop_mes[mi], m.cvpe_mes[mi]),
+        idobCvpaMes: calcIdob(m.qop_mes[mi], m.cvpa_mes[mi]),
+        idobMvAcum: calcIdob(m.qop_acum[mi], m.mv_acum[mi]),
+        idobCvpeAcum: calcIdob(m.qop_acum[mi], m.cvpe_acum[mi]),
+        idobCvpaAcum: calcIdob(m.qop_acum[mi], m.cvpa_acum[mi]),
+        idobTotalMes: calcIdob(m.qop_mes[mi], vitMes),
+        idobTotalAcum: calcIdob(m.qop_acum[mi], vitAcum),
+      };
+    });
+    const cell = (v) => `<td style="background:${idobColor(v)};color:${idobTextColor(v)};font-weight:600">${v.toFixed(1)}</td>`;
+    list.forEach(x => {
+      html += `<tr><td style="text-align:left">${x.nome}</td>
+        <td>${x.qopMes}</td>
+        <td>${x.mvMes}</td>${cell(x.idobMvMes)}
+        <td>${x.cvpeMes}</td>${cell(x.idobCvpeMes)}
+        <td>${x.cvpaMes}</td>${cell(x.idobCvpaMes)}
+        ${cell(x.idobTotalMes)}
+        <td>${x.qopAcum}</td>
+        <td>${x.mvAcum}</td>${cell(x.idobMvAcum)}
+        <td>${x.cvpeAcum}</td>${cell(x.idobCvpeAcum)}
+        <td>${x.cvpaAcum}</td>${cell(x.idobCvpaAcum)}
+        ${cell(x.idobTotalAcum)}
+      </tr>`;
+    });
+    const sum = k => list.reduce((s,x)=>s+x[k],0);
+    const tQopMes = d.total_qtdeop_mes[mi], tQopAcum = d.total_qtdeop_acum[mi];
+    const tMvMes=sum('mvMes'), tCvpeMes=sum('cvpeMes'), tCvpaMes=sum('cvpaMes');
+    const tMvAcum=sum('mvAcum'), tCvpeAcum=sum('cvpeAcum'), tCvpaAcum=sum('cvpaAcum');
+    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
+      <td>${tQopMes}</td>
+      <td>${tMvMes}</td>${cell(calcIdob(tQopMes,tMvMes))}
+      <td>${tCvpeMes}</td>${cell(calcIdob(tQopMes,tCvpeMes))}
+      <td>${tCvpaMes}</td>${cell(calcIdob(tQopMes,tCvpaMes))}
+      ${cell(calcIdob(tQopMes, tMvMes+tCvpeMes+tCvpaMes))}
+      <td>${tQopAcum}</td>
+      <td>${tMvAcum}</td>${cell(calcIdob(tQopAcum,tMvAcum))}
+      <td>${tCvpeAcum}</td>${cell(calcIdob(tQopAcum,tCvpeAcum))}
+      <td>${tCvpaAcum}</td>${cell(calcIdob(tQopAcum,tCvpaAcum))}
+      ${cell(calcIdob(tQopAcum, tMvAcum+tCvpeAcum+tCvpaAcum))}
+    </tr>`;
+    return html;
+  }
+
+  let html = `<div class="page-title">Indicador de Desempenho da Operação Boemia (IDOB) em ${MESES[mi]} de 2026</div>`;
+  html += `<div class="def-box">${DEFS.idob}</div>`;
+  html += `<select class="month-select" id="idobMonthSel">`;
+  MESES.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
+  html += `</select>`;
+  html += `<table class="data-table" id="idobTable"><thead><tr>
+    <th style="text-align:left" rowspan="2">Município</th>
+    <th colspan="8">${MESES[mi]}</th><th colspan="8">Acumulado</th>
+  </tr><tr>
+    <th>Qtde Op</th><th>MV</th><th>IDOB_MV</th><th>CVPe</th><th>IDOB_CVPe</th><th>CVPa</th><th>IDOB_CVPa</th><th>IDOB Total</th>
+    <th>Qtde Op</th><th>MV</th><th>IDOB_MV</th><th>CVPe</th><th>IDOB_CVPe</th><th>CVPa</th><th>IDOB_CVPa</th><th>IDOB Total</th>
+  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
+  html += `<div class="updated">IDOB_X = [Qtde de Operações Boemia − Vítimas de X (em bar/boate como local do fato) × 10] ÷ Qtde de Operações × 100, calculado separado por MV, CVPe e CVPa pra identificar de onde vem a queda de desempenho. Quanto maior, melhor. Fonte: export RAT da Operação Boemia (1.442 registros) cruzado com o REDS geral pelo local do fato.</div>`;
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('idobMonthSel').addEventListener('change', (e) => {
+    document.querySelector('#idobTable tbody').innerHTML = rows(parseInt(e.target.value));
+  });
+}
+
+function renderITVDPage() {
+  const d = DATA.itvd;
+  let mi = 6;
+
+  function calcItvd(t, v) {
+    if (!t) return 0;
+    return ((t - v*2) / t) * 100;
+  }
+
+  function rows(mi) {
+    let html = '';
+    const list = d.municipios.map(m => ({
+      nome: m.nome,
+      tMes: m.trafico_mes[mi], vMes: m.vit_mes[mi], iMes: calcItvd(m.trafico_mes[mi], m.vit_mes[mi]),
+      tAcum: m.trafico_acum[mi], vAcum: m.vit_acum[mi], iAcum: calcItvd(m.trafico_acum[mi], m.vit_acum[mi]),
+    }));
+    const cell = (v) => `<td style="background:${idobColor(v)};color:${idobTextColor(v)};font-weight:600">${v.toFixed(1)}</td>`;
+    list.forEach(x => {
+      html += `<tr><td style="text-align:left">${x.nome}</td>
+        <td>${x.tMes}</td><td>${x.vMes}</td>${cell(x.iMes)}
+        <td class="col-divider">${x.tAcum}</td><td>${x.vAcum}</td>${cell(x.iAcum)}
+      </tr>`;
+    });
+    const tTMes=d.total_trafico_mes[mi], tVMes=d.total_vit_mes[mi], tTAcum=d.total_trafico_acum[mi], tVAcum=d.total_vit_acum[mi];
+    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
+      <td>${tTMes}</td><td>${tVMes}</td>${cell(calcItvd(tTMes,tVMes))}
+      <td class="col-divider">${tTAcum}</td><td>${tVAcum}</td>${cell(calcItvd(tTAcum,tVAcum))}
+    </tr>`;
+    return html;
+  }
+
+  let html = `<div class="page-title">Indicador de Combate ao Tráfico e Violência Relacionada às Drogas (ITVD) em ${MESES[mi]} de 2026</div>`;
+  html += `<div class="def-box"><span class="formula">ITVD = [Total de REDS Tráfico e Uso &minus; (REDS de MV + CVPe + CVPa) &times; 2] &divide; Total de REDS Tráfico e Uso &times; 100</span><span class="polarity">Polaridade: quanto maior (%), melhor &mdash; valores positivos indicam impacto preventivo, negativos mostram que houve mais crimes, exigindo ajuste no esforço policial.</span></div>`;
+  html += `<select class="month-select" id="itvdMonthSel">`;
+  MESES.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
+  html += `</select>`;
+  html += `<table class="data-table" id="itvdTable"><thead><tr>
+    <th style="text-align:left">Município</th><th>REDS Tráfico/Uso (Mês)</th><th>Vítimas MV+CVPe+CVPa (Mês)</th><th>ITVD (Mês)</th>
+    <th class="col-divider">REDS Tráfico/Uso (Acum)</th><th>Vítimas (Acum)</th><th>ITVD (Acum)</th>
+  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
+  html += `<div class="updated">Fonte: export REDS geral (7.965 registros), naturezas I04033 (tráfico), I04028 (uso) e I99000, cruzado com as vítimas de MV/CVPE/CVPA de toda a cidade (não restrito a local específico).</div>`;
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('itvdMonthSel').addEventListener('change', (e) => {
+    document.querySelector('#itvdTable tbody').innerHTML = rows(parseInt(e.target.value));
+  });
+}
+
+function renderPending(name) {
+  document.getElementById('main').innerHTML = `<div class="page-title">${name}</div>
+    <div class="pending-box">Aguardando o export específico do SiGOp pra esse indicador (RAT/BO com filtro próprio).<br>Assim que Eduardo enviar o CSV, essa página é populada igual às demais.</div>`;
+}
+
+const pages = {
+  home: renderHome,
+  imv: () => renderIndicatorPage('mv', 'IMV — Mortes Violentas', 'mv_local', 'mv_faixa'),
+  cvpe: () => renderIndicatorPage('cvpe', 'CVPE — Crimes Violentos contra o Patrimônio (Pessoa)', 'cvpe_local', 'cvpe_faixa'),
+  cvpa: () => renderIndicatorPage('cvpa', 'CVPa — Crimes Violentos contra o Patrimônio (Ambulante)', 'cvpa_local', 'cvpa_faixa'),
+  armas: () => renderIndicatorPage('armas', 'Armas de Fogo e Simulacros Apreendidos', null, null),
+  furto: () => renderIndicatorPage('furto', 'Furto em Zona Rural', 'furto_causa', 'furto_logradouro'),
+  pog: renderPOGPage,
+  ppag: renderPPAGPage,
+  idob: renderIDOBPage,
+  itvd: renderITVDPage,
+  vd: () => renderIndicatorPage('vd', 'Atividades de Prevenção à Violência Doméstica (Y07012)', null, null, true),
+  padesc: () => renderIndicatorPage('padesc', 'Padrinhos da Escola', null, null, true),
+};
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.classList.contains('disabled')) { renderPending(btn.textContent.trim()); return; }
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const page = btn.dataset.page;
+    pages[page]();
+  });
+});
+
+renderHome();
+</script>
+</body>
+</html>
