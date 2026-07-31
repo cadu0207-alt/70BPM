@@ -214,7 +214,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 31/07/2026 16:10</span>
+      <span>Gerado em 31/07/2026 16:29</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -286,6 +286,7 @@ function renderHome() {
   html += `</div>`;
   html += renderCumprimentoMatrix('mes');
   html += renderCumprimentoMatrix('acum');
+  html += renderRankingTable('acum');
   document.getElementById('main').innerHTML = html;
 }
 
@@ -334,6 +335,104 @@ function statusQualidade(v) {
   if (v >= 95) return 'verde';
   if (v >= 85) return 'amarelo';
   return 'vermelho';
+}
+
+// Pontuação do ranking geral (Home)
+function statusToPoints(status) { return status === 'verde' ? 2 : (status === 'amarelo' ? 1 : 0); }
+
+// IMV/CVPe/CVPa: cumpriu = 3 pontos base; cada -10% de redução além da meta = +1; cada +10% fora da meta = -1
+function scoreTeto(realizado, meta) {
+  const v = meta ? ((realizado - meta) / meta) * 100 : (realizado > 0 ? 100 : 0);
+  if (v <= 0) return 3 + Math.floor(-v / 10);
+  return -Math.floor(v / 10);
+}
+
+function renderRankingTable(modo) {
+  const mi = 6;
+  const sufixo = modo === 'acum' ? '_acum' : '_mes';
+  const idxOf = (list) => {
+    const idx = {};
+    list.forEach((m,i) => idx[normKey(m.nome)] = i);
+    return idx;
+  };
+  const idxMv = idxOf(DATA.mv.municipios), idxCvpe = idxOf(DATA.cvpe.municipios), idxCvpa = idxOf(DATA.cvpa.municipios);
+  const idxPog = idxOf(DATA.pog.municipios);
+  const idxY15001 = idxOf(DATA.ppag.y15001.municipios), idxY07012 = idxOf(DATA.ppag.y07012.municipios), idxY07014 = idxOf(DATA.ppag.y07014.municipios);
+  const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios);
+  const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
+  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
+  function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 0; }
+
+  const ranking = MUNICIPIOS_CANON.map(nomeBonito => {
+    const key = normKey(nomeBonito);
+    const mv = DATA.mv.municipios[idxMv[key]];
+    const cvpe = DATA.cvpe.municipios[idxCvpe[key]];
+    const cvpa = DATA.cvpa.municipios[idxCvpa[key]];
+    const pMv = scoreTeto(mv['realizado'+sufixo][mi], mv['meta'+sufixo][mi]);
+    const pCvpe = scoreTeto(cvpe['realizado'+sufixo][mi], cvpe['meta'+sufixo][mi]);
+    const pCvpa = scoreTeto(cvpa['realizado'+sufixo][mi], cvpa['meta'+sufixo][mi]);
+
+    const pog = DATA.pog.municipios[idxPog[key]];
+    const pogM = pog['meta'+sufixo][mi], pogR = pog['realizado'+sufixo][mi];
+    const pPog = statusToPoints(statusPog(pogM ? (pogR/pogM*100) : 100));
+
+    const y1 = DATA.ppag.y15001.municipios[idxY15001[key]];
+    const pY1 = statusToPoints(statusPiso(y1['realizado'+sufixo][mi], y1['meta'+sufixo][mi]));
+    const y2 = DATA.ppag.y07012.municipios[idxY07012[key]];
+    const pY2 = statusToPoints(statusPiso(y2['realizado'+sufixo][mi], y2['meta'+sufixo][mi]));
+    const y3 = DATA.ppag.y07014.municipios[idxY07014[key]];
+    const pY3 = statusToPoints(statusPiso(y3['realizado'+sufixo][mi], y3['meta'+sufixo][mi]));
+
+    const cav = DATA.cavaloaco.municipios[idxCav[key]];
+    const pCav = statusToPoints(statusPiso(cav['realizado'+sufixo][mi], cav['meta'+sufixo][mi]));
+    const pad = DATA.padesc.municipios[idxPadesc[key]];
+    const pPad = statusToPoints(statusPiso(pad['realizado'+sufixo][mi], pad['meta'+sufixo][mi]));
+
+    const idobM = DATA.idob.municipios[idxIdob[key]];
+    const vit = idobM['mv'+sufixo][mi]+idobM['cvpe'+sufixo][mi]+idobM['cvpa'+sufixo][mi];
+    const pIdob = statusToPoints(statusQualidade(calcIdobLocal(idobM['qop'+sufixo][mi], vit)));
+
+    const itvdM = DATA.itvd.municipios[idxItvd[key]];
+    const pItvd = statusToPoints(statusQualidade(calcItvdLocal(itvdM['trafico'+sufixo][mi], itvdM['vit'+sufixo][mi])));
+
+    const total = pMv+pCvpe+pCvpa+pPog+pY1+pY2+pY3+pCav+pPad+pIdob+pItvd;
+    return { nome: nomeBonito, pMv, pCvpe, pCvpa, pPog, pY1, pY2, pY3, pCav, pPad, pIdob, pItvd, total };
+  });
+
+  ranking.sort((a,b) => b.total - a.total);
+
+  const n = ranking.length;
+  let rows = '';
+  ranking.forEach((r, i) => {
+    const posicao = i+1;
+    let rowStyle = '';
+    if (posicao <= 3) rowStyle = 'background:rgba(33,201,138,0.16)';
+    else if (posicao > n-3) rowStyle = 'background:rgba(230,72,79,0.16)';
+    const totalColor = posicao<=3 ? '#21c98a' : (posicao>n-3 ? '#e6484f' : 'var(--text)');
+    rows += `<tr style="${rowStyle}">
+      <td style="font-weight:700">${posicao}º</td>
+      <td style="text-align:left;font-weight:600">${r.nome}</td>
+      <td>${r.pMv}</td><td>${r.pCvpe}</td><td>${r.pCvpa}</td>
+      <td>${r.pPog}</td><td>${r.pY1}</td><td>${r.pY2}</td><td>${r.pY3}</td><td>${r.pCav}</td><td>${r.pPad}</td>
+      <td>${r.pIdob}</td><td>${r.pItvd}</td>
+      <td style="font-weight:700;color:${totalColor}">${r.total}</td>
+    </tr>`;
+  });
+
+  const tituloPeriodo = modo === 'acum' ? `Acumulado Jan-${MESES[mi]}/2026` : `${MESES[mi]}/2026`;
+  let html = `<div class="chart-box" style="margin-top:4px">
+    <h3>Ranking Geral por Município &middot; ${tituloPeriodo}</h3>
+    <div class="table-wrap" style="margin-bottom:0">
+    <table class="data-table"><thead><tr>
+      <th>#</th><th style="text-align:left">Município</th>
+      <th>IMV</th><th>CVPe</th><th>CVPa</th>
+      <th>POG</th><th>PPAG Esc.</th><th>PPAG VD</th><th>PPAG Rural</th><th>Cav.Aço</th><th>Pad.Esc.</th>
+      <th>IDOB</th><th>ITVD</th><th>TOTAL</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    </div>
+    <div class="updated" style="border:none;margin:10px 0 0;padding:0">IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Demais indicadores: 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). 3 primeiros destacados em verde, 3 últimos em vermelho.</div>
+  </div>`;
+  return html;
 }
 
 function renderCumprimentoMatrix(modo) {
