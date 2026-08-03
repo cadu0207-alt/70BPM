@@ -223,7 +223,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 03/08/2026 11:59</span>
+      <span>Gerado em 03/08/2026 13:51</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -363,9 +363,9 @@ function scoreTeto(realizado, meta) {
 function renderRankingTable(modo) {
   const sufixo = modo === 'acum' ? '_acum' : '_mes';
   const miMv = DATA.mv.total_mes.length-1, miCvpe = DATA.cvpe.total_mes.length-1, miCvpa = DATA.cvpa.total_mes.length-1;
-  const miPog = DATA.pog.total_mes.length-1;
+  const miPog = DATA.pog.total_mes.length-1, miArmas = DATA.armas.total_mes.length-1;
   const miY1 = DATA.ppag.y15001.total_mes.length-1, miY2 = DATA.ppag.y07012.total_mes.length-1, miY3 = DATA.ppag.y07014.total_mes.length-1;
-  const miPadesc = DATA.padesc.total_mes.length-1, miCav = DATA.cavaloaco.total_mes.length-1;
+  const miPadesc = DATA.padesc.total_mes.length-1, miCav = DATA.cavaloaco.total_mes.length-1, miRolez = DATA.rolezinho.total_mes.length-1;
   const miIdob = DATA.idob.total_qtdeop_mes.length-1, miItvd = DATA.itvd.total_trafico_mes.length-1;
   const idxOf = (list) => {
     const idx = {};
@@ -373,12 +373,24 @@ function renderRankingTable(modo) {
     return idx;
   };
   const idxMv = idxOf(DATA.mv.municipios), idxCvpe = idxOf(DATA.cvpe.municipios), idxCvpa = idxOf(DATA.cvpa.municipios);
-  const idxPog = idxOf(DATA.pog.municipios);
+  const idxPog = idxOf(DATA.pog.municipios), idxArmas = idxOf(DATA.armas.municipios);
   const idxY15001 = idxOf(DATA.ppag.y15001.municipios), idxY07012 = idxOf(DATA.ppag.y07012.municipios), idxY07014 = idxOf(DATA.ppag.y07014.municipios);
-  const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios);
+  const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios), idxRolez = idxOf(DATA.rolezinho.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
   function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 0; }
+
+  // pontos por posição no ranking importado do Power BI (sem meta numérica, só ranking 1º-13º)
+  function rankPointsMap(key) {
+    const map = {};
+    DATA[key].rows.forEach((r, i) => {
+      const pontos = i < 4 ? 2 : (i < 9 ? 1 : 0);
+      map[normKey(r.nome)] = pontos;
+    });
+    return map;
+  }
+  const rankRc = rankPointsMap('rc'), rankVcp = rankPointsMap('vcp'), rankVtcv = rankPointsMap('vtcv');
+  const rankVt = rankPointsMap('vt'), rankMrpp = rankPointsMap('mrpp');
 
   const ranking = MUNICIPIOS_CANON.map(nomeBonito => {
     const key = normKey(nomeBonito);
@@ -402,6 +414,10 @@ function renderRankingTable(modo) {
 
     const cav = DATA.cavaloaco.municipios[idxCav[key]];
     const pCav = statusToPoints(statusPiso(cav['realizado'+sufixo][miCav], cav['meta'+sufixo][miCav]));
+    const rolez = DATA.rolezinho.municipios[idxRolez[key]];
+    const pRolez = statusToPoints(statusPiso(rolez['realizado'+sufixo][miRolez], rolez['meta'+sufixo][miRolez]));
+    const armas = DATA.armas.municipios[idxArmas[key]];
+    const pArmas = statusToPoints(statusPiso(armas['realizado'+sufixo][miArmas], armas['meta'+sufixo][miArmas]));
     const pad = DATA.padesc.municipios[idxPadesc[key]];
     const pPad = statusToPoints(statusPiso(pad['realizado'+sufixo][miPadesc], pad['meta'+sufixo][miPadesc]));
 
@@ -412,28 +428,39 @@ function renderRankingTable(modo) {
     const itvdM = DATA.itvd.municipios[idxItvd[key]];
     const pItvd = statusToPoints(statusQualidade(calcItvdLocal(itvdM['trafico'+sufixo][miItvd], itvdM['vit'+sufixo][miItvd])));
 
-    const total = pMv+pCvpe+pCvpa+pPog+pY1+pY2+pY3+pCav+pPad+pIdob+pItvd;
-    return { nome: nomeBonito, pMv, pCvpe, pCvpa, pPog, pY1, pY2, pY3, pCav, pPad, pIdob, pItvd, total };
+    const pRc = rankRc[key] ?? 0, pVcp = rankVcp[key] ?? 0, pVtcv = rankVtcv[key] ?? 0, pVt = rankVt[key] ?? 0, pMrpp = rankMrpp[key] ?? 0;
+
+    const total = pMv+pCvpe+pCvpa+pPog+pY1+pY2+pY3+pCav+pRolez+pArmas+pPad+pIdob+pItvd+pRc+pVcp+pVtcv+pVt+pMrpp;
+    return { nome: nomeBonito, pMv, pCvpe, pCvpa, pPog, pY1, pY2, pY3, pCav, pRolez, pArmas, pPad, pIdob, pItvd, pRc, pVcp, pVtcv, pVt, pMrpp, total };
   });
 
   ranking.sort((a,b) => b.total - a.total);
 
   const n = ranking.length;
+  const maxTotal = Math.max(...ranking.map(r => r.total), 1);
+  const minTotal = Math.min(...ranking.map(r => r.total), 0);
+  const span = (maxTotal - minTotal) || 1;
+
+  const detalheLabels = [
+    ['pMv','IMV'],['pCvpe','CVPe'],['pCvpa','CVPa'],['pArmas','Armas'],['pPog','POG'],
+    ['pY1','PPAG Esc.'],['pY2','PPAG VD'],['pY3','PPAG Rural'],['pCav','Cav.Aço'],['pRolez','Rolez.'],
+    ['pPad','Pad.Esc.'],['pIdob','IDOB'],['pItvd','ITVD'],['pRc','RC'],['pVcp','VCP'],['pVtcv','VTCV'],['pVt','VT'],['pMrpp','MRPP'],
+  ];
+
   let rows = '';
   ranking.forEach((r, i) => {
     const posicao = i+1;
-    let rowStyle = '';
-    if (posicao <= 3) rowStyle = 'background:rgba(33,201,138,0.16)';
-    else if (posicao > n-3) rowStyle = 'background:rgba(230,72,79,0.16)';
-    const totalColor = posicao<=3 ? '#21c98a' : (posicao>n-3 ? '#e6484f' : 'var(--text)');
-    rows += `<tr style="${rowStyle}">
-      <td style="font-weight:700">${posicao}º</td>
-      <td style="text-align:left;font-weight:600">${r.nome}</td>
-      <td>${r.pMv}</td><td>${r.pCvpe}</td><td>${r.pCvpa}</td>
-      <td>${r.pPog}</td><td>${r.pY1}</td><td>${r.pY2}</td><td>${r.pY3}</td><td>${r.pCav}</td><td>${r.pPad}</td>
-      <td>${r.pIdob}</td><td>${r.pItvd}</td>
-      <td style="font-weight:700;color:${totalColor}">${r.total}</td>
-    </tr>`;
+    const totalColor = posicao<=3 ? '#21c98a' : (posicao>n-3 ? '#e6484f' : '#5b9bd5');
+    const pctBar = Math.max(4, ((r.total - minTotal) / span) * 100);
+    const detalhe = detalheLabels.map(([k,lbl]) => `${lbl}: ${r[k]}`).join(' &middot; ');
+    rows += `<div class="rank-row" title="${detalhe.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+      <div style="width:28px;font-weight:700;color:${totalColor}">${posicao}º</div>
+      <div style="width:150px;font-weight:600;flex-shrink:0">${r.nome}</div>
+      <div style="flex:1;background:rgba(255,255,255,0.06);border-radius:4px;height:14px;overflow:hidden">
+        <div style="width:${pctBar}%;height:100%;background:${totalColor};border-radius:4px"></div>
+      </div>
+      <div style="width:36px;text-align:right;font-weight:700;color:${totalColor}">${r.total}</div>
+    </div>`;
   });
 
   const tituloPeriodo = miPadesc === miMv
@@ -441,15 +468,8 @@ function renderRankingTable(modo) {
     : (modo === 'acum' ? `Acumulado Jan-${MESES[miMv]} (demais indicadores) / Jan-${MESES[miPadesc]} (Pad.Escolar)` : `${MESES[miMv]} (demais indicadores) / ${MESES[miPadesc]} (Pad.Escolar)`);
   let html = `<div class="chart-box" style="margin-top:4px">
     <h3>Ranking Geral por Município &middot; ${tituloPeriodo}</h3>
-    <div class="table-wrap" style="margin-bottom:0">
-    <table class="data-table"><thead><tr>
-      <th>#</th><th style="text-align:left">Município</th>
-      <th>IMV</th><th>CVPe</th><th>CVPa</th>
-      <th>POG</th><th>PPAG Esc.</th><th>PPAG VD</th><th>PPAG Rural</th><th>Cav.Aço</th><th>Pad.Esc.</th>
-      <th>IDOB</th><th>ITVD</th><th>TOTAL</th>
-    </tr></thead><tbody>${rows}</tbody></table>
-    </div>
-    <div class="updated" style="border:none;margin:10px 0 0;padding:0">IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Demais indicadores: 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). 3 primeiros destacados em verde, 3 últimos em vermelho.</div>
+    <div>${rows}</div>
+    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Barra = pontuação total do município (passe o mouse pra ver o detalhe por indicador). IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Indicadores com meta numérica (Armas/POG/PPAG/Cavalo de Aço/Rolezinho/Pad.Escolar/IDOB/ITVD): 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). RC/VCP/VTCV/VT/MRPP ainda não têm meta definida (só o snapshot de julho importado do Power BI) — pontuados pela posição no ranking daquele indicador: 2 pts para o top 4, 1 pt para o meio (5º-9º), 0 pts para os 4 últimos. 3 primeiros em verde, 3 últimos em vermelho.</div>
   </div>`;
   return html;
 }
