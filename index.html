@@ -232,7 +232,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 03/08/2026 16:58</span>
+      <span>Gerado em 03/08/2026 17:05</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1129,6 +1129,7 @@ function renderImportedRankingPage(key, title) {
 function renderGuiaComandantesPage() {
   let html = `<div class="page-title">Guia de Comandantes</div>`;
   html += `<div class="def-box">Síntese de diretrizes, emprego estratégico e lançamento de registros (REDS/BOS/RAT) do 70º BPM. Baseado no "Guia Operacional e Indicadores 70º BPM" e no Memorando Técnico 002.2/2025-DOP. Três pilares: <b>Prevenção</b>, <b>Proximidade</b> e <b>Repressão Qualificada</b>. O sucesso das metas da UEOP depende da execução exata e do registro correto no sistema.</div>`;
+  html += `<img src="assets/guia/pagina-01.jpg" alt="Guia Operacional 70º BPM — capa" style="width:100%;border-radius:6px;border:1px solid var(--panel-border);margin-bottom:16px;display:block">`;
 
   function secao(titulo, corpo) {
     return `<div class="chart-box" style="margin-top:16px;min-width:0"><h3>${titulo}</h3>${corpo}</div>`;
@@ -1139,8 +1140,13 @@ function renderGuiaComandantesPage() {
     t += `</tbody></table>`;
     return t;
   }
+  function imgPdf(n) {
+    const p = String(n).padStart(2,'0');
+    return `<img src="assets/guia/pagina-${p}.jpg" alt="Guia Operacional 70º BPM — página ${n}" style="width:100%;border-radius:6px;border:1px solid var(--panel-border);margin-bottom:14px;display:block">`;
+  }
 
   html += secao('Arquitetura da Estratégia de Policiamento', `
+    ${imgPdf(2)}
     <p style="margin:0 0 10px">3 eixos, cada um com suas ações e naturezas próprias:</p>
     ${tabela(['Eixo','Ações'], [
       ['Interação Comunitária (Proximidade)', 'Visitas Preventivas (VCP) &middot; Reuniões (RC/RCR) &middot; Redes de Proteção (MRPP) &middot; Visitas Tranquilizadoras (VT/VTCV)'],
@@ -1150,6 +1156,7 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Reuniões Comunitárias (RC &amp; RCR)', `
+    ${imgPdf(3)}
     ${tabela(['Item','RC (urbana)','RCR (rural)'], [
       ['Objetivo', 'Dialogar com líderes, CONSEPs e associações', 'Reuniões com moradores da zona rural'],
       ['Natureza', 'A19.000, A19.001, A19.004, A19.099', 'Mesmas da RC (A19.000, A19.001, A19.004, A19.099)'],
@@ -1160,6 +1167,7 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Visita Comunitária Preventiva (VCP) e Manutenção de Redes (MRPP)', `
+    ${imgPdf(4)}
     ${tabela(['Item','VCP','MRPP'], [
       ['Foco', 'Orientar população sobre segurança e autoproteção', 'Manter ativa a Rede de Vizinhos, Comerciantes, Rurais, Bancos (mín. 3 redes por cidade)'],
       ['Natureza', 'A21.007 — <span class="neg">mesmo código de Saque Seguro e Padrinho da Escola, diferenciar pelo histórico</span>', 'A19.006 a A19.011 (Vizinhos A19.005/006, Comerciantes A19.007, Bancos A19.008, Rurais A19.009, Indústrias A19.010, Outras A19.011)'],
@@ -1170,6 +1178,7 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Fluxo de Resposta Pós-Crime: Visitas Tranquilizadoras', `
+    ${imgPdf(5)}
     ${tabela(['Situação','Ação','Natureza','Regra'], [
       ['Crimes patrimoniais (furto — alvos 2002/2004/2005/2015)', 'Visita Tranquilizadora (VT)', 'A20.028', 'Citar nº do REDS original no histórico'],
       ['Casos que podem evoluir para homicídio (ameaça, lesão corporal, vias de fato etc.)', 'Visita Tranquilizadora Pós-Sinistro', 'A20.000', 'Obrigatório: 3 visitas após o REDS de origem'],
@@ -1179,6 +1188,7 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Projetos Estruturados: Escola e Empresa', `
+    ${imgPdf(6)}
     ${tabela(['Item','Padrinho da Escola','Polícia, Cidadão e Empresa'], [
       ['Dinâmica', 'Visitas semanais a escolas cadastradas (interação, palestras, cidadania). Estacionar viatura com giroflex ligado', 'Palestras preventivas (proteção individual/patrimonial) para colaboradores de empresas e associações. Mín. 1 por mês/fração'],
       ['Natureza', 'A21.007 — histórico deve conter "PROJETO PADRINHO DA ESCOLA"', 'A19.000, A19.001, A19.004 ou A19.099 — histórico deve conter "PROJETO POLÍCIA, CIDADÃO E EMPRESA"'],
@@ -1187,6 +1197,7 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Cronograma de Ocupação Tática: Saque Seguro e Visibilidade', `
+    ${imgPdf(7)}
     ${tabela(['Item','Saque Seguro','Visibilidade'], [
       ['Quando', 'Dias úteis, do dia 25 ao dia 10 (período de pagamentos), 10h-15h', 'Pós-expediente. Qui a Dom (Cias), Sex e Sáb (Pel/Dest), 20h-00h'],
       ['Alvo', 'Bancos, lotéricas (prevenção a estelionatos, proteção de idosos)', 'Entradas/saídas de cidades, locais de aglomeração (Ponto-Base)'],
@@ -1200,6 +1211,7 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Operação Boemia: Intervenção em Locais de Risco', `
+    ${imgPdf(8)}
     <div class="def-box"><span class="formula">IDOB = [Total de Operações &minus; (Vítimas de CVPe + CVPa)] &divide; Total de Operações &times; 100</span><span class="polarity">Polaridade: quanto maior o percentual, melhor o indicador de eficiência</span></div>
     ${tabela(['Item','Regra'], [
       ['Metas', 'Cias: 4x/semana &middot; Pelotões: 2x/semana &middot; Destacamentos: 1x/semana'],
@@ -1210,6 +1222,7 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Operação Cavalo de Aço: Fiscalização Direcionada', `
+    ${imgPdf(9)}
     ${tabela(['Item','Regra'], [
       ['Foco operacional', 'Inibir crimes com uso de motos e eventos tipo Rolezinho do Grau. Meta: 1 abordagem por hora de serviço'],
       ['Natureza', 'Y01003 (Operações Policiais Relativas a Motocicleta)'],
@@ -1223,6 +1236,7 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Matriz do Sistema: Códigos e Naturezas (consolidado)', `
+    ${imgPdf(10)}
     ${tabela(['Categoria','Natureza(s)'], [
       ['Reuniões (30min-2h, mín. 3 CPFs)', 'RC / RCR: A19.000, A19.001, A19.004, A19.099 &middot; MRPP: A19.006 a A19.011'],
       ['Visitas (15-30min, mín. 1 CPF)', 'VCP: A21.007 &middot; VT (furtos): A20.028 (exige REDS vinculado) &middot; VTCV (violentos): A20.001 (exige REDS vinculado) &middot; Pós-Sinistro: A20.000 (exige REDS vinculado)'],
@@ -1231,12 +1245,17 @@ function renderGuiaComandantesPage() {
   `);
 
   html += secao('Regras de Ouro: Evitando Falhas de Indicadores', `
+    ${imgPdf(11)}
     ${tabela(['Erro fatal','Descrição'], [
       ['1. Falta de Qualificação', 'Um registro sem CPF/RG válido NÃO é contabilizado para fins de GDO'],
       ['2. Quebra de Vínculo de REDS', 'Em Visitas Tranquilizadoras (A20.028 / A20.000 / A20.001) e apreensões, o histórico do BOS/RAT deve obrigatoriamente citar o REDS original'],
       ['3. Nomenclatura Ausente', 'Boemia, Saque Seguro, Visibilidade e Cavalo de Aço dependem EXATAMENTE destas palavras grafadas nos campos "nome da operação" e no histórico'],
     ])}
     <div class="def-box" style="margin-top:14px;border-left-color:var(--signal)"><b>O correto registro da ação é tão vital quanto a própria operação.</b> A produtividade que não consta no sistema não existe para a corporação.</div>
+  `);
+
+  html += secao('Memorando Técnico n. 002.2/2025-DOP', `
+    ${imgPdf(12)}
   `);
 
   html += `<div class="updated">Fonte: "Guia Operacional e Indicadores 70º BPM" (PDF, recebido 2026-08-03) + Memorando Técnico 002.2/2025-DOP. Trechos em vermelho indicam pontos de atenção/divergência com o que o dashboard calcula hoje, ainda pendentes de ajuste.</div>`;
