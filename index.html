@@ -220,6 +220,11 @@
       <button class="nav-btn disabled" title="Aguardando export (A20.028 furto / A20.001 crimes violentos)">VT &middot; Visitas Tranquiliz.</button>
       <button class="nav-btn disabled" title="Aguardando dados (Polícia Cidadã)">Pol.Cid.Em</button>
     </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Guias e Documentos</div>
+      <button class="nav-btn" data-page="guia_comandantes">Guia de Comandantes</button>
+      <button class="nav-btn" data-page="analise_gdo">Análise GDO</button>
+    </div>
   </div>
 </div>
 <div class="app-col">
@@ -227,7 +232,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 03/08/2026 16:31</span>
+      <span>Gerado em 03/08/2026 16:55</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -243,7 +248,7 @@ const DEFS = {
   cvpa: '<b>Naturezas CVPa (qtde de vítimas)</b><br><code>C01.157</code> Roubo &middot; <code>C01.158</code> Extorsão &middot; <code>C01.159</code> Extorsão mediante sequestro. Consumados e tentados, desde que não resultem em lesão fatal.',
   pog: '<b>Naturezas das operações de POG</b><br><code>Y04009</code> Operação Trânsito Seguro &middot; <code>Y07001</code> Batida Policial &middot; <code>Y07002</code> Operação Presença &middot; <code>Y07003</code> Incursão em Zona Quente de Criminalidade &middot; <code>Y07010</code> Divisas Seguras &middot; <code>Y10001</code> Cumprimento de Busca e Apreensão de Objetos, Pessoas e/ou Animais.',
   ppag: '<b>Naturezas do PPAG (policiamento de proximidade)</b><br><code>Y15001</code> Patrulha Escolar/Prevenção às Drogas &middot; <code>Y07012</code> Prevenção à Violência Doméstica &middot; <code>Y15010</code> Ação/Operação em Zona Rural (na base atual do SiGOp esse tipo de operação é lançado como <code>Y07014</code>, a Metas26 ainda usa o nome legado Y15010) &middot; <code>Y15020</code> Ação/Operação em Área de Risco (sem indicador de meta definido ainda).',
-  idob: '<span class="formula">IDOB = [Qtde de Operações em Bares/Botecos &minus; Nº de Vítimas (MV + CVPe + CVPa) &times; 10] &divide; Qtde de Operações em Bares/Botecos &times; 100</span><span class="polarity">Polaridade: quanto maior (%), melhor</span>',
+  idob: '<span class="formula">IDOB = [Qtde de Operações em Bares/Botecos &minus; Nº de Vítimas (CVPe + CVPa)] &divide; Qtde de Operações em Bares/Botecos &times; 100</span><span class="polarity">Polaridade: quanto maior (%), melhor</span><br>Fórmula oficial do guia da DOP — sem multiplicador e sem contar MV (mortes violentas não entram no cálculo do IDOB, só CVPe e CVPa). MV aparece na tabela só como referência informativa.',
   cavaloaco: '<b>Operação Cavalo de Aço</b><br>Meta de operações (Ro): mesma régua do Visibilidade — 1 abordagem/destacamento, 2/pelotão, 4/companhia por mês. Fonte: export RAT filtrado por "operações relativas a motocicletas" no 70º BPM, considerando as operações com NOME_OPERACAO contendo "Cavalo de Aço".<br>Motos Abordadas (A): extraído do indicador de produtividade "Qde de motocicletas fiscalizadas" registrado em cada RAT — como cada operação costuma abordar mais de uma moto, esse número é bem maior que o de operações.',
   rolezinho: '<b>Operação Rolezinho</b><br>Meta: 1 operação por semana, por município. Fonte: export REDS específico, natureza Y01003 (Operações Policiais Relativo a Motocicleta).<span class="polarity">Polaridade: quanto maior, melhor.</span>',
   esforco_furto: '<span class="formula">DES% = Qtde de Prisões (autores de Furto) &divide; Qtde de REDS de Furto &times; 100</span><span class="polarity">Polaridade: quanto maior, melhor.</span><br>Fonte: REDS com natureza C01155 (Furto), consumados e tentados, jan-ago/2026. Prisões extraídas do campo QTDE_PRISAO de cada ocorrência.',
@@ -298,8 +303,8 @@ function renderHome() {
   html += `<div class="kpi-card kpi-neutral"><div class="val">${armasAcum}</div><div class="lbl">Armas de Fogo e simu.</div></div>`;
   html += kpiCard('Furto Rural Acum', furtoPct);
   const idobQop = DATA.idob.total_qtdeop_acum[miIdob];
-  const idobVit = DATA.idob.total_mv_acum[miIdob]+DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
-  const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
+  const idobVit = DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
+  const idobVal = idobQop ? ((idobQop - idobVit)/idobQop*100) : 0;
   html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div></div>`;
   html += `</div>`;
   html += renderCumprimentoMatrix('mes');
@@ -382,7 +387,7 @@ function renderRankingTable(modo) {
   const idxY15001 = idxOf(DATA.ppag.y15001.municipios), idxY07012 = idxOf(DATA.ppag.y07012.municipios), idxY07014 = idxOf(DATA.ppag.y07014.municipios);
   const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios), idxRolez = idxOf(DATA.rolezinho.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
-  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
+  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit) / qop) * 100 : 0; }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 0; }
 
   // pontos por posição no ranking importado do Power BI (sem meta numérica, só ranking 1º-13º)
@@ -427,7 +432,7 @@ function renderRankingTable(modo) {
     const pPad = statusToPoints(statusPiso(pad['realizado'+sufixo][miPadesc], pad['meta'+sufixo][miPadesc]));
 
     const idobM = DATA.idob.municipios[idxIdob[key]];
-    const vit = idobM['mv'+sufixo][miIdob]+idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
+    const vit = idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
     const pIdob = statusToPoints(statusQualidade(calcIdobLocal(idobM['qop'+sufixo][miIdob], vit)));
 
     const itvdM = DATA.itvd.municipios[idxItvd[key]];
@@ -499,7 +504,7 @@ function renderCumprimentoMatrix(modo) {
   const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
 
-  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
+  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit) / qop) * 100 : 0; }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 0; }
 
   let rows = '';
@@ -540,7 +545,7 @@ function renderCumprimentoMatrix(modo) {
     rows += semaforoCell(statusPiso(pad['realizado'+sufixo][miPadesc], pad['meta'+sufixo][miPadesc]), pad['realizado'+sufixo][miPadesc]+'/'+pad['meta'+sufixo][miPadesc]);
 
     const idobM = DATA.idob.municipios[idxIdob[key]];
-    const vit = idobM['mv'+sufixo][miIdob]+idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
+    const vit = idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
     const idobV = calcIdobLocal(idobM['qop'+sufixo][miIdob], vit);
     rows += semaforoCell(statusQualidade(idobV), idobV.toFixed(0)+'%');
 
@@ -814,14 +819,14 @@ function renderIDOBPage() {
 
   function calcIdob(qop, vit) {
     if (!qop) return 0;
-    return ((qop - vit*10) / qop) * 100;
+    return ((qop - vit) / qop) * 100;
   }
 
   function rows(mi) {
     let html = '';
     const list = d.municipios.map(m => {
-      const vitMes = m.mv_mes[mi]+m.cvpe_mes[mi]+m.cvpa_mes[mi];
-      const vitAcum = m.mv_acum[mi]+m.cvpe_acum[mi]+m.cvpa_acum[mi];
+      const vitMes = m.cvpe_mes[mi]+m.cvpa_mes[mi];
+      const vitAcum = m.cvpe_acum[mi]+m.cvpa_acum[mi];
       return {
         nome:m.nome, qopMes:m.qop_mes[mi], qopAcum:m.qop_acum[mi],
         mvMes:m.mv_mes[mi], cvpeMes:m.cvpe_mes[mi], cvpaMes:m.cvpa_mes[mi],
@@ -860,12 +865,12 @@ function renderIDOBPage() {
       <td>${tMvMes}</td>${cell(calcIdob(tQopMes,tMvMes))}
       <td>${tCvpeMes}</td>${cell(calcIdob(tQopMes,tCvpeMes))}
       <td>${tCvpaMes}</td>${cell(calcIdob(tQopMes,tCvpaMes))}
-      ${cell(calcIdob(tQopMes, tMvMes+tCvpeMes+tCvpaMes))}
+      ${cell(calcIdob(tQopMes, tCvpeMes+tCvpaMes))}
       <td>${tQopAcum}</td>
       <td>${tMvAcum}</td>${cell(calcIdob(tQopAcum,tMvAcum))}
       <td>${tCvpeAcum}</td>${cell(calcIdob(tQopAcum,tCvpeAcum))}
       <td>${tCvpaAcum}</td>${cell(calcIdob(tQopAcum,tCvpaAcum))}
-      ${cell(calcIdob(tQopAcum, tMvAcum+tCvpeAcum+tCvpaAcum))}
+      ${cell(calcIdob(tQopAcum, tCvpeAcum+tCvpaAcum))}
     </tr>`;
     return html;
   }
@@ -1121,6 +1126,131 @@ function renderImportedRankingPage(key, title) {
   document.getElementById('main').innerHTML = html;
 }
 
+function renderGuiaComandantesPage() {
+  let html = `<div class="page-title">Guia de Comandantes</div>`;
+  html += `<div class="def-box">Síntese de diretrizes, emprego estratégico e lançamento de registros (REDS/BOS/RAT) do 70º BPM. Baseado no "Guia Operacional e Indicadores 70º BPM" e no Memorando Técnico 002.2/2025-DOP. Três pilares: <b>Prevenção</b>, <b>Proximidade</b> e <b>Repressão Qualificada</b>. O sucesso das metas da UEOP depende da execução exata e do registro correto no sistema.</div>`;
+
+  function secao(titulo, corpo) {
+    return `<div class="chart-box" style="margin-top:16px;min-width:0"><h3>${titulo}</h3>${corpo}</div>`;
+  }
+  function tabela(headers, rows) {
+    let t = `<table class="data-table"><thead><tr>${headers.map(h=>`<th style="text-align:left">${h}</th>`).join('')}</tr></thead><tbody>`;
+    rows.forEach(r => { t += `<tr>${r.map(c=>`<td style="text-align:left">${c}</td>`).join('')}</tr>`; });
+    t += `</tbody></table>`;
+    return t;
+  }
+
+  html += secao('Arquitetura da Estratégia de Policiamento', `
+    <p style="margin:0 0 10px">3 eixos, cada um com suas ações e naturezas próprias:</p>
+    ${tabela(['Eixo','Ações'], [
+      ['Interação Comunitária (Proximidade)', 'Visitas Preventivas (VCP) &middot; Reuniões (RC/RCR) &middot; Redes de Proteção (MRPP) &middot; Visitas Tranquilizadoras (VT/VTCV)'],
+      ['Projetos Estruturados (Aproximação)', 'Projeto Padrinho da Escola &middot; Projeto Polícia, Cidadão e Empresa &middot; Projeto Cidade Organizada, Cidade Segura'],
+      ['Operações Táticas (Intervenção)', 'Operação Saque Seguro &middot; Operação Visibilidade &middot; Operação Boemia &middot; Operação Cavalo de Aço'],
+    ])}
+  `);
+
+  html += secao('Reuniões Comunitárias (RC &amp; RCR)', `
+    ${tabela(['Item','RC (urbana)','RCR (rural)'], [
+      ['Objetivo', 'Dialogar com líderes, CONSEPs e associações', 'Reuniões com moradores da zona rural'],
+      ['Natureza', 'A19.000, A19.001, A19.004, A19.099', 'Mesmas da RC (A19.000, A19.001, A19.004, A19.099)'],
+      ['Duração', '30min a 2h', '30min a 2h'],
+      ['Qualificação mínima', 'Mín. 3 indivíduos com CPF/RG cadastrados', 'Mín. 3 indivíduos com CPF/RG cadastrados'],
+      ['Filtro crítico', '—', '<span class="neg">O endereço DEVE constar como área rural segundo o IBGE (ex: Fazenda, Córrego, Povoado)</span>'],
+    ])}
+  `);
+
+  html += secao('Visita Comunitária Preventiva (VCP) e Manutenção de Redes (MRPP)', `
+    ${tabela(['Item','VCP','MRPP'], [
+      ['Foco', 'Orientar população sobre segurança e autoproteção', 'Manter ativa a Rede de Vizinhos, Comerciantes, Rurais, Bancos (mín. 3 redes por cidade)'],
+      ['Natureza', 'A21.007 — <span class="neg">mesmo código de Saque Seguro e Padrinho da Escola, diferenciar pelo histórico</span>', 'A19.006 a A19.011 (Vizinhos A19.005/006, Comerciantes A19.007, Bancos A19.008, Rurais A19.009, Indústrias A19.010, Outras A19.011)'],
+      ['Duração', '15 a 30 minutos', '30min a 2h'],
+      ['Qualificação mínima', 'Mín. 1 indivíduo cadastrado com CPF/RG', 'Mín. 3 indivíduos cadastrados com CPF/RG'],
+    ])}
+    <div class="updated">Obs.: o próprio guia oficial diverge no código inicial do MRPP entre slides (A19.005 numa página, A19.006 noutra e no Memorando 002.2/2025-DOP) — não muda o registro na prática, mas vale confirmar com a DOP qual é o oficial.</div>
+  `);
+
+  html += secao('Fluxo de Resposta Pós-Crime: Visitas Tranquilizadoras', `
+    ${tabela(['Situação','Ação','Natureza','Regra'], [
+      ['Crimes patrimoniais (furto — alvos 2002/2004/2005/2015)', 'Visita Tranquilizadora (VT)', 'A20.028', 'Citar nº do REDS original no histórico'],
+      ['Casos que podem evoluir para homicídio (ameaça, lesão corporal, vias de fato etc.)', 'Visita Tranquilizadora Pós-Sinistro', 'A20.000', 'Obrigatório: 3 visitas após o REDS de origem'],
+      ['Crimes violentos (CVPe/CVPa — homicídio, roubo, extorsão etc.)', 'Visita a Vítimas de Crimes Violentos (VTCV)', 'A20.001', '<span class="neg">Alerta vermelho: NUNCA visitar em casos de estupro/vulnerável</span>'],
+    ])}
+    <div class="def-box" style="margin:14px 0 0">Regras de ouro do BOS: (1) mín. 1 vítima do REDS original cadastrada com CPF/RG; (2) duração 15 a 30 min; (3) obrigatório citar o número do REDS do crime original no histórico do BOS.</div>
+  `);
+
+  html += secao('Projetos Estruturados: Escola e Empresa', `
+    ${tabela(['Item','Padrinho da Escola','Polícia, Cidadão e Empresa'], [
+      ['Dinâmica', 'Visitas semanais a escolas cadastradas (interação, palestras, cidadania). Estacionar viatura com giroflex ligado', 'Palestras preventivas (proteção individual/patrimonial) para colaboradores de empresas e associações. Mín. 1 por mês/fração'],
+      ['Natureza', 'A21.007 — histórico deve conter "PROJETO PADRINHO DA ESCOLA"', 'A19.000, A19.001, A19.004 ou A19.099 — histórico deve conter "PROJETO POLÍCIA, CIDADÃO E EMPRESA"'],
+      ['Métricas', 'Duração mín. 30 min &middot; mín. 1 CPF', 'Duração mín. 30 min &middot; mín. 3 CPFs no BOS &middot; presença exigida: 10 pessoas (Destacamentos) ou 20 (Pelotões)'],
+    ])}
+  `);
+
+  html += secao('Cronograma de Ocupação Tática: Saque Seguro e Visibilidade', `
+    ${tabela(['Item','Saque Seguro','Visibilidade'], [
+      ['Quando', 'Dias úteis, do dia 25 ao dia 10 (período de pagamentos), 10h-15h', 'Pós-expediente. Qui a Dom (Cias), Sex e Sáb (Pel/Dest), 20h-00h'],
+      ['Alvo', 'Bancos, lotéricas (prevenção a estelionatos, proteção de idosos)', 'Entradas/saídas de cidades, locais de aglomeração (Ponto-Base)'],
+      ['Registro', 'Natureza A21.007 — histórico "OPERAÇÃO SAQUE SEGURO", mín. 15 min, mín. 1 CPF', 'Natureza A21.000, mín. 30 min (PB)'],
+    ])}
+    <div class="def-box" style="margin:14px 0 0"><b>Decisões de Eduardo (2026-08-03):</b><br>
+      &middot; <b>A21.007</b> ainda precisa ser criado como indicador no painel — hoje esse código cobre 3 usos diferentes (VCP, Saque Seguro, Padrinho da Escola), todos misturados na mesma natureza. Vai entrar na fila de reconciliação individual (filtro por histórico/projeto) junto com Cavalo de Aço/Rolezinho.<br>
+      &middot; <b>Visibilidade</b>: ao contrário de Boemia/Saque Seguro/Cavalo de Aço, NÃO vamos exigir/checar a palavra no nome da operação ou histórico — o indicador vai contar toda a natureza A21.000, sem esse filtro de nomenclatura.
+    </div>
+    <div class="updated">Pendente: cada indicador de natureza compartilhada (A21.007, Y01003 etc.) vai ganhar sua própria instrução de filtro pra buscar no SiGOp/REDS, um de cada vez — ainda não construído no painel.</div>
+  `);
+
+  html += secao('Operação Boemia: Intervenção em Locais de Risco', `
+    <div class="def-box"><span class="formula">IDOB = [Total de Operações &minus; (Vítimas de CVPe + CVPa)] &divide; Total de Operações &times; 100</span><span class="polarity">Polaridade: quanto maior o percentual, melhor o indicador de eficiência</span></div>
+    ${tabela(['Item','Regra'], [
+      ['Metas', 'Cias: 4x/semana &middot; Pelotões: 2x/semana &middot; Destacamentos: 1x/semana'],
+      ['Natureza', 'Y15030 (Ação/Operação em Área Urbana)'],
+      ['Campos obrigatórios', 'Nome da Operação: "OPERAÇÃO BOEMIA" &middot; Alvo do Evento: Bar/Lanchonete/Restaurante/Similar &middot; Descrição do Lugar: Bar/Lanchonete/Restaurante/Similar &middot; histórico deve citar "Operação Boemia"'],
+    ])}
+    <div class="updated">Corrigido em 2026-08-03: o IDOB do painel agora usa a fórmula oficial do guia — [Operações &minus; (CVPe+CVPa)] &divide; Operações &times; 100, sem multiplicador e sem contar MV. MV continua exibido na tabela só como referência informativa.</div>
+  `);
+
+  html += secao('Operação Cavalo de Aço: Fiscalização Direcionada', `
+    ${tabela(['Item','Regra'], [
+      ['Foco operacional', 'Inibir crimes com uso de motos e eventos tipo Rolezinho do Grau. Meta: 1 abordagem por hora de serviço'],
+      ['Natureza', 'Y01003 (Operações Policiais Relativas a Motocicleta)'],
+      ['Campo parametrizado', 'Obrigatório constar "OPERAÇÃO CAVALO DE AÇO" no nome da operação e no histórico'],
+      ['Descrição do lugar', 'Via de acesso'],
+      ['Produtividade (checklist)', 'Mín. 10 motocicletas fiscalizadas por operação (anotar placas no histórico, lançar Qtd no campo próprio) &middot; obrigatório vincular o nº do REDS ao RAT em caso de prisões/apreensões (drogas, armas, mandados, veículos recuperados)'],
+      ['Rolezinho — <span class="neg">alvo do evento</span>', '<span class="neg">Quando a abordagem for direcionada a evento de Rolezinho, o campo Alvo do Evento deve ser preenchido como "MOTOCICLETA" — instrução confirmada por Eduardo em 2026-08-03, não constava no guia oficial.</span>'],
+    ])}
+    <div class="def-box" style="margin:14px 0 0"><b>Relação Cavalo de Aço x Rolezinho (definida por Eduardo em 2026-08-03):</b> Cavalo de Aço conta TODAS as operações de natureza Y01003 (Operações Policiais Relativas a Motocicleta). Rolezinho é um subgrupo dentro desse total — não um indicador paralelo. O filtro exato de como isolar o subgrupo Rolezinho dentro do universo Y01003 (por Alvo do Evento, histórico ou outro campo) ainda será definido individualmente, como instrução de busca no SiGOp/REDS, junto com os demais indicadores pendentes.</div>
+    <div class="updated">Pendente: reconstruir o cálculo dos dois indicadores no painel a partir dessa relação (Cavalo de Aço = universo Y01003 completo; Rolezinho = subconjunto) assim que o filtro de isolamento for definido.</div>
+  `);
+
+  html += secao('Matriz do Sistema: Códigos e Naturezas (consolidado)', `
+    ${tabela(['Categoria','Natureza(s)'], [
+      ['Reuniões (30min-2h, mín. 3 CPFs)', 'RC / RCR: A19.000, A19.001, A19.004, A19.099 &middot; MRPP: A19.006 a A19.011'],
+      ['Visitas (15-30min, mín. 1 CPF)', 'VCP: A21.007 &middot; VT (furtos): A20.028 (exige REDS vinculado) &middot; VTCV (violentos): A20.001 (exige REDS vinculado) &middot; Pós-Sinistro: A20.000 (exige REDS vinculado)'],
+      ['Operações táticas especiais', 'Saque Seguro: A21.007 &middot; Visibilidade: A21.000 &middot; Boemia: Y15030 &middot; Cavalo de Aço (incl. Rolezinho): Y01003'],
+    ])}
+  `);
+
+  html += secao('Regras de Ouro: Evitando Falhas de Indicadores', `
+    ${tabela(['Erro fatal','Descrição'], [
+      ['1. Falta de Qualificação', 'Um registro sem CPF/RG válido NÃO é contabilizado para fins de GDO'],
+      ['2. Quebra de Vínculo de REDS', 'Em Visitas Tranquilizadoras (A20.028 / A20.000 / A20.001) e apreensões, o histórico do BOS/RAT deve obrigatoriamente citar o REDS original'],
+      ['3. Nomenclatura Ausente', 'Boemia, Saque Seguro, Visibilidade e Cavalo de Aço dependem EXATAMENTE destas palavras grafadas nos campos "nome da operação" e no histórico'],
+    ])}
+    <div class="def-box" style="margin-top:14px;border-left-color:var(--signal)"><b>O correto registro da ação é tão vital quanto a própria operação.</b> A produtividade que não consta no sistema não existe para a corporação.</div>
+  `);
+
+  html += `<div class="updated">Fonte: "Guia Operacional e Indicadores 70º BPM" (PDF, recebido 2026-08-03) + Memorando Técnico 002.2/2025-DOP. Trechos em vermelho indicam pontos de atenção/divergência com o que o dashboard calcula hoje, ainda pendentes de ajuste.</div>`;
+
+  document.getElementById('main').innerHTML = html;
+}
+
+function renderAnaliseGdoPage() {
+  let html = `<div class="page-title">Análise GDO</div>`;
+  html += `<div class="def-box">Espaço reservado para análise da Gestão da Doutrina Operacional (GDO). Estrutura inicial abaixo — conteúdo ainda a ser definido.</div>`;
+  html += `<div class="pending-box" style="margin-top:16px">Aguardando definição do conteúdo desta aba.</div>`;
+  document.getElementById('main').innerHTML = html;
+}
+
 function renderPending(name) {
   document.getElementById('main').innerHTML = `<div class="page-title">${name}</div>
     <div class="pending-box">Aguardando o export específico do SiGOp pra esse indicador (RAT/BO com filtro próprio).<br>Assim que Eduardo enviar o CSV, essa página é populada igual às demais.</div>`;
@@ -1139,6 +1269,8 @@ const pages = {
   cavaloaco: renderCavaloAcoPage,
   rolezinho: renderRolezinhoPage,
   esforco_furto: renderEsforcoFurtoPage,
+  guia_comandantes: renderGuiaComandantesPage,
+  analise_gdo: renderAnaliseGdoPage,
   rc: () => renderImportedRankingPage('rc', 'Reuniões Comunitárias'),
   vcp: () => renderImportedRankingPage('vcp', 'Visitas Comunitárias Preventivas'),
   vtcv: () => renderImportedRankingPage('vtcv', 'Visitas Tranquilizadoras a Vítimas de Crime Violento'),
