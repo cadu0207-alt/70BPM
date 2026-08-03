@@ -223,7 +223,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 03/08/2026 11:55</span>
+      <span>Gerado em 03/08/2026 11:59</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -281,7 +281,7 @@ function renderHome() {
   const pogPct = (pogMeta ? (pogAcum/pogMeta*100) : 0) - 100; // aqui >0 é bom (ao contrário de MV/CVPE/CVPa)
 
   let html = `<div class="page-title">Dashboard 70º BPM</div>`;
-  html += `<div class="updated">IMV/CVPe/CVPa/Furto/Armas atualizados até ${DATA.mv.meses[miMv]}/2026. Demais indicadores (POG, PPAG, IDOB, ITVD, Cavalo de Aço, Pad.Escolar) ainda em ${DATA.pog.meses[miPog]}/2026, aguardando export do mês seguinte. Saque Seguro, Pol.Cid, VT, IDOCA completo ainda aguardando export específico.</div>`;
+  html += `<div class="updated">IMV/CVPe/CVPa/Furto/Armas/POG/PPAG/IDOB/ITVD/Cavalo de Aço/Rolezinho atualizados até ${DATA.mv.meses[miMv]}/2026. Pad.Escolar ainda em ${DATA.padesc.meses[miPadesc]}/2026, aguardando export do mês seguinte. RC/VCP/VTCV/VT/MRPP têm só o snapshot de julho/2026 importado do Power BI oficial (sem série histórica ainda). Saque Seguro, Pol.Cid, IDOCA completo (falta vítimas MV/CVPe/CVPa do Cavalo de Aço) ainda aguardando export específico.</div>`;
   html += `<div class="kpi-grid">`;
   html += kpiCard('Mortes Violentas (Acum)', mvPct);
   html += kpiCard('CVpe Acum', cvpePct);
@@ -436,7 +436,9 @@ function renderRankingTable(modo) {
     </tr>`;
   });
 
-  const tituloPeriodo = modo === 'acum' ? `Acumulado Jan-${MESES[miMv]} (IMV-Furto) / Jan-${MESES[miPog]} (demais)` : `${MESES[miMv]} (IMV-Furto) / ${MESES[miPog]} (demais)`;
+  const tituloPeriodo = miPadesc === miMv
+    ? (modo === 'acum' ? `Acumulado Jan-${MESES[miMv]}` : `${MESES[miMv]}`)
+    : (modo === 'acum' ? `Acumulado Jan-${MESES[miMv]} (demais indicadores) / Jan-${MESES[miPadesc]} (Pad.Escolar)` : `${MESES[miMv]} (demais indicadores) / ${MESES[miPadesc]} (Pad.Escolar)`);
   let html = `<div class="chart-box" style="margin-top:4px">
     <h3>Ranking Geral por Município &middot; ${tituloPeriodo}</h3>
     <div class="table-wrap" style="margin-bottom:0">
