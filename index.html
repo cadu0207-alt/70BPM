@@ -232,7 +232,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 03/08/2026 16:55</span>
+      <span>Gerado em 03/08/2026 16:58</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -248,7 +248,7 @@ const DEFS = {
   cvpa: '<b>Naturezas CVPa (qtde de vítimas)</b><br><code>C01.157</code> Roubo &middot; <code>C01.158</code> Extorsão &middot; <code>C01.159</code> Extorsão mediante sequestro. Consumados e tentados, desde que não resultem em lesão fatal.',
   pog: '<b>Naturezas das operações de POG</b><br><code>Y04009</code> Operação Trânsito Seguro &middot; <code>Y07001</code> Batida Policial &middot; <code>Y07002</code> Operação Presença &middot; <code>Y07003</code> Incursão em Zona Quente de Criminalidade &middot; <code>Y07010</code> Divisas Seguras &middot; <code>Y10001</code> Cumprimento de Busca e Apreensão de Objetos, Pessoas e/ou Animais.',
   ppag: '<b>Naturezas do PPAG (policiamento de proximidade)</b><br><code>Y15001</code> Patrulha Escolar/Prevenção às Drogas &middot; <code>Y07012</code> Prevenção à Violência Doméstica &middot; <code>Y15010</code> Ação/Operação em Zona Rural (na base atual do SiGOp esse tipo de operação é lançado como <code>Y07014</code>, a Metas26 ainda usa o nome legado Y15010) &middot; <code>Y15020</code> Ação/Operação em Área de Risco (sem indicador de meta definido ainda).',
-  idob: '<span class="formula">IDOB = [Qtde de Operações em Bares/Botecos &minus; Nº de Vítimas (CVPe + CVPa)] &divide; Qtde de Operações em Bares/Botecos &times; 100</span><span class="polarity">Polaridade: quanto maior (%), melhor</span><br>Fórmula oficial do guia da DOP — sem multiplicador e sem contar MV (mortes violentas não entram no cálculo do IDOB, só CVPe e CVPa). MV aparece na tabela só como referência informativa.',
+  idob: '<span class="formula">IDOB = [Qtde de Operações em Bares/Botecos &minus; Nº de Vítimas (MV + CVPe + CVPa) &times; 10] &divide; Qtde de Operações em Bares/Botecos &times; 100</span><span class="polarity">Polaridade: quanto maior (%), melhor</span><br>O multiplicador ×10 é intencional — o sistema é justamente pra inflar o peso das vítimas no indicador (confirmado por Eduardo em 2026-08-03). O guia oficial da DOP registra a fórmula sem esse peso, mas o painel usa a versão mais rígida de propósito.',
   cavaloaco: '<b>Operação Cavalo de Aço</b><br>Meta de operações (Ro): mesma régua do Visibilidade — 1 abordagem/destacamento, 2/pelotão, 4/companhia por mês. Fonte: export RAT filtrado por "operações relativas a motocicletas" no 70º BPM, considerando as operações com NOME_OPERACAO contendo "Cavalo de Aço".<br>Motos Abordadas (A): extraído do indicador de produtividade "Qde de motocicletas fiscalizadas" registrado em cada RAT — como cada operação costuma abordar mais de uma moto, esse número é bem maior que o de operações.',
   rolezinho: '<b>Operação Rolezinho</b><br>Meta: 1 operação por semana, por município. Fonte: export REDS específico, natureza Y01003 (Operações Policiais Relativo a Motocicleta).<span class="polarity">Polaridade: quanto maior, melhor.</span>',
   esforco_furto: '<span class="formula">DES% = Qtde de Prisões (autores de Furto) &divide; Qtde de REDS de Furto &times; 100</span><span class="polarity">Polaridade: quanto maior, melhor.</span><br>Fonte: REDS com natureza C01155 (Furto), consumados e tentados, jan-ago/2026. Prisões extraídas do campo QTDE_PRISAO de cada ocorrência.',
@@ -303,8 +303,8 @@ function renderHome() {
   html += `<div class="kpi-card kpi-neutral"><div class="val">${armasAcum}</div><div class="lbl">Armas de Fogo e simu.</div></div>`;
   html += kpiCard('Furto Rural Acum', furtoPct);
   const idobQop = DATA.idob.total_qtdeop_acum[miIdob];
-  const idobVit = DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
-  const idobVal = idobQop ? ((idobQop - idobVit)/idobQop*100) : 0;
+  const idobVit = DATA.idob.total_mv_acum[miIdob]+DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
+  const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
   html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div></div>`;
   html += `</div>`;
   html += renderCumprimentoMatrix('mes');
@@ -387,7 +387,7 @@ function renderRankingTable(modo) {
   const idxY15001 = idxOf(DATA.ppag.y15001.municipios), idxY07012 = idxOf(DATA.ppag.y07012.municipios), idxY07014 = idxOf(DATA.ppag.y07014.municipios);
   const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios), idxRolez = idxOf(DATA.rolezinho.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
-  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit) / qop) * 100 : 0; }
+  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 0; }
 
   // pontos por posição no ranking importado do Power BI (sem meta numérica, só ranking 1º-13º)
@@ -432,7 +432,7 @@ function renderRankingTable(modo) {
     const pPad = statusToPoints(statusPiso(pad['realizado'+sufixo][miPadesc], pad['meta'+sufixo][miPadesc]));
 
     const idobM = DATA.idob.municipios[idxIdob[key]];
-    const vit = idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
+    const vit = idobM['mv'+sufixo][miIdob]+idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
     const pIdob = statusToPoints(statusQualidade(calcIdobLocal(idobM['qop'+sufixo][miIdob], vit)));
 
     const itvdM = DATA.itvd.municipios[idxItvd[key]];
@@ -504,7 +504,7 @@ function renderCumprimentoMatrix(modo) {
   const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
 
-  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit) / qop) * 100 : 0; }
+  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 0; }
 
   let rows = '';
@@ -545,7 +545,7 @@ function renderCumprimentoMatrix(modo) {
     rows += semaforoCell(statusPiso(pad['realizado'+sufixo][miPadesc], pad['meta'+sufixo][miPadesc]), pad['realizado'+sufixo][miPadesc]+'/'+pad['meta'+sufixo][miPadesc]);
 
     const idobM = DATA.idob.municipios[idxIdob[key]];
-    const vit = idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
+    const vit = idobM['mv'+sufixo][miIdob]+idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
     const idobV = calcIdobLocal(idobM['qop'+sufixo][miIdob], vit);
     rows += semaforoCell(statusQualidade(idobV), idobV.toFixed(0)+'%');
 
@@ -819,14 +819,14 @@ function renderIDOBPage() {
 
   function calcIdob(qop, vit) {
     if (!qop) return 0;
-    return ((qop - vit) / qop) * 100;
+    return ((qop - vit*10) / qop) * 100;
   }
 
   function rows(mi) {
     let html = '';
     const list = d.municipios.map(m => {
-      const vitMes = m.cvpe_mes[mi]+m.cvpa_mes[mi];
-      const vitAcum = m.cvpe_acum[mi]+m.cvpa_acum[mi];
+      const vitMes = m.mv_mes[mi]+m.cvpe_mes[mi]+m.cvpa_mes[mi];
+      const vitAcum = m.mv_acum[mi]+m.cvpe_acum[mi]+m.cvpa_acum[mi];
       return {
         nome:m.nome, qopMes:m.qop_mes[mi], qopAcum:m.qop_acum[mi],
         mvMes:m.mv_mes[mi], cvpeMes:m.cvpe_mes[mi], cvpaMes:m.cvpa_mes[mi],
@@ -1190,11 +1190,11 @@ function renderGuiaComandantesPage() {
     ${tabela(['Item','Saque Seguro','Visibilidade'], [
       ['Quando', 'Dias úteis, do dia 25 ao dia 10 (período de pagamentos), 10h-15h', 'Pós-expediente. Qui a Dom (Cias), Sex e Sáb (Pel/Dest), 20h-00h'],
       ['Alvo', 'Bancos, lotéricas (prevenção a estelionatos, proteção de idosos)', 'Entradas/saídas de cidades, locais de aglomeração (Ponto-Base)'],
-      ['Registro', 'Natureza A21.007 — histórico "OPERAÇÃO SAQUE SEGURO", mín. 15 min, mín. 1 CPF', 'Natureza A21.000, mín. 30 min (PB)'],
+      ['Registro', 'Natureza A21.007 — histórico "OPERAÇÃO SAQUE SEGURO", mín. 15 min, mín. 1 CPF', 'Natureza A21.000 — histórico "OPERAÇÃO VISIBILIDADE", mín. 30 min (PB)'],
     ])}
     <div class="def-box" style="margin:14px 0 0"><b>Decisões de Eduardo (2026-08-03):</b><br>
-      &middot; <b>A21.007</b> ainda precisa ser criado como indicador no painel — hoje esse código cobre 3 usos diferentes (VCP, Saque Seguro, Padrinho da Escola), todos misturados na mesma natureza. Vai entrar na fila de reconciliação individual (filtro por histórico/projeto) junto com Cavalo de Aço/Rolezinho.<br>
-      &middot; <b>Visibilidade</b>: ao contrário de Boemia/Saque Seguro/Cavalo de Aço, NÃO vamos exigir/checar a palavra no nome da operação ou histórico — o indicador vai contar toda a natureza A21.000, sem esse filtro de nomenclatura.
+      &middot; <b>A21.007</b> ainda precisa ser criado como indicador no painel — hoje esse código cobre 3 usos diferentes (VCP, Saque Seguro, Padrinho da Escola), todos misturados na mesma natureza. Eduardo vai trazer os exports já filtrados por histórico/nome de cada um separadamente (VCP, Saque Seguro, Padrinho da Escola já vêm pré-separados) — não é preciso reconstruir esse filtro aqui.<br>
+      &middot; <b>Visibilidade</b>: segue a mesma regra das demais (Boemia/Saque Seguro/Cavalo de Aço) — exige a palavra "OPERAÇÃO VISIBILIDADE" no nome da operação e no histórico pra contar no indicador (decisão revista por Eduardo em 2026-08-03; a orientação inicial de não checar o nome foi descartada).
     </div>
     <div class="updated">Pendente: cada indicador de natureza compartilhada (A21.007, Y01003 etc.) vai ganhar sua própria instrução de filtro pra buscar no SiGOp/REDS, um de cada vez — ainda não construído no painel.</div>
   `);
@@ -1206,7 +1206,7 @@ function renderGuiaComandantesPage() {
       ['Natureza', 'Y15030 (Ação/Operação em Área Urbana)'],
       ['Campos obrigatórios', 'Nome da Operação: "OPERAÇÃO BOEMIA" &middot; Alvo do Evento: Bar/Lanchonete/Restaurante/Similar &middot; Descrição do Lugar: Bar/Lanchonete/Restaurante/Similar &middot; histórico deve citar "Operação Boemia"'],
     ])}
-    <div class="updated">Corrigido em 2026-08-03: o IDOB do painel agora usa a fórmula oficial do guia — [Operações &minus; (CVPe+CVPa)] &divide; Operações &times; 100, sem multiplicador e sem contar MV. MV continua exibido na tabela só como referência informativa.</div>
+    <div class="updated">O painel mantém a fórmula com peso ×10 sobre as vítimas (MV+CVPe+CVPa) — diferente da fórmula "seca" do guia oficial da DOP. Confirmado por Eduardo em 2026-08-03: esse multiplicador é intencional, o sistema é justamente pra inflar o peso das vítimas no indicador, não um erro a corrigir.</div>
   `);
 
   html += secao('Operação Cavalo de Aço: Fiscalização Direcionada', `
