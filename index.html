@@ -183,11 +183,8 @@
     <div class="nav-group">
       <div class="nav-group-label">Indicadores Criminais</div>
       <button class="nav-btn" data-page="imv">IMV (Mortes Viol.)</button>
-      <button class="nav-btn" data-page="mv_detalhado">IMV Detalhado</button>
       <button class="nav-btn" data-page="cvpe">CVPE</button>
-      <button class="nav-btn" data-page="cvpe_detalhado">CVPe Detalhado</button>
       <button class="nav-btn" data-page="cvpa">CVPa</button>
-      <button class="nav-btn" data-page="cvpa_detalhado">CVPa Detalhado</button>
       <button class="nav-btn" data-page="furto">Furto Rural</button>
       <button class="nav-btn" data-page="armas">Armas de Fogo</button>
     </div>
@@ -235,7 +232,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 04/08/2026 09:53</span>
+      <span>Gerado em 04/08/2026 10:12</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -675,6 +672,10 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
       <div class="chart-box"><h3>${labelLocal}</h3><canvas id="chartLocal" style="width:100%;height:260px"></canvas></div>
       <div class="chart-box"><h3>${labelFaixa}</h3><canvas id="chartFaixa" style="width:100%;height:260px"></canvas></div>
     </div>`;
+  }
+  const detCfg = DETALHADO_CONFIG[key];
+  if (detCfg && DATA[detCfg.dataKey]) {
+    html += detalhadoPorNaturezaHtml(DATA[detCfg.dataKey], detCfg.titulo, detCfg.colunas, detCfg.defHtml, detCfg.fonteHtml);
   }
   document.getElementById('main').innerHTML = html;
 
@@ -1273,8 +1274,8 @@ function renderAnaliseGdoPage() {
   document.getElementById('main').innerHTML = html;
 }
 
-function renderDetalhadoPorNaturezaPage(d, titulo, colunas, defHtml, fonteHtml) {
-  let html = `<div class="page-title">${titulo}</div>`;
+function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {
+  let html = `<div class="chart-box" style="margin-top:20px;min-width:0"><h3>${titulo}</h3>`;
   html += `<div class="def-box"><b>${d.periodo}</b><br>${defHtml}</div>`;
   html += `<table class="data-table"><thead><tr>
     <th style="text-align:left">Fração</th><th style="text-align:left">Município</th>
@@ -1304,30 +1305,17 @@ function renderDetalhadoPorNaturezaPage(d, titulo, colunas, defHtml, fonteHtml) 
   html += `<td>${t.total}</td></tr>`;
   html += `</tbody></table>`;
   html += `<div class="updated">${fonteHtml}</div>`;
-  document.getElementById('main').innerHTML = html;
+  html += `</div>`;
+  return html;
 }
 
-function renderCvpeDetalhadoPage() {
-  renderDetalhadoPorNaturezaPage(
-    DATA.cvpe_detalhado,
-    'Crimes Violentos Contra a Pessoa — Detalhamento por Natureza',
-    [
-      { key: 'civil', label: 'Homicídio Tentado Contra Civil' },
-      { key: 'militar', label: 'Homicídio Tentado Contra PM', highlight: true },
-      { key: 'tortura', label: 'Tortura' },
-      { key: 'sequestro', label: 'Sequestro' },
-      { key: 'femi', label: 'Feminicídio' },
-    ],
-    'Detalhamento do CVPe por tipo de crime e fração (companhia/pelotão), extraído do export REDS geral: Homicídio Tentado Contra Civil (ICVPE_B01121), Homicídio Tentado Contra PM (ICVPE_B01121_MILITAR), Tortura (ICVPE_B02001), Sequestro (ICVPE_B01148), Feminicídio (ICVPE_B01504).',
-    'Fonte: export REDS geral (relatorio_estatisticas_reds), filtrado por CODIGO_MUNICIPIO e somado por natureza dentro do CVPe. Atualizado até julho/2026.'
-  );
-}
-
-function renderMvDetalhadoPage() {
-  renderDetalhadoPorNaturezaPage(
-    DATA.mv_detalhado,
-    'Mortes Violentas — Detalhamento por Natureza',
-    [
+// Config dos detalhamentos por indicador — usado dentro de renderIndicatorPage,
+// aparece como tabela extra logo abaixo da tabela principal (não é aba própria).
+const DETALHADO_CONFIG = {
+  mv: {
+    dataKey: 'mv_detalhado',
+    titulo: 'Mortes Violentas — Detalhamento por Natureza',
+    colunas: [
       { key: 'homicidio', label: 'Homicídio Consumado' },
       { key: 'roubo_fatal', label: 'Roubo com Lesão Fatal' },
       { key: 'lesao', label: 'Lesão Corporal' },
@@ -1335,24 +1323,34 @@ function renderMvDetalhadoPage() {
       { key: 'sequestro', label: 'Sequestro' },
       { key: 'tortura', label: 'Tortura' },
     ],
-    'Detalhamento do IMV por tipo de crime e fração (companhia/pelotão), extraído do export REDS geral: Homicídio Consumado (IMV_B01121), Roubo com Lesão Fatal (IMV_C01157), Lesão Corporal seguida de morte (IMV_B01129), Feminicídio (IMV_B01504), Sequestro (IMV_B01148), Tortura (IMV_B02001).',
-    'Fonte: export REDS geral (relatorio_estatisticas_reds), filtrado por CODIGO_MUNICIPIO e somado por natureza dentro do IMV. Atualizado até julho/2026.'
-  );
-}
-
-function renderCvpaDetalhadoPage() {
-  renderDetalhadoPorNaturezaPage(
-    DATA.cvpa_detalhado,
-    'Crimes Violentos Contra o Patrimônio (Ambulante) — Detalhamento por Natureza',
-    [
+    defHtml: 'Detalhamento do IMV por tipo de crime e fração (companhia/pelotão), extraído do export REDS geral: Homicídio Consumado (IMV_B01121), Roubo com Lesão Fatal (IMV_C01157), Lesão Corporal seguida de morte (IMV_B01129), Feminicídio (IMV_B01504), Sequestro (IMV_B01148), Tortura (IMV_B02001).',
+    fonteHtml: 'Fonte: export REDS geral (relatorio_estatisticas_reds), filtrado por CODIGO_MUNICIPIO e somado por natureza dentro do IMV. Atualizado até julho/2026.',
+  },
+  cvpe: {
+    dataKey: 'cvpe_detalhado',
+    titulo: 'Crimes Violentos Contra a Pessoa — Detalhamento por Natureza',
+    colunas: [
+      { key: 'civil', label: 'Homicídio Tentado Contra Civil' },
+      { key: 'militar', label: 'Homicídio Tentado Contra PM', highlight: true },
+      { key: 'tortura', label: 'Tortura' },
+      { key: 'sequestro', label: 'Sequestro' },
+      { key: 'femi', label: 'Feminicídio' },
+    ],
+    defHtml: 'Detalhamento do CVPe por tipo de crime e fração (companhia/pelotão), extraído do export REDS geral: Homicídio Tentado Contra Civil (ICVPE_B01121), Homicídio Tentado Contra PM (ICVPE_B01121_MILITAR), Tortura (ICVPE_B02001), Sequestro (ICVPE_B01148), Feminicídio (ICVPE_B01504).',
+    fonteHtml: 'Fonte: export REDS geral (relatorio_estatisticas_reds), filtrado por CODIGO_MUNICIPIO e somado por natureza dentro do CVPe. Atualizado até julho/2026.',
+  },
+  cvpa: {
+    dataKey: 'cvpa_detalhado',
+    titulo: 'Crimes Violentos Contra o Patrimônio (Ambulante) — Detalhamento por Natureza',
+    colunas: [
       { key: 'roubo', label: 'Roubo' },
       { key: 'extorsao', label: 'Extorsão' },
       { key: 'extorsao_seq', label: 'Extorsão Mediante Sequestro' },
     ],
-    'Detalhamento do CVPa por tipo de crime e fração (companhia/pelotão), extraído do export REDS geral: Roubo (ICVPA_C01157), Extorsão (ICVPA_C01158), Extorsão Mediante Sequestro (ICVPA_C01159).',
-    'Fonte: export REDS geral (relatorio_estatisticas_reds), filtrado por CODIGO_MUNICIPIO e somado por natureza dentro do CVPa. Atualizado até julho/2026.'
-  );
-}
+    defHtml: 'Detalhamento do CVPa por tipo de crime e fração (companhia/pelotão), extraído do export REDS geral: Roubo (ICVPA_C01157), Extorsão (ICVPA_C01158), Extorsão Mediante Sequestro (ICVPA_C01159).',
+    fonteHtml: 'Fonte: export REDS geral (relatorio_estatisticas_reds), filtrado por CODIGO_MUNICIPIO e somado por natureza dentro do CVPa. Atualizado até julho/2026.',
+  },
+};
 
 function renderPending(name) {
   document.getElementById('main').innerHTML = `<div class="page-title">${name}</div>
@@ -1372,9 +1370,6 @@ const pages = {
   cavaloaco: renderCavaloAcoPage,
   rolezinho: renderRolezinhoPage,
   esforco_furto: renderEsforcoFurtoPage,
-  mv_detalhado: renderMvDetalhadoPage,
-  cvpe_detalhado: renderCvpeDetalhadoPage,
-  cvpa_detalhado: renderCvpaDetalhadoPage,
   guia_comandantes: renderGuiaComandantesPage,
   analise_gdo: renderAnaliseGdoPage,
   rc: () => renderImportedRankingPage('rc', 'Reuniões Comunitárias'),
