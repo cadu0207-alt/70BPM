@@ -233,7 +233,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 04/08/2026 10:26</span>
+      <span>Gerado em 04/08/2026 10:43</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1268,6 +1268,166 @@ function renderGuiaComandantesPage() {
   document.getElementById('main').innerHTML = html;
 }
 
+const CIA_MAP = {
+  '154ª CIA': ['Araçuaí','Coronel Murta','Itinga','Virgem da Lapa'],
+  '233ª CIA': ['Pedra Azul','Cachoeira de Pajeú','Águas Vermelhas','Divisa Alegre'],
+  '80ª CIA': ['Padre Paraíso','Comercinho','Itaobim','Medina','Ponto dos Volantes'],
+};
+
+function severityBadge(sev) {
+  const map = {
+    'CRÍTICO': '#c0392b',
+    'RUIM': '#d2691e',
+    'BAIXO': '#b8860b',
+    'ATENÇÃO': '#c9a227',
+  };
+  const bg = map[sev] || '#666';
+  return `<span style="background:${bg};color:#fff;font-weight:700;font-size:10px;letter-spacing:0.04em;padding:4px 10px;border-radius:3px;text-transform:uppercase;white-space:nowrap">${sev}</span>`;
+}
+
+function findMuniIdx(municipios, nome) {
+  const nk = normKey(nome);
+  for (let i = 0; i < municipios.length; i++) {
+    if (normKey(municipios[i].nome) === nk) return i;
+  }
+  return -1;
+}
+
+// Detecta problemas de um município num dado mi (índice acumulado).
+// Regras por categoria de indicador — cada categoria tem um "teto" de severidade:
+//  - Resultado (MV/CVPe/CVPa/Furto, quanto menor melhor): CRÍTICO/RUIM, conforme % acima da meta acumulada
+//  - Esforço/Operacional (Prisões de Furto, Armas): teto BAIXO
+//  - Interação/Ranking importado (VCP/MRPP/RC/VTCV/VT) e IDOB: teto ATENÇÃO
+function issuesForMunicipio(nome, mi) {
+  const issues = [];
+  const nk = normKey(nome);
+
+  [['mv','MV'], ['cvpe','CVPE'], ['cvpa','CVPA'], ['furto','Furto Rural']].forEach(([key, label]) => {
+    const d = DATA[key];
+    if (!d) return;
+    const idx = findMuniIdx(d.municipios, nome);
+    if (idx < 0) return;
+    const m = d.municipios[idx];
+    const meta = m.meta_acum[mi], real = m.realizado_acum[mi];
+    if (real <= 0) return;
+    const p = pct(real, meta);
+    if (p >= 50) {
+      const sev = p >= 150 ? 'CRÍTICO' : 'RUIM';
+      const sinal = p >= 0 ? '+' : '';
+      issues.push({ indicador: `${label} (Resultado)`, severidade: sev, ordem: sev === 'CRÍTICO' ? 0 : 1,
+        detalhe: `Meta ${meta} &rarr; Res ${real} (${sinal}${p.toFixed(0)}%)` });
+    }
+  });
+
+  {
+    const idx = findMuniIdx(DATA.esforco_furto.municipios, nome);
+    if (idx >= 0) {
+      const m = DATA.esforco_furto.municipios[idx];
+      const reds = m.reds_acum[mi], prisoes = m.prisoes_acum[mi];
+      if (reds > 0) {
+        const des = prisoes / reds * 100;
+        if (des < 25) {
+          issues.push({ indicador: 'Prisões de autores de Furto', severidade: 'BAIXO', ordem: 2,
+            detalhe: `${reds} REDS / ${prisoes} prisões = ${des.toFixed(1)}%` });
+        }
+      }
+    }
+  }
+
+  {
+    const arr = DATA.armas.municipios;
+    const idx = findMuniIdx(arr, nome);
+    if (idx >= 0) {
+      const m = arr[idx];
+      const meta = m.meta_acum[mi], real = m.realizado_acum[mi];
+      const atingimento = meta ? (real / meta * 100) : (real > 0 ? 100 : 0);
+      if (atingimento < 50) {
+        const ranked = arr.map((x, i) => ({ i, v: x.realizado_acum[mi] })).sort((a, b) => b.v - a.v);
+        const posicao = ranked.findIndex(x => x.i === idx) + 1;
+        issues.push({ indicador: 'Apreensão de Armas', severidade: 'BAIXO', ordem: 2,
+          detalhe: `Ranking ${posicao}º (${atingimento.toFixed(0)}%)` });
+      }
+    }
+  }
+
+  [['vcp','VCP (Interação)'], ['mrpp','MRPP'], ['rc','RC (Reuniões)'], ['vtcv','VTCV'], ['vt','VT (Furto)']].forEach(([key, label]) => {
+    const d = DATA[key];
+    if (!d || !d.rows) return;
+    const n = d.rows.length;
+    const posicao = d.rows.findIndex(r => normKey(r.nome) === nk) + 1;
+    if (posicao > 0 && posicao > n - 4) {
+      const detalhe = posicao === n ? 'Ranking (última posição)' : `Ranking ${posicao}º/${n}`;
+      issues.push({ indicador: label, severidade: 'ATENÇÃO', ordem: 3, detalhe });
+    }
+  });
+
+  {
+    const idx = findMuniIdx(DATA.idob.municipios, nome);
+    if (idx >= 0) {
+      const m = DATA.idob.municipios[idx];
+      const mv = m.mv_acum[mi], cvpe = m.cvpe_acum[mi], cvpa = m.cvpa_acum[mi], qop = m.qop_acum[mi];
+      const idobPct = qop ? ((qop - (mv + cvpe + cvpa) * 10) / qop * 100) : 0;
+      if (mv > 0) {
+        issues.push({ indicador: 'IDOB (Boemia)', severidade: 'ATENÇÃO', ordem: 3,
+          detalhe: `${idobPct.toFixed(1)}% acumulado (${mv} MV registrada${mv > 1 ? 's' : ''})` });
+      }
+    }
+  }
+
+  return issues;
+}
+
+function renderAnaliseCiaBloco(ciaNome, mi) {
+  const municipios = CIA_MAP[ciaNome];
+  let allIssues = [];
+  municipios.forEach(nome => {
+    issuesForMunicipio(nome, mi).forEach(iss => allIssues.push(Object.assign({ municipio: nome }, iss)));
+  });
+  allIssues.sort((a, b) => a.ordem - b.ordem);
+
+  let html = `<div style="margin-top:10px">`;
+  html += `<div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--mono)">Análise por Companhia</div>`;
+  html += `<div style="font-size:24px;font-weight:800;margin:4px 0 16px">${ciaNome}</div>`;
+
+  if (allIssues.length === 0) {
+    html += `<div class="pending-box">Nenhum problema relevante identificado nesta companhia no período.</div>`;
+  } else {
+    html += `<div style="display:flex;flex-direction:column;border-radius:6px;overflow:hidden;border:1px solid var(--panel-border)">`;
+    allIssues.forEach(iss => {
+      html += `<div style="display:flex;align-items:center;gap:16px;background:var(--panel);padding:12px 16px;border-bottom:1px solid var(--panel-border)">
+        <div style="width:200px;font-weight:600;flex-shrink:0">${iss.indicador}</div>
+        <div style="width:150px;color:var(--muted);flex-shrink:0">${iss.municipio}</div>
+        <div style="width:90px;flex-shrink:0">${severityBadge(iss.severidade)}</div>
+        <div style="flex:1;color:var(--muted);font-size:12.5px">${iss.detalhe}</div>
+      </div>`;
+    });
+    html += `</div>`;
+
+    const porMuni = {};
+    allIssues.forEach(iss => {
+      (porMuni[iss.municipio] = porMuni[iss.municipio] || []).push(iss);
+    });
+    let pior = null, piorScore = -1;
+    Object.keys(porMuni).forEach(m => {
+      const score = porMuni[m].reduce((s, i) => s + (4 - i.ordem), 0);
+      if (score > piorScore) { piorScore = score; pior = m; }
+    });
+    if (pior) {
+      const lista = porMuni[pior];
+      const principal = lista[0];
+      const outros = lista.slice(1).map(i => i.indicador);
+      let texto = `<b>${pior}</b> é o principal vetor de problemas da ${ciaNome} (${principal.indicador.toLowerCase()}: ${principal.detalhe})`;
+      texto += outros.length ? ` e apresenta baixo desempenho também em ${outros.join(', ')}.` : `.`;
+      html += `<div style="background:#12161c;border:1px solid var(--panel-border);border-radius:6px;padding:16px 20px;margin-top:16px">
+        <div style="color:var(--amber);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Destaque Crítico</div>
+        <div style="color:var(--text);font-size:13px;line-height:1.6">${texto}</div>
+      </div>`;
+    }
+  }
+  html += `</div>`;
+  return html;
+}
+
 function renderApresentacaoGdoPage() {
   const y1 = DATA.ppag.y15001, y2 = DATA.ppag.y07012, y3 = DATA.ppag.y07014;
   const mesesLocais = y1.meses || MESES.slice(0, y1.total_mes.length);
@@ -1325,9 +1485,29 @@ function renderApresentacaoGdoPage() {
     Y07012 - Operação de Prevenção a Violência Doméstica;<br>
     Y07014 - Ação/Operação em Zonal Rural;
   </div>`;
+
+  const miAnalise = DATA.mv.total_acum.length - 1;
+  const cias = Object.keys(CIA_MAP);
+  let ciaAtiva = cias[0];
+  html += `<div style="margin-top:34px;padding-top:24px;border-top:1px solid var(--line)">`;
+  html += `<div class="nav-scroll" style="display:flex;gap:8px;margin-bottom:6px" id="ciaTabs">`;
+  cias.forEach((c, i) => {
+    html += `<button class="nav-btn cia-tab${i===0?' active':''}" data-cia="${c}" style="width:auto;padding:8px 18px">${c}</button>`;
+  });
+  html += `</div>`;
+  html += `<div id="ciaBlocoContainer">${renderAnaliseCiaBloco(ciaAtiva, miAnalise)}</div>`;
+  html += `</div>`;
+
   document.getElementById('main').innerHTML = html;
   document.getElementById('apresGdoMonthSel').addEventListener('change', (e) => {
     document.querySelector('#apresGdoTable tbody').innerHTML = slide(parseInt(e.target.value));
+  });
+  document.querySelectorAll('#ciaTabs .cia-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#ciaTabs .cia-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('ciaBlocoContainer').innerHTML = renderAnaliseCiaBloco(btn.dataset.cia, miAnalise);
+    });
   });
 }
 
