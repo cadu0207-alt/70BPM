@@ -233,7 +233,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 04/08/2026 10:43</span>
+      <span>Gerado em 04/08/2026 10:53</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1486,10 +1486,13 @@ function renderApresentacaoGdoPage() {
     Y07014 - Ação/Operação em Zonal Rural;
   </div>`;
 
-  const miAnalise = DATA.mv.total_acum.length - 1;
+  const mesesMv = DATA.mv.meses || MESES;
+  let miAnalise = mesesMv.indexOf('Julho');
+  if (miAnalise < 0) miAnalise = DATA.mv.total_acum.length - 1;
   const cias = Object.keys(CIA_MAP);
   let ciaAtiva = cias[0];
   html += `<div style="margin-top:34px;padding-top:24px;border-top:1px solid var(--line)">`;
+  html += `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:10px">GDO Jan-${mesesMv[miAnalise]}/2026</div>`;
   html += `<div class="nav-scroll" style="display:flex;gap:8px;margin-bottom:6px" id="ciaTabs">`;
   cias.forEach((c, i) => {
     html += `<button class="nav-btn cia-tab${i===0?' active':''}" data-cia="${c}" style="width:auto;padding:8px 18px">${c}</button>`;
