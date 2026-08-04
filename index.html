@@ -234,7 +234,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 04/08/2026 11:45</span>
+      <span>Gerado em 04/08/2026 11:51</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -280,6 +280,7 @@ function renderHome() {
   const miMv = DATA.mv.total_acum.length-1, miCvpe = DATA.cvpe.total_acum.length-1, miCvpa = DATA.cvpa.total_acum.length-1;
   const miFurto = DATA.furto.total_acum.length-1, miArmas = DATA.armas.total_acum.length-1;
   const miPog = DATA.pog.total_acum.length-1, miPadesc = DATA.padesc.total_acum.length-1, miIdob = DATA.idob.total_qtdeop_acum.length-1;
+  const miSaque = DATA.saque_seguro.total_acum.length-1;
   const mvAcum = DATA.mv.total_acum[miMv], mvMeta = DATA.mv.total_meta_acum[miMv];
   const cvpeAcum = DATA.cvpe.total_acum[miCvpe], cvpeMeta = DATA.cvpe.total_meta_acum[miCvpe];
   const cvpaAcum = DATA.cvpa.total_acum[miCvpa], cvpaMeta = DATA.cvpa.total_meta_acum[miCvpa];
@@ -287,6 +288,7 @@ function renderHome() {
   const furtoAcum = DATA.furto.total_acum[miFurto], furtoMeta = DATA.furto.total_meta_acum[miFurto];
   const pogAcum = DATA.pog.total_acum[miPog], pogMeta = DATA.pog.total_meta_acum[miPog];
   const padescAcum = DATA.padesc.total_acum[miPadesc], padescMeta = DATA.padesc.total_meta_acum[miPadesc];
+  const saqueAcum = DATA.saque_seguro.total_acum[miSaque], saqueMeta = DATA.saque_seguro.total_meta_acum[miSaque];
   const mvPct = pct(mvAcum, mvMeta);
   const cvpePct = pct(cvpeAcum, cvpeMeta);
   const cvpaPct = pct(cvpaAcum, cvpaMeta);
@@ -309,6 +311,7 @@ function renderHome() {
   const idobVit = DATA.idob.total_mv_acum[miIdob]+DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
   const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
   html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div></div>`;
+  html += `<div class="kpi-card ${saqueAcum>=saqueMeta?'kpi-green':'kpi-red'}"><div class="val">${saqueAcum}/${saqueMeta}</div><div class="lbl">Saque Seguro Acum (Res/Meta)</div></div>`;
   html += `</div>`;
   html += renderCumprimentoMatrix('mes');
   html += renderCumprimentoMatrix('acum');
@@ -380,6 +383,7 @@ function renderRankingTable(modo) {
   const miY1 = DATA.ppag.y15001.total_mes.length-1, miY2 = DATA.ppag.y07012.total_mes.length-1, miY3 = DATA.ppag.y07014.total_mes.length-1;
   const miPadesc = DATA.padesc.total_mes.length-1, miCav = DATA.cavaloaco.total_mes.length-1, miRolez = DATA.rolezinho.total_mes.length-1;
   const miIdob = DATA.idob.total_qtdeop_mes.length-1, miItvd = DATA.itvd.total_trafico_mes.length-1;
+  const miSaque = DATA.saque_seguro.total_mes.length-1;
   const idxOf = (list) => {
     const idx = {};
     list.forEach((m,i) => idx[normKey(m.nome)] = i);
@@ -390,6 +394,7 @@ function renderRankingTable(modo) {
   const idxY15001 = idxOf(DATA.ppag.y15001.municipios), idxY07012 = idxOf(DATA.ppag.y07012.municipios), idxY07014 = idxOf(DATA.ppag.y07014.municipios);
   const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios), idxRolez = idxOf(DATA.rolezinho.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
+  const idxSaque = idxOf(DATA.saque_seguro.municipios);
   function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 0; }
 
@@ -443,8 +448,11 @@ function renderRankingTable(modo) {
 
     const pRc = rankRc[key] ?? 0, pVcp = rankVcp[key] ?? 0, pVtcv = rankVtcv[key] ?? 0, pVt = rankVt[key] ?? 0, pMrpp = rankMrpp[key] ?? 0;
 
-    const total = pMv+pCvpe+pCvpa+pPog+pY1+pY2+pY3+pCav+pRolez+pArmas+pPad+pIdob+pItvd+pRc+pVcp+pVtcv+pVt+pMrpp;
-    return { nome: nomeBonito, pMv, pCvpe, pCvpa, pPog, pY1, pY2, pY3, pCav, pRolez, pArmas, pPad, pIdob, pItvd, pRc, pVcp, pVtcv, pVt, pMrpp, total };
+    const saque = DATA.saque_seguro.municipios[idxSaque[key]];
+    const pSaque = statusToPoints(statusPiso(saque['realizado'+sufixo][miSaque], saque['meta'+sufixo][miSaque]));
+
+    const total = pMv+pCvpe+pCvpa+pPog+pY1+pY2+pY3+pCav+pRolez+pArmas+pPad+pIdob+pItvd+pRc+pVcp+pVtcv+pVt+pMrpp+pSaque;
+    return { nome: nomeBonito, pMv, pCvpe, pCvpa, pPog, pY1, pY2, pY3, pCav, pRolez, pArmas, pPad, pIdob, pItvd, pRc, pVcp, pVtcv, pVt, pMrpp, pSaque, total };
   });
 
   ranking.sort((a,b) => b.total - a.total);
@@ -457,7 +465,7 @@ function renderRankingTable(modo) {
   const detalheLabels = [
     ['pMv','IMV'],['pCvpe','CVPe'],['pCvpa','CVPa'],['pArmas','Armas'],['pPog','POG'],
     ['pY1','PPAG Esc.'],['pY2','PPAG VD'],['pY3','PPAG Rural'],['pCav','Cav.Aço'],['pRolez','Rolez.'],
-    ['pPad','Pad.Esc.'],['pIdob','IDOB'],['pItvd','ITVD'],['pRc','RC'],['pVcp','VCP'],['pVtcv','VTCV'],['pVt','VT'],['pMrpp','MRPP'],
+    ['pPad','Pad.Esc.'],['pSaque','Saque Seg.'],['pIdob','IDOB'],['pItvd','ITVD'],['pRc','RC'],['pVcp','VCP'],['pVtcv','VTCV'],['pVt','VT'],['pMrpp','MRPP'],
   ];
 
   let rows = '';
@@ -482,7 +490,7 @@ function renderRankingTable(modo) {
   let html = `<div class="chart-box" style="margin-top:4px">
     <h3>Ranking Geral por Município &middot; ${tituloPeriodo}</h3>
     <div>${rows}</div>
-    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Barra = pontuação total do município (passe o mouse pra ver o detalhe por indicador). IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Indicadores com meta numérica (Armas/POG/PPAG/Cavalo de Aço/Rolezinho/Pad.Escolar/IDOB/ITVD): 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). RC/VCP/VTCV/VT/MRPP ainda não têm meta definida (só o snapshot de julho importado do Power BI) — pontuados pela posição no ranking daquele indicador: 2 pts para o top 4, 1 pt para o meio (5º-9º), 0 pts para os 4 últimos. 3 primeiros em verde, 3 últimos em vermelho.</div>
+    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Barra = pontuação total do município (passe o mouse pra ver o detalhe por indicador). IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Indicadores com meta numérica (Armas/POG/PPAG/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro/IDOB/ITVD): 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). RC/VCP/VTCV/VT/MRPP ainda não têm meta definida (só o snapshot de julho importado do Power BI) — pontuados pela posição no ranking daquele indicador: 2 pts para o top 4, 1 pt para o meio (5º-9º), 0 pts para os 4 últimos. 3 primeiros em verde, 3 últimos em vermelho.</div>
   </div>`;
   return html;
 }
@@ -496,6 +504,7 @@ function renderCumprimentoMatrix(modo) {
   const miY1 = DATA.ppag.y15001.total_mes.length-1, miY2 = DATA.ppag.y07012.total_mes.length-1, miY3 = DATA.ppag.y07014.total_mes.length-1;
   const miPadesc = DATA.padesc.total_mes.length-1, miCav = DATA.cavaloaco.total_mes.length-1;
   const miIdob = DATA.idob.total_qtdeop_mes.length-1, miItvd = DATA.itvd.total_trafico_mes.length-1;
+  const miSaque = DATA.saque_seguro.total_mes.length-1;
   const idxOf = (list) => {
     const idx = {};
     list.forEach((m,i) => idx[normKey(m.nome)] = i);
@@ -506,6 +515,7 @@ function renderCumprimentoMatrix(modo) {
   const idxY15001 = idxOf(DATA.ppag.y15001.municipios), idxY07012 = idxOf(DATA.ppag.y07012.municipios), idxY07014 = idxOf(DATA.ppag.y07014.municipios);
   const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
+  const idxSaque = idxOf(DATA.saque_seguro.municipios);
 
   function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 0; }
@@ -547,6 +557,9 @@ function renderCumprimentoMatrix(modo) {
     const pad = DATA.padesc.municipios[idxPadesc[key]];
     rows += semaforoCell(statusPiso(pad['realizado'+sufixo][miPadesc], pad['meta'+sufixo][miPadesc]), pad['realizado'+sufixo][miPadesc]+'/'+pad['meta'+sufixo][miPadesc]);
 
+    const saque = DATA.saque_seguro.municipios[idxSaque[key]];
+    rows += semaforoCell(statusPiso(saque['realizado'+sufixo][miSaque], saque['meta'+sufixo][miSaque]), saque['realizado'+sufixo][miSaque]+'/'+saque['meta'+sufixo][miSaque]);
+
     const idobM = DATA.idob.municipios[idxIdob[key]];
     const vit = idobM['mv'+sufixo][miIdob]+idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
     const idobV = calcIdobLocal(idobM['qop'+sufixo][miIdob], vit);
@@ -566,7 +579,7 @@ function renderCumprimentoMatrix(modo) {
     <table class="data-table"><thead><tr>
       <th style="text-align:left">Município</th><th>IMV</th><th>CVPe</th><th>CVPa</th><th>Furto Rural</th>
       <th>POG</th><th>PPAG Escolar</th><th>PPAG V.Dom.</th><th>PPAG Rural</th><th>Cavalo de Aço</th>
-      <th>Pad.Escolar</th><th>IDOB</th><th>ITVD</th>
+      <th>Pad.Escolar</th><th>Saque Seguro</th><th>IDOB</th><th>ITVD</th>
     </tr></thead><tbody>${rows}</tbody></table>
     </div>
     <div class="updated" style="border:none;margin:10px 0 0;padding:0">Verde = cumpriu a meta &middot; Amarelo = próximo (tolerância) &middot; Vermelho = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Cavalo de Aço/Pad.Escolar: quanto maior, melhor. IDOB/ITVD: índice de qualidade (não é meta numérica).</div>
