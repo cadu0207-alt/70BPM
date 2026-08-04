@@ -223,6 +223,7 @@
     <div class="nav-group">
       <div class="nav-group-label">Guias e Documentos</div>
       <button class="nav-btn" data-page="guia_comandantes">Guia de Comandantes</button>
+      <button class="nav-btn" data-page="apresentacao_gdo">Apresentação GDO</button>
       <button class="nav-btn" data-page="analise_gdo">Análise GDO</button>
     </div>
   </div>
@@ -232,7 +233,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 04/08/2026 10:12</span>
+      <span>Gerado em 04/08/2026 10:26</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1267,6 +1268,69 @@ function renderGuiaComandantesPage() {
   document.getElementById('main').innerHTML = html;
 }
 
+function renderApresentacaoGdoPage() {
+  const y1 = DATA.ppag.y15001, y2 = DATA.ppag.y07012, y3 = DATA.ppag.y07014;
+  const mesesLocais = y1.meses || MESES.slice(0, y1.total_mes.length);
+  let mi = mesesLocais.length - 1;
+
+  function idxOf(municipios) {
+    const map = {};
+    municipios.forEach((m, i) => map[normKey(m.nome)] = i);
+    return map;
+  }
+
+  function slide(mi) {
+    const idx2 = idxOf(y2.municipios), idx3 = idxOf(y3.municipios);
+    let rows = '';
+    y1.municipios.forEach(m1 => {
+      const m2 = y2.municipios[idx2[normKey(m1.nome)]];
+      const m3 = y3.municipios[idx3[normKey(m1.nome)]];
+      const bloco = (m) => {
+        const meta = m.meta_mes[mi], res = m.realizado_mes[mi];
+        const des = meta ? (res/meta*100) : (res>0?100:100);
+        return `<td>${meta}</td><td>${res}</td>${pogCell(des)}`;
+      };
+      rows += `<tr style="background:rgba(90,180,220,0.18)">
+        <td style="text-align:left;font-weight:700">${m1.nome}</td>
+        ${bloco(m1)}${bloco(m2)}${bloco(m3)}
+      </tr>`;
+    });
+    const totBloco = (d) => {
+      const meta = d.total_meta_mes[mi], res = d.total_mes[mi];
+      const des = meta ? (res/meta*100) : 100;
+      return `<td>${meta}</td><td>${res}</td>${pogCell(des)}`;
+    };
+    rows += `<tr style="font-weight:700;background:rgba(255,255,255,0.1)">
+      <td style="text-align:left">70º BPM</td>
+      ${totBloco(y1)}${totBloco(y2)}${totBloco(y3)}
+    </tr>`;
+    return rows;
+  }
+
+  let html = `<div class="page-title" style="color:var(--amber)">Policiamento de Proximidade | Dados de ${mesesLocais[mi]}</div>`;
+  html += `<div class="def-box">Quadro-resumo de apresentação (estilo GDO) com as 3 metas do Policiamento de Proximidade: Y15001 (Patrulha Escolar/Prevenção às Drogas), Y07012 (Prevenção à Violência Doméstica), Y07014 (Ação/Operação em Zona Rural).</div>`;
+  html += `<select class="month-select" id="apresGdoMonthSel">`;
+  mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
+  html += `</select>`;
+  html += `<table class="data-table" id="apresGdoTable"><thead><tr>
+    <th style="text-align:left" rowspan="2">Município</th>
+    <th colspan="3">Meta Y15001</th><th colspan="3">Meta Y07012</th><th colspan="3">Meta Y07014</th>
+  </tr><tr>
+    <th>Meta</th><th>Res.</th><th>Des.</th>
+    <th>Meta</th><th>Res.</th><th>Des.</th>
+    <th>Meta</th><th>Res.</th><th>Des.</th>
+  </tr></thead><tbody>${slide(mi)}</tbody></table>`;
+  html += `<div class="def-box" style="margin-top:16px;font-size:11.5px">
+    Y15001 - Patrulha Escolar/Patrulha de Prevenção às Drogas;<br>
+    Y07012 - Operação de Prevenção a Violência Doméstica;<br>
+    Y07014 - Ação/Operação em Zonal Rural;
+  </div>`;
+  document.getElementById('main').innerHTML = html;
+  document.getElementById('apresGdoMonthSel').addEventListener('change', (e) => {
+    document.querySelector('#apresGdoTable tbody').innerHTML = slide(parseInt(e.target.value));
+  });
+}
+
 function renderAnaliseGdoPage() {
   let html = `<div class="page-title">Análise GDO</div>`;
   html += `<div class="def-box">Espaço reservado para análise da Gestão da Doutrina Operacional (GDO). Estrutura inicial abaixo — conteúdo ainda a ser definido.</div>`;
@@ -1371,6 +1435,7 @@ const pages = {
   rolezinho: renderRolezinhoPage,
   esforco_furto: renderEsforcoFurtoPage,
   guia_comandantes: renderGuiaComandantesPage,
+  apresentacao_gdo: renderApresentacaoGdoPage,
   analise_gdo: renderAnaliseGdoPage,
   rc: () => renderImportedRankingPage('rc', 'Reuniões Comunitárias'),
   vcp: () => renderImportedRankingPage('vcp', 'Visitas Comunitárias Preventivas'),
