@@ -163,6 +163,17 @@
   .def-box .polarity { color: var(--signal); font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
   .def-box code { color: var(--amber); font-family:var(--mono); }
 
+  .btn-sigop {
+    display:inline-flex; align-items:center; gap:9px;
+    background: var(--amber); color:#151005; text-decoration:none;
+    font-family:var(--mono); font-weight:700; font-size:12.5px; letter-spacing:0.04em;
+    padding:11px 20px; border-radius:4px; margin-bottom:22px;
+    box-shadow: 0 0 0 1px rgba(232,168,60,0.5), 0 4px 14px rgba(232,168,60,0.25);
+    transition: all .12s ease;
+  }
+  .btn-sigop:hover { background:#f4bb54; box-shadow: 0 0 0 1px rgba(232,168,60,0.7), 0 6px 18px rgba(232,168,60,0.4); transform: translateY(-1px); }
+  .btn-sigop .arrow { font-size:14px; }
+
   .pending-box {
     background:var(--panel); border:1px dashed var(--panel-border); border-radius:4px; padding:44px; text-align:center; color:var(--muted);
     font-size:14px; margin-top:30px; font-family:var(--mono); letter-spacing:0.02em;
@@ -234,7 +245,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 04/08/2026 14:45</span>
+      <span>Gerado em 07/08/2026 10:44</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -256,6 +267,27 @@ const DEFS = {
   esforco_furto: '<span class="formula">DES% = Qtde de Prisões (autores de Furto) &divide; Qtde de REDS de Furto &times; 100</span><span class="polarity">Polaridade: quanto maior, melhor.</span><br>Fonte: REDS com natureza C01155 (Furto), consumados e tentados, jan-ago/2026. Prisões extraídas do campo QTDE_PRISAO de cada ocorrência.',
   saque_seguro: '<b>Critérios da Operação Saque Seguro</b><br>Natureza: A21.007. Preencher no histórico "OPERAÇÃO SAQUE SEGURO". Será executada em dias úteis, entre os dias 25 do mês que se encerra e 10 do mês que inicia. As atividades ocorrerão entre 10:00 e 15:00 horas. Duração mínima de 15 minutos. Cadastrar no mínimo um CPF.<br>A21.007 é o mesmo código de VCP e Padrinho da Escola — diferenciado apenas pelo histórico; Eduardo traz o export já filtrado (RAT "VISITA PREVENTIVA A21007", jan-jul/2026, 801 registros, confirmado como exclusivo de Saque Seguro).<br><b>Meta mensal por tipo de unidade</b> (confirmado por Eduardo em 2026-08-04): Companhia = 16/mês (Araçuaí, Itaobim, Pedra Azul) &middot; Pelotão = 8/mês (Medina, Itinga, Divisa Alegre) &middot; Destacamento = 4/mês (demais 7 municípios). Meta acumulada = meta mensal &times; nº de meses.<span class="polarity">Polaridade: quanto maior, melhor.</span>',
 };
+
+// Links diretos pro SiGOp oficial, já com os filtros do indicador carregados — acesso obrigatório
+// pra todos os comandantes conferirem a fonte primária, além do painel (pedido de Eduardo em 2026-08-04).
+const SIGOP_LINKS = {
+  mv: 'https://intranet.policiamilitar.mg.gov.br/lite/estatisticas/web/?type=reds&nature=imv&isSum=true&isRuralArea=false&temporal=year&isComparing=false&year=2026&unidadeArea4=15%20RPM&unidadeArea5=70%20BPM',
+  cvpe: 'https://intranet.policiamilitar.mg.gov.br/lite/estatisticas/web/?type=reds&nature=icvpe&isSum=true&isRuralArea=false&temporal=year&isComparing=false&year=2026&unidadeArea4=15%20RPM&unidadeArea5=70%20BPM',
+};
+
+const SIGOP_LABELS = {
+  mv: 'MV',
+  cvpe: 'CVPE',
+};
+
+function sigopButton(key) {
+  const url = SIGOP_LINKS[key];
+  if (!url) return '';
+  const label = SIGOP_LABELS[key] || key.toUpperCase();
+  return `<a class="btn-sigop" href="${url}" target="_blank" rel="noopener noreferrer">
+    <span>${label} SIGOP &middot; Acessar fonte oficial</span><span class="arrow">&#8599;</span>
+  </a><br>`;
+}
 
 function pct(realizado, meta) {
   if (!meta) return realizado > 0 ? 100 : 0;
@@ -673,6 +705,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   }
 
   let html = `<div class="page-title">${title}</div>`;
+  html += sigopButton(key);
   if (DEFS[key]) html += `<div class="def-box">${DEFS[key]}</div>`;
   html += `<select class="month-select" id="monthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===monthIdx?'selected':''}>${m}</option>`);
