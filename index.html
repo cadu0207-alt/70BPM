@@ -257,7 +257,7 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 12/08/2026 08:37</span>
+      <span>Gerado em 12/08/2026 09:27</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1356,7 +1356,7 @@ function renderAnalisePreditivaPage() {
     h += `</div>`;
 
     const listaAll = d.ocorrencias_graves[nome] || [];
-    const lista = (periodo === 'acum') ? listaAll.slice() : listaAll.filter(o => o.m === parseInt(periodo));
+    const lista = (periodo === 'acum') ? listaAll.slice() : listaAll.filter(o => o.m === parseInt(periodo) + 1);
     const ordemGrav = { critica: 0, alta: 1, media: 2 };
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
