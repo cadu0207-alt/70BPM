@@ -198,6 +198,28 @@
     font-size:14px; margin-top:30px; font-family:var(--mono); letter-spacing:0.02em;
   }
 
+  .ppvd-btn {
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    background: var(--panel); color:var(--text); border:1px solid var(--panel-border); border-radius:4px;
+    padding:8px 14px; font-family:var(--mono); font-size:12px; font-weight:600;
+  }
+  .ppvd-btn:hover { border-color:var(--amber); color:var(--amber); }
+  .ppvd-btn-primary { background:var(--amber); color:#151005; border-color:var(--amber); font-weight:700; }
+  .ppvd-btn-primary:hover { background:#f4bb54; }
+  .ppvd-field { margin-bottom:14px; }
+  .ppvd-field label { display:block; font-family:var(--mono); font-size:11px; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+  .ppvd-field input, .ppvd-field select, .ppvd-field textarea {
+    width:100%; max-width:420px; background:var(--bg-1); border:1px solid var(--panel-border); border-radius:4px;
+    color:var(--text); padding:9px 11px; font-family:var(--sans); font-size:13.5px;
+  }
+  .ppvd-field textarea { max-width:640px; min-height:70px; }
+  .ppvd-badge { display:inline-block; padding:3px 9px; border-radius:3px; font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:0.03em; }
+  .ppvd-badge-critica { background:rgba(224,80,80,0.18); color:#ff8080; border:1px solid rgba(224,80,80,0.4); }
+  .ppvd-badge-alta { background:rgba(232,168,60,0.18); color:var(--amber); border:1px solid rgba(232,168,60,0.4); }
+  .ppvd-badge-media { background:rgba(120,140,160,0.18); color:var(--muted); border:1px solid var(--panel-border); }
+  .ppvd-badge-semcaso { background:transparent; color:var(--muted-dim); border:1px dashed var(--panel-border); }
+  .ppvd-card { background:var(--panel); border:1px solid var(--panel-border); border-radius:6px; padding:20px 22px; margin-bottom:18px; }
+
   .ap-cta {
     display:flex; align-items:center; gap:16px; cursor:pointer; user-select:none;
     background: rgba(232,168,60,0.07); border:1.5px solid var(--amber); border-radius:6px;
@@ -209,6 +231,7 @@
   .ap-cta .ap-cta-sub { color:var(--muted); font-size:12px; margin-top:3px; }
   .ap-cta .ap-cta-arrow { margin-left:auto; font-size:20px; color:var(--amber); flex-shrink:0; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 <div class="sidebar">
@@ -278,8 +301,9 @@
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
+      <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 14/08/2026 14:58</span>
+      <span>Gerado em 14/08/2026 15:51</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1535,14 +1559,19 @@ function renderViolenciaDomesticaPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th></tr></thead><tbody>`;
+    h += `<table class="data-table"><thead><tr><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th><th>Caso PPVD</th></tr></thead><tbody>`;
     if (lista.length === 0) {
-      h += `<tr><td colspan="8" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
+      h += `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
     } else {
       lista.forEach(o => {
         const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
         const natLabel = o.vd_homic ? (o.n + ' ⚠') : o.n;
-        h += `<tr><td style="text-align:left">${o.d}</td><td style="text-align:left">${natLabel}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td></tr>`;
+        window.ppvdOcorrenciaLookup = window.ppvdOcorrenciaLookup || {};
+        if (o.r) {
+          window.ppvdOcorrenciaLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu };
+        }
+        const casoBtn = o.r ? `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Abrir Caso ▸</button>` : '—';
+        h += `<tr><td style="text-align:left">${o.d}</td><td style="text-align:left">${natLabel}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td><td>${casoBtn}</td></tr>`;
       });
     }
     h += `</tbody></table>`;
@@ -2264,6 +2293,317 @@ function initMunFiltroGlobal() {
   });
 }
 initMunFiltroGlobal();
+
+// ============ PPVD (Patrulha de Prevenção à Violência Doméstica) ============
+const PPVD_SUPABASE_URL = 'https://qzhhuxzdilwdsulttdhq.supabase.co';
+const PPVD_SUPABASE_ANON_KEY = 'sb_publishable_rfrKp8UGRPMhOWI2-2jpbg_IS5ToAOK';
+const ppvdSupa = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(PPVD_SUPABASE_URL, PPVD_SUPABASE_ANON_KEY) : null;
+
+let ppvdUser = null;
+let ppvdPerfil = null;
+const PPVD_CARGOS = ['Comandante do 70º BPM', 'SubComandante do 70º BPM', 'Chefe de Seção', 'Militar da Seção', 'Comandante de Cia', 'Comandante de Pelotão', 'Comandante do Destacamento'];
+
+function ppvdToIso(dmy) {
+  if (!dmy) return null;
+  const p = dmy.split('/');
+  if (p.length !== 3) return null;
+  return `${p[2]}-${p[1]}-${p[0]}`;
+}
+function ppvdFmtDT(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString('pt-BR'); } catch (e) { return iso; }
+}
+function ppvdIniciais(nome) {
+  if (!nome) return '';
+  return nome.trim().split(/\s+/).map(p => p[0] ? p[0].toUpperCase() + '.' : '').join('');
+}
+
+async function ppvdInit() {
+  if (!ppvdSupa) return;
+  const { data: { session } } = await ppvdSupa.auth.getSession();
+  await ppvdOnSession(session);
+  ppvdSupa.auth.onAuthStateChange(async (event, session) => {
+    await ppvdOnSession(session);
+  });
+}
+
+async function ppvdOnSession(session) {
+  ppvdUser = session ? session.user : null;
+  ppvdPerfil = null;
+  if (ppvdUser) {
+    const { data } = await ppvdSupa.from('perfis').select('*').eq('user_id', ppvdUser.id).maybeSingle();
+    ppvdPerfil = data || null;
+  }
+  ppvdRenderAuthWidget();
+  if (ppvdUser && !ppvdPerfil) {
+    ppvdRenderCadastroForm();
+  } else if (currentPageKey === 'violencia_domestica' && pages.violencia_domestica) {
+    pages.violencia_domestica();
+  }
+}
+
+function ppvdRenderAuthWidget() {
+  const el = document.getElementById('ppvdAuthWidget');
+  if (!el) return;
+  if (!ppvdSupa) { el.innerHTML = ''; return; }
+  if (!ppvdUser) {
+    el.innerHTML = `<button class="ppvd-btn" onclick="ppvdSignIn()">Entrar (PPVD)</button>`;
+  } else if (!ppvdPerfil) {
+    el.innerHTML = `<span style="color:var(--amber)">Complete seu cadastro PPVD ↓</span>`;
+  } else if (!ppvdPerfil.aprovado) {
+    el.innerHTML = `<span style="color:var(--muted)">${ppvdPerfil.nome} &middot; aguardando aprovação</span> <button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
+  } else {
+    el.innerHTML = `<span style="color:var(--text)">${ppvdPerfil.nome} (${ppvdPerfil.cargo})</span> ` +
+      (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> ` : '') +
+      `<button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
+  }
+}
+
+async function ppvdSignIn() {
+  await ppvdSupa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href.split('#')[0] } });
+}
+async function ppvdSignOut() {
+  await ppvdSupa.auth.signOut();
+}
+
+async function ppvdSubmitPerfil(ev) {
+  ev.preventDefault();
+  const nome = document.getElementById('ppvdNome').value.trim();
+  const cargo = document.getElementById('ppvdCargo').value;
+  const cidade = document.getElementById('ppvdCidade').value.trim();
+  if (!nome || !cargo || !cidade) { alert('Preencha todos os campos.'); return; }
+  const { error } = await ppvdSupa.from('perfis').insert({ user_id: ppvdUser.id, nome, cargo, cidade });
+  if (error) { alert('Erro ao salvar cadastro: ' + error.message); return; }
+  const { data } = await ppvdSupa.from('perfis').select('*').eq('user_id', ppvdUser.id).maybeSingle();
+  ppvdPerfil = data;
+  ppvdRenderAuthWidget();
+  if (currentPageKey === 'violencia_domestica' && pages.violencia_domestica) pages.violencia_domestica();
+}
+
+function ppvdRenderCadastroForm() {
+  let html = `<div class="page-title">Complete seu cadastro PPVD</div>`;
+  html += `<div class="def-box">Pra acessar os casos de acompanhamento da Patrulha de Violência Doméstica, complete seu cadastro. Um administrador (P3) precisa aprovar seu acesso antes de você conseguir ver ou editar casos.</div>`;
+  html += `<div class="ppvd-card">`;
+  html += `<div class="ppvd-field"><label>Nome completo</label><input id="ppvdNome"></div>`;
+  html += `<div class="ppvd-field"><label>Cargo</label><select id="ppvdCargo"><option value="">Selecione...</option>${PPVD_CARGOS.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>`;
+  html += `<div class="ppvd-field"><label>Cidade</label><input id="ppvdCidade"></div>`;
+  html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSubmitPerfil(event)">Enviar cadastro</button>`;
+  html += `</div>`;
+  document.getElementById('main').innerHTML = html;
+}
+
+function ppvdOrientacao(g, u, t) {
+  if (!g || !u || !t) return { texto: 'Classificação GUT pendente de preenchimento.', nivel: 'media', score: 0 };
+  const score = g * u * t;
+  if (score >= 125) return { texto: 'CRÍTICO — fazer visita em até 24h.', nivel: 'critica', score };
+  if (score >= 50) return { texto: 'Seguir protocolo padrão de visitas.', nivel: 'alta', score };
+  return { texto: 'Protocolo reduzido — visitas conforme rotina (mín. 4).', nivel: 'media', score };
+}
+
+async function ppvdAbrirCaso(redsNumero) {
+  if (!ppvdSupa) { alert('Integração PPVD indisponível.'); return; }
+  if (!ppvdUser) { alert('Faça login (botão "Entrar (PPVD)" no topo) pra abrir um caso.'); return; }
+  if (!ppvdPerfil) { alert('Complete seu cadastro antes (aparece no topo da tela).'); return; }
+  if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador PPVD.'); return; }
+
+  const dadosBase = (window.ppvdOcorrenciaLookup || {})[redsNumero] || {};
+  document.getElementById('main').innerHTML = `<div class="page-title">Carregando caso…</div>`;
+
+  let { data: caso, error } = await ppvdSupa.from('ppvd_casos').select('*').eq('reds_numero', redsNumero).maybeSingle();
+  if (error) { document.getElementById('main').innerHTML = `<div class="def-box">Erro ao consultar caso: ${error.message}</div>`; return; }
+  if (!caso) {
+    const insertObj = {
+      reds_numero: redsNumero,
+      reds_data: dadosBase.reds_data || null,
+      natureza: dadosBase.natureza || null,
+      causa: dadosBase.causa || null,
+      municipio: dadosBase.municipio || null,
+      bairro: dadosBase.bairro || null,
+      logradouro: dadosBase.logradouro || null,
+      numero: dadosBase.numero || null,
+      status: 'novo'
+    };
+    const { data: novo, error: errIns } = await ppvdSupa.from('ppvd_casos').insert(insertObj).select().single();
+    if (errIns) { document.getElementById('main').innerHTML = `<div class="def-box">Erro ao criar caso: ${errIns.message}</div>`; return; }
+    caso = novo;
+  }
+  await ppvdRenderCaso(caso);
+}
+
+async function ppvdRenderCaso(caso) {
+  const { data: visitas } = await ppvdSupa.from('ppvd_visitas').select('*').eq('caso_id', caso.id).order('created_at', { ascending: false });
+  const orient = ppvdOrientacao(caso.gravidade, caso.urgencia, caso.tendencia);
+
+  let html = `<div class="page-title">Caso PPVD — ${caso.municipio || ''}</div>`;
+  html += `<button class="ppvd-btn" onclick="goToPage('violencia_domestica')">← Voltar pra Violência Doméstica</button>`;
+
+  html += `<div class="ppvd-card" style="margin-top:16px">`;
+  html += `<b>REDS:</b> ${caso.reds_numero || '—'} &nbsp; <b>Data:</b> ${caso.reds_data || '—'} &nbsp; <b>Natureza:</b> ${caso.natureza || '—'} &nbsp; <b>Causa:</b> ${caso.causa || '—'}<br>`;
+  html += `<b>Endereço:</b> ${caso.bairro || ''}${caso.logradouro ? (' - ' + caso.logradouro) : ''}${caso.numero && caso.numero !== '0' ? (', ' + caso.numero) : ''}<br><br>`;
+  html += `<b>Status:</b> <select id="ppvdStatusSel">${['novo', 'em_acompanhamento', 'recusa', 'encerrado'].map(s => `<option value="${s}" ${s === caso.status ? 'selected' : ''}>${s}</option>`).join('')}</select> `;
+  html += `<button class="ppvd-btn" onclick="ppvdSalvarStatus('${caso.id}')">Salvar status</button>`;
+  html += `</div>`;
+
+  html += `<div class="kpi-grid">`;
+  html += `<div class="kpi-card ${orient.nivel === 'critica' ? 'kpi-red' : (orient.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${orient.score || '—'}</div><div class="lbl">Score GUT (G×U×T)</div></div>`;
+  html += `<div class="kpi-card kpi-neutral"><div class="val" style="font-size:14px">${orient.texto}</div><div class="lbl">Orientação Automática</div></div>`;
+  html += `</div>`;
+
+  html += `<div class="ppvd-card"><b>Classificação GUT atual</b><br><br>`;
+  html += `<div class="ppvd-field"><label>Gravidade (1-5)</label><input type="number" min="1" max="5" id="ppvdG" value="${caso.gravidade || ''}"></div>`;
+  html += `<div class="ppvd-field"><label>Urgência (1-5)</label><input type="number" min="1" max="5" id="ppvdU" value="${caso.urgencia || ''}"></div>`;
+  html += `<div class="ppvd-field"><label>Tendência (1-5)</label><input type="number" min="1" max="5" id="ppvdT" value="${caso.tendencia || ''}"></div>`;
+  html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSalvarGUT('${caso.id}')">Salvar classificação</button>`;
+  html += `</div>`;
+
+  html += `<div class="ppvd-card"><b>Identificação (somente iniciais — sem nome completo, RG ou telefone)</b><br><br>`;
+  html += `<div class="ppvd-field"><label>Iniciais da vítima</label><input id="ppvdVitNome" placeholder="Ex: M.A.S." value="${caso.vitima_nome || ''}"></div>`;
+  html += `<div class="ppvd-field"><label>Iniciais do autor</label><input id="ppvdAutNome" placeholder="Ex: J.P.O." value="${caso.autor_nome || ''}"></div>`;
+  html += `<div class="ppvd-field"><label>Tem mandado?</label><select id="ppvdMandado"><option value="false" ${!caso.tem_mandado ? 'selected' : ''}>Não</option><option value="true" ${caso.tem_mandado ? 'selected' : ''}>Sim</option></select></div>`;
+  html += `<div class="ppvd-field"><label>Medida protetiva?</label><select id="ppvdMP"><option value="false" ${!caso.medida_protetiva ? 'selected' : ''}>Não</option><option value="true" ${caso.medida_protetiva ? 'selected' : ''}>Sim</option></select></div>`;
+  html += `<div class="ppvd-field"><label>Pelotão responsável</label><input id="ppvdPelotao" value="${caso.pelotao || ''}"></div>`;
+  html += `<div class="ppvd-field"><label>Destacamento responsável</label><input id="ppvdDestacamento" value="${caso.destacamento || ''}"></div>`;
+  html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSalvarDados('${caso.id}')">Salvar dados</button>`;
+  html += `</div>`;
+
+  html += `<div class="ppvd-card"><b>Despachar guarnição pra visita</b><br><br>`;
+  html += `<div class="ppvd-field"><label>Guarnição designada</label><input id="ppvdGuarnicao" placeholder="Ex: VTR 1234"></div>`;
+  html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdDespachar('${caso.id}')">Despachar</button>`;
+  html += `</div>`;
+
+  const pendente = (visitas || []).find(v => v.despachado_em && !v.visita_realizada_em);
+  if (pendente) {
+    html += `<div class="ppvd-card" style="border-color:var(--amber)"><b>⚠ Visita pendente de resultado</b> — despachada em ${ppvdFmtDT(pendente.despachado_em)} por ${pendente.despachado_por || '—'} (${pendente.guarnicao || 'guarnição não informada'})<br><br>`;
+    html += `<div class="ppvd-field"><label>Situação encontrada</label><textarea id="ppvdSituacao"></textarea></div>`;
+    html += `<div class="ppvd-field"><label>Vítima presente?</label><select id="ppvdVitPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
+    html += `<div class="ppvd-field"><label>Autor presente?</label><select id="ppvdAutPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
+    html += `<div class="ppvd-field"><label>Reclassificação — Gravidade (1-5)</label><input type="number" min="1" max="5" id="ppvdNovaG"></div>`;
+    html += `<div class="ppvd-field"><label>Reclassificação — Urgência (1-5)</label><input type="number" min="1" max="5" id="ppvdNovaU"></div>`;
+    html += `<div class="ppvd-field"><label>Reclassificação — Tendência (1-5)</label><input type="number" min="1" max="5" id="ppvdNovaT"></div>`;
+    html += `<div class="ppvd-field"><label>Próxima visita recomendada</label><input type="date" id="ppvdProxVisita"></div>`;
+    html += `<div class="ppvd-field"><label>Observações</label><textarea id="ppvdObsVisita"></textarea></div>`;
+    html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdRegistrarResultado('${pendente.id}', '${caso.id}')">Registrar resultado da visita</button>`;
+    html += `</div>`;
+  }
+
+  html += `<div class="page-title" style="margin-top:24px;font-size:16px">Histórico de Visitas</div>`;
+  if (!visitas || visitas.length === 0) {
+    html += `<div class="pending-box">Nenhuma visita registrada ainda.</div>`;
+  } else {
+    html += `<table class="data-table"><thead><tr><th style="text-align:left">Despachada em</th><th style="text-align:left">Guarnição</th><th style="text-align:left">Visita realizada em</th><th style="text-align:left">Situação</th><th>Reclassificação GUT</th></tr></thead><tbody>`;
+    visitas.forEach(v => {
+      const reclass = (v.nova_gravidade && v.nova_urgencia && v.nova_tendencia) ? `${v.nova_gravidade}×${v.nova_urgencia}×${v.nova_tendencia}=${v.nova_gravidade * v.nova_urgencia * v.nova_tendencia}` : '—';
+      html += `<tr><td style="text-align:left">${ppvdFmtDT(v.despachado_em)}</td><td style="text-align:left">${v.guarnicao || '—'}</td><td style="text-align:left">${ppvdFmtDT(v.visita_realizada_em)}</td><td style="text-align:left">${v.situacao_encontrada || '—'}</td><td>${reclass}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  document.getElementById('main').innerHTML = html;
+}
+
+async function ppvdSalvarStatus(casoId) {
+  const status = document.getElementById('ppvdStatusSel').value;
+  const { error } = await ppvdSupa.from('ppvd_casos').update({ status }).eq('id', casoId);
+  if (error) { alert('Erro: ' + error.message); return; }
+  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
+  await ppvdRenderCaso(caso);
+}
+
+async function ppvdSalvarGUT(casoId) {
+  const g = parseInt(document.getElementById('ppvdG').value) || null;
+  const u = parseInt(document.getElementById('ppvdU').value) || null;
+  const t = parseInt(document.getElementById('ppvdT').value) || null;
+  const { error } = await ppvdSupa.from('ppvd_casos').update({ gravidade: g, urgencia: u, tendencia: t }).eq('id', casoId);
+  if (error) { alert('Erro: ' + error.message); return; }
+  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
+  await ppvdRenderCaso(caso);
+}
+
+async function ppvdSalvarDados(casoId) {
+  const upd = {
+    vitima_nome: document.getElementById('ppvdVitNome').value || null,
+    autor_nome: document.getElementById('ppvdAutNome').value || null,
+    tem_mandado: document.getElementById('ppvdMandado').value === 'true',
+    medida_protetiva: document.getElementById('ppvdMP').value === 'true',
+    pelotao: document.getElementById('ppvdPelotao').value || null,
+    destacamento: document.getElementById('ppvdDestacamento').value || null,
+  };
+  const { error } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', casoId);
+  if (error) { alert('Erro: ' + error.message); return; }
+  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
+  await ppvdRenderCaso(caso);
+}
+
+async function ppvdDespachar(casoId) {
+  const guarnicao = document.getElementById('ppvdGuarnicao').value || null;
+  const insertObj = { caso_id: casoId, despachado_por: ppvdPerfil.nome, despachado_em: new Date().toISOString(), guarnicao };
+  const { error } = await ppvdSupa.from('ppvd_visitas').insert(insertObj);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await ppvdSupa.from('ppvd_casos').update({ status: 'em_acompanhamento' }).eq('id', casoId);
+  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
+  await ppvdRenderCaso(caso);
+}
+
+async function ppvdRegistrarResultado(visitaId, casoId) {
+  const upd = {
+    visita_realizada_em: new Date().toISOString(),
+    situacao_encontrada: document.getElementById('ppvdSituacao').value || null,
+    vitima_presente: document.getElementById('ppvdVitPresente').value === 'true',
+    autor_presente: document.getElementById('ppvdAutPresente').value === 'true',
+    nova_gravidade: parseInt(document.getElementById('ppvdNovaG').value) || null,
+    nova_urgencia: parseInt(document.getElementById('ppvdNovaU').value) || null,
+    nova_tendencia: parseInt(document.getElementById('ppvdNovaT').value) || null,
+    proxima_visita_recomendada: document.getElementById('ppvdProxVisita').value || null,
+    observacoes: document.getElementById('ppvdObsVisita').value || null,
+  };
+  const { error } = await ppvdSupa.from('ppvd_visitas').update(upd).eq('id', visitaId);
+  if (error) { alert('Erro: ' + error.message); return; }
+  const casoUpd = {};
+  if (upd.nova_gravidade) casoUpd.gravidade = upd.nova_gravidade;
+  if (upd.nova_urgencia) casoUpd.urgencia = upd.nova_urgencia;
+  if (upd.nova_tendencia) casoUpd.tendencia = upd.nova_tendencia;
+  if (Object.keys(casoUpd).length) await ppvdSupa.from('ppvd_casos').update(casoUpd).eq('id', casoId);
+  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
+  await ppvdRenderCaso(caso);
+}
+
+async function ppvdOpenAprovacoes() {
+  if (!ppvdPerfil || !ppvdPerfil.is_admin) return;
+  const { data: pendentes, error } = await ppvdSupa.from('perfis').select('*').eq('aprovado', false);
+  const { data: aprovados } = await ppvdSupa.from('perfis').select('*').eq('aprovado', true);
+  let html = `<div class="page-title">Aprovações PPVD</div>`;
+  html += `<button class="ppvd-btn" onclick="goToPage('violencia_domestica')">← Voltar</button>`;
+  html += `<div class="page-title" style="margin-top:24px;font-size:16px">Pendentes de aprovação</div>`;
+  if (error) html += `<div class="def-box">Erro: ${error.message}</div>`;
+  if (!pendentes || pendentes.length === 0) {
+    html += `<div class="pending-box">Nenhum cadastro pendente.</div>`;
+  } else {
+    html += `<table class="data-table"><thead><tr><th style="text-align:left">Nome</th><th style="text-align:left">Cargo</th><th style="text-align:left">Cidade</th><th></th></tr></thead><tbody>`;
+    pendentes.forEach(p => {
+      html += `<tr><td style="text-align:left">${p.nome}</td><td style="text-align:left">${p.cargo}</td><td style="text-align:left">${p.cidade}</td><td><button class="ppvd-btn ppvd-btn-primary" onclick="ppvdAprovar('${p.user_id}')">Aprovar</button></td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  html += `<div class="page-title" style="margin-top:24px;font-size:16px">Usuários aprovados</div>`;
+  if (!aprovados || aprovados.length === 0) {
+    html += `<div class="pending-box">Nenhum usuário aprovado ainda.</div>`;
+  } else {
+    html += `<table class="data-table"><thead><tr><th style="text-align:left">Nome</th><th style="text-align:left">Cargo</th><th style="text-align:left">Cidade</th><th>Admin</th></tr></thead><tbody>`;
+    aprovados.forEach(p => {
+      html += `<tr><td style="text-align:left">${p.nome}</td><td style="text-align:left">${p.cargo}</td><td style="text-align:left">${p.cidade}</td><td>${p.is_admin ? '✓' : '—'}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  document.getElementById('main').innerHTML = html;
+}
+
+async function ppvdAprovar(userId) {
+  const { error } = await ppvdSupa.from('perfis').update({ aprovado: true, aprovado_por: ppvdUser.id, aprovado_em: new Date().toISOString() }).eq('user_id', userId);
+  if (error) { alert('Erro: ' + error.message); return; }
+  ppvdOpenAprovacoes();
+}
+
+ppvdInit();
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
