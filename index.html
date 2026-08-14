@@ -303,7 +303,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 14/08/2026 15:51</span>
+      <span>Gerado em 14/08/2026 16:20</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -2368,16 +2368,26 @@ async function ppvdSignOut() {
 
 async function ppvdSubmitPerfil(ev) {
   ev.preventDefault();
+  const btn = ev.target;
+  if (btn.disabled) return; // evita duplo clique/duplo envio
   const nome = document.getElementById('ppvdNome').value.trim();
   const cargo = document.getElementById('ppvdCargo').value;
   const cidade = document.getElementById('ppvdCidade').value.trim();
   if (!nome || !cargo || !cidade) { alert('Preencha todos os campos.'); return; }
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
   const { error } = await ppvdSupa.from('perfis').insert({ user_id: ppvdUser.id, nome, cargo, cidade });
-  if (error) { alert('Erro ao salvar cadastro: ' + error.message); return; }
+  // 23505 = cadastro já existia (ex: clique duplo) — não é erro de verdade, só segue
+  if (error && error.code !== '23505') {
+    alert('Erro ao salvar cadastro: ' + error.message);
+    btn.disabled = false;
+    btn.textContent = 'Enviar cadastro';
+    return;
+  }
   const { data } = await ppvdSupa.from('perfis').select('*').eq('user_id', ppvdUser.id).maybeSingle();
   ppvdPerfil = data;
   ppvdRenderAuthWidget();
-  if (currentPageKey === 'violencia_domestica' && pages.violencia_domestica) pages.violencia_domestica();
+  ppvdRenderAguardando();
 }
 
 function ppvdRenderCadastroForm() {
@@ -2389,6 +2399,12 @@ function ppvdRenderCadastroForm() {
   html += `<div class="ppvd-field"><label>Cidade</label><input id="ppvdCidade"></div>`;
   html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSubmitPerfil(event)">Enviar cadastro</button>`;
   html += `</div>`;
+  document.getElementById('main').innerHTML = html;
+}
+
+function ppvdRenderAguardando() {
+  let html = `<div class="page-title">Cadastro enviado ✓</div>`;
+  html += `<div class="def-box">Seu cadastro (<b>${ppvdPerfil ? ppvdPerfil.nome : ''}</b> — ${ppvdPerfil ? ppvdPerfil.cargo : ''}, ${ppvdPerfil ? ppvdPerfil.cidade : ''}) foi salvo. Um administrador (P3) precisa aprovar seu acesso antes de você conseguir ver ou editar casos PPVD — o resto do painel continua disponível normalmente enquanto isso.</div>`;
   document.getElementById('main').innerHTML = html;
 }
 
