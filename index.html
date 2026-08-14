@@ -303,7 +303,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 14/08/2026 16:20</span>
+      <span>Gerado em 14/08/2026 16:26</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -2303,6 +2303,40 @@ let ppvdUser = null;
 let ppvdPerfil = null;
 const PPVD_CARGOS = ['Comandante do 70º BPM', 'SubComandante do 70º BPM', 'Chefe de Seção', 'Militar da Seção', 'Comandante de Cia', 'Comandante de Pelotão', 'Comandante do Destacamento'];
 
+// Critérios GUT — mesmo texto da planilha Modelo_GUT_PPVD (aba Critérios_GUT), pra escolher pela situação em vez de digitar o número
+const PPVD_CRITERIOS_GUT = {
+  gravidade: [
+    { v: 5, d: 'Ameaça de morte, tentativa de feminicídio, arma de fogo envolvida, autor agente de segurança ou tem acesso a arma de fogo' },
+    { v: 4, d: 'Lesão grave, reincidência com agressão física intensa' },
+    { v: 3, d: 'Ameaça reiterada, lesão leve, medida protetiva descumprida' },
+    { v: 2, d: 'Agressão verbal com histórico preocupante' },
+    { v: 1, d: 'Situação pontual sem antecedentes nem risco evidente' },
+  ],
+  urgencia: [
+    { v: 5, d: 'Caso ativo com risco iminente, REDS recente (<24h), autor agente de segurança ou tem acesso a arma de fogo' },
+    { v: 4, d: 'Medida protetiva nova ou solicitada recentemente' },
+    { v: 3, d: 'Última ocorrência entre 2–7 dias' },
+    { v: 2, d: 'Caso em andamento sem novos eventos nos últimos 10 dias' },
+    { v: 1, d: 'Caso antigo, sem desdobramentos recentes' },
+  ],
+  tendencia: [
+    { v: 5, d: 'Reincidência no último mês / autor já preso por violência, autor agente de segurança ou tem acesso a arma de fogo' },
+    { v: 4, d: 'Histórico de várias ocorrências, uso de drogas, desobediência judicial' },
+    { v: 3, d: 'Duas ocorrências ou medida protetiva em curso' },
+    { v: 2, d: '1 ocorrência isolada com situação estável' },
+    { v: 1, d: 'Sem histórico anterior, autor sumiu ou reconciliação' },
+  ],
+};
+function ppvdSelectGUT(id, tipo, selected) {
+  const opts = PPVD_CRITERIOS_GUT[tipo];
+  let h = `<select id="${id}"><option value="">Selecione a situação...</option>`;
+  opts.forEach(o => {
+    h += `<option value="${o.v}" ${String(selected) === String(o.v) ? 'selected' : ''}>${o.v} — ${o.d}</option>`;
+  });
+  h += `</select>`;
+  return h;
+}
+
 function ppvdToIso(dmy) {
   if (!dmy) return null;
   const p = dmy.split('/');
@@ -2466,9 +2500,9 @@ async function ppvdRenderCaso(caso) {
   html += `</div>`;
 
   html += `<div class="ppvd-card"><b>Classificação GUT atual</b><br><br>`;
-  html += `<div class="ppvd-field"><label>Gravidade (1-5)</label><input type="number" min="1" max="5" id="ppvdG" value="${caso.gravidade || ''}"></div>`;
-  html += `<div class="ppvd-field"><label>Urgência (1-5)</label><input type="number" min="1" max="5" id="ppvdU" value="${caso.urgencia || ''}"></div>`;
-  html += `<div class="ppvd-field"><label>Tendência (1-5)</label><input type="number" min="1" max="5" id="ppvdT" value="${caso.tendencia || ''}"></div>`;
+  html += `<div class="ppvd-field"><label>Gravidade</label>${ppvdSelectGUT('ppvdG', 'gravidade', caso.gravidade)}</div>`;
+  html += `<div class="ppvd-field"><label>Urgência</label>${ppvdSelectGUT('ppvdU', 'urgencia', caso.urgencia)}</div>`;
+  html += `<div class="ppvd-field"><label>Tendência</label>${ppvdSelectGUT('ppvdT', 'tendencia', caso.tendencia)}</div>`;
   html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSalvarGUT('${caso.id}')">Salvar classificação</button>`;
   html += `</div>`;
 
@@ -2493,9 +2527,9 @@ async function ppvdRenderCaso(caso) {
     html += `<div class="ppvd-field"><label>Situação encontrada</label><textarea id="ppvdSituacao"></textarea></div>`;
     html += `<div class="ppvd-field"><label>Vítima presente?</label><select id="ppvdVitPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
     html += `<div class="ppvd-field"><label>Autor presente?</label><select id="ppvdAutPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
-    html += `<div class="ppvd-field"><label>Reclassificação — Gravidade (1-5)</label><input type="number" min="1" max="5" id="ppvdNovaG"></div>`;
-    html += `<div class="ppvd-field"><label>Reclassificação — Urgência (1-5)</label><input type="number" min="1" max="5" id="ppvdNovaU"></div>`;
-    html += `<div class="ppvd-field"><label>Reclassificação — Tendência (1-5)</label><input type="number" min="1" max="5" id="ppvdNovaT"></div>`;
+    html += `<div class="ppvd-field"><label>Reclassificação — Gravidade</label>${ppvdSelectGUT('ppvdNovaG', 'gravidade', '')}</div>`;
+    html += `<div class="ppvd-field"><label>Reclassificação — Urgência</label>${ppvdSelectGUT('ppvdNovaU', 'urgencia', '')}</div>`;
+    html += `<div class="ppvd-field"><label>Reclassificação — Tendência</label>${ppvdSelectGUT('ppvdNovaT', 'tendencia', '')}</div>`;
     html += `<div class="ppvd-field"><label>Próxima visita recomendada</label><input type="date" id="ppvdProxVisita"></div>`;
     html += `<div class="ppvd-field"><label>Observações</label><textarea id="ppvdObsVisita"></textarea></div>`;
     html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdRegistrarResultado('${pendente.id}', '${caso.id}')">Registrar resultado da visita</button>`;
