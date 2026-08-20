@@ -305,7 +305,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 20/08/2026 16:04</span>
+      <span>Gerado em 20/08/2026 16:08</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1662,13 +1662,18 @@ function renderCrimesViolentosPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Arma</th><th>Prisão</th></tr></thead><tbody>`;
+    h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Arma</th><th>Prisão</th><th>Caso PPVD</th></tr></thead><tbody>`;
     if (lista.length === 0) {
-      h += `<tr><td colspan="8" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
+      h += `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
     } else {
       lista.forEach(o => {
         const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
-        h += `<tr><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td style="text-align:left">${o.n}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td></tr>`;
+        window.ppvdCVLookup = window.ppvdCVLookup || {};
+        if (o.r) {
+          window.ppvdCVLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, _origem: { arma_fogo: o.a, tentativa_homicidio: (o.n || '').includes('Tentativa'), autor_preso: o.p, dias_desde_reds: ppvdDiasDesde(o.d) } };
+        }
+        const casoBtn = o.r ? `<button class="ppvd-btn" onclick="ppvdAbrirCasoCV('${o.r}')">Abrir Caso ▸</button>` : '—';
+        h += `<tr><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td style="text-align:left">${o.n}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td><td>${casoBtn}</td></tr>`;
       });
     }
     h += `</tbody></table>`;
@@ -1733,14 +1738,23 @@ function renderReincidenciaPage() {
     h += `<div class="kpi-card kpi-neutral"><div class="val">${fmtBr(m.pop, 0)}</div><div class="lbl">População</div></div>`;
     h += `</div>`;
 
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Bairro/Logradouro</th><th>Nº chamados</th><th>Intervalo mín. (dias)</th><th>Dias desde o último</th><th style="text-align:left">Naturezas</th><th>Arma de fogo</th></tr></thead><tbody>`;
+    h += `<table class="data-table"><thead><tr><th style="text-align:left">Bairro/Logradouro</th><th>Nº chamados</th><th>Intervalo mín. (dias)</th><th>Dias desde o último</th><th style="text-align:left">Naturezas</th><th>Arma de fogo</th><th>Caso PPVD</th></tr></thead><tbody>`;
     if (enderecos.length === 0) {
-      h += `<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
+      h += `<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
     } else {
-      enderecos.forEach(e => {
+      enderecos.forEach((e, ei) => {
         const end = `${e.b || ''}${e.l ? (' - ' + e.l) : ''}${e.nu && e.nu !== '0' ? (', ' + e.nu) : ''}`;
         const urgente = (e.dias_desde_ultimo != null && e.dias_desde_ultimo <= 10);
-        h += `<tr${urgente ? ' style="background:rgba(239,68,68,0.12)"' : ''}><td style="text-align:left">${end}</td><td>${e.q}</td><td>${e.intervalo_min_dias != null ? e.intervalo_min_dias : '—'}</td><td>${e.dias_desde_ultimo != null ? e.dias_desde_ultimo : '—'}</td><td style="text-align:left">${(e.naturezas || []).join(', ')}</td><td>${e.arma_fogo ? '⚠ SIM' : '—'}</td></tr>`;
+        const lookupId = `${nome}__${muniIdx}__${ei}`;
+        window.ppvdReincLookup = window.ppvdReincLookup || {};
+        window.ppvdReincLookup[lookupId] = {
+          endereco_key: [nome, e.b || '', e.l || '', e.nu || ''].join('|'),
+          municipio: nome, bairro: e.b, logradouro: e.l, numero: e.nu,
+          natureza: (e.naturezas || []).join(', '), reds_relacionados: (e.reds || []).join(', '),
+          _origem: { arma_fogo: e.arma_fogo, qtd_chamados_60d: e.q, dias_desde_ultimo_chamado: e.dias_desde_ultimo, intervalo_dias_entre_chamados: e.intervalo_min_dias, naturezas_distintas: (e.naturezas || []).length },
+        };
+        const casoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCasoReinc('${lookupId}')">Abrir Caso ▸</button>`;
+        h += `<tr${urgente ? ' style="background:rgba(239,68,68,0.12)"' : ''}><td style="text-align:left">${end}</td><td>${e.q}</td><td>${e.intervalo_min_dias != null ? e.intervalo_min_dias : '—'}</td><td>${e.dias_desde_ultimo != null ? e.dias_desde_ultimo : '—'}</td><td style="text-align:left">${(e.naturezas || []).join(', ')}</td><td>${e.arma_fogo ? '⚠ SIM' : '—'}</td><td>${casoBtn}</td></tr>`;
       });
     }
     h += `</tbody></table>`;
@@ -2576,6 +2590,195 @@ function ppvdSugerirGUT(modalidade, dados) {
     if (dados.visita_anterior_sem_efeito) g.tendencia = 5;
   }
   return g; // valores null = sem sugestao automatica confiavel; militar escolhe do zero
+}
+
+// ============ Wizard GUT (Crimes Violentos / Reincidencia) — pergunta por vez ============
+// Pedido por Eduardo em 2026-08-20: "para os outros crimes" (nao VD, que ja tem a tela em dropdown).
+let ppvdWizard = null;
+
+function ppvdCriteriosPara(modalidade) {
+  if (modalidade === 'crimes_violentos') return PPVD_CRITERIOS_GUT_CRIMES_VIOLENTOS;
+  if (modalidade === 'reincidencia') return PPVD_CRITERIOS_GUT_REINCIDENCIA;
+  return PPVD_CRITERIOS_GUT;
+}
+function ppvdModalidadeLabel(modalidade) {
+  if (modalidade === 'crimes_violentos') return 'Crimes Violentos';
+  if (modalidade === 'reincidencia') return 'Preditiva por Reincidência de Endereço';
+  return 'Violência Doméstica';
+}
+function ppvdModalidadeVoltarPage(modalidade) {
+  if (modalidade === 'crimes_violentos') return 'crimes_violentos';
+  if (modalidade === 'reincidencia') return 'reincidencia';
+  return 'violencia_domestica';
+}
+function ppvdDiasDesde(dmy) {
+  if (!dmy) return null;
+  const p = dmy.split('/');
+  if (p.length !== 3) return null;
+  const dt = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+  const diff = Math.floor((Date.now() - dt.getTime()) / 86400000);
+  return diff >= 0 ? diff : null;
+}
+
+async function ppvdAbrirCasoModalidade(modalidade, chave, dadosBase, dadosOrigem) {
+  if (!ppvdSupa) { alert('Integração PPVD indisponível.'); return; }
+  if (!ppvdUser) { alert('Faça login (botão "Entrar (PPVD)" no topo) pra abrir um caso.'); return; }
+  if (!ppvdPerfil) { alert('Complete seu cadastro antes (aparece no topo da tela).'); return; }
+  if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador PPVD.'); return; }
+
+  document.getElementById('main').innerHTML = `<div class="page-title">Carregando caso…</div>`;
+
+  const isEndereco = modalidade === 'reincidencia';
+  const filtroCol = isEndereco ? 'endereco_key' : 'reds_numero';
+
+  let { data: caso, error } = await ppvdSupa.from('ppvd_casos').select('*').eq(filtroCol, chave).eq('modalidade', modalidade).maybeSingle();
+  if (error) { document.getElementById('main').innerHTML = `<div class="def-box">Erro ao consultar caso: ${error.message}</div>`; return; }
+  if (!caso) {
+    const insertObj = {
+      modalidade,
+      reds_numero: isEndereco ? null : chave,
+      endereco_key: isEndereco ? chave : null,
+      reds_relacionados: dadosBase.reds_relacionados || null,
+      reds_data: dadosBase.reds_data || null,
+      natureza: dadosBase.natureza || null,
+      causa: dadosBase.causa || null,
+      municipio: dadosBase.municipio || null,
+      bairro: dadosBase.bairro || null,
+      logradouro: dadosBase.logradouro || null,
+      numero: dadosBase.numero || null,
+      dados_origem: dadosOrigem || null,
+      status: 'novo',
+    };
+    const { data: novo, error: errIns } = await ppvdSupa.from('ppvd_casos').insert(insertObj).select().single();
+    if (errIns) { document.getElementById('main').innerHTML = `<div class="def-box">Erro ao criar caso: ${errIns.message}</div>`; return; }
+    caso = novo;
+  }
+
+  ppvdWizard = {
+    modalidade, casoId: caso.id, step: 0,
+    valores: { gravidade: caso.gravidade || null, urgencia: caso.urgencia || null, tendencia: caso.tendencia || null },
+    militar_responsavel: caso.militar_responsavel || '',
+    caso,
+  };
+  if (ppvdWizard.valores.gravidade && ppvdWizard.valores.urgencia && ppvdWizard.valores.tendencia) {
+    ppvdWizard.step = 3;
+  }
+  ppvdRenderWizard();
+}
+
+function ppvdRenderWizard() {
+  const w = ppvdWizard;
+  const criterios = ppvdCriteriosPara(w.modalidade);
+  const sugestoes = ppvdSugerirGUT(w.modalidade, w.caso.dados_origem || {});
+  const dims = ['gravidade', 'urgencia', 'tendencia'];
+  const dimLabels = { gravidade: 'Gravidade', urgencia: 'Urgência', tendencia: 'Tendência' };
+
+  let html = `<div class="page-title">Novo Caso — ${ppvdModalidadeLabel(w.modalidade)}</div>`;
+  html += `<button class="ppvd-btn" onclick="goToPage('${ppvdModalidadeVoltarPage(w.modalidade)}')">← Voltar</button>`;
+
+  html += `<div class="ppvd-card" style="margin-top:16px">`;
+  html += `<b>${w.caso.reds_numero ? ('REDS: ' + w.caso.reds_numero) : 'Endereço reincidente'}</b> &nbsp;`;
+  if (w.caso.reds_data) html += `<b>Data:</b> ${w.caso.reds_data} &nbsp;`;
+  if (w.caso.natureza) html += `<b>Natureza:</b> ${w.caso.natureza} &nbsp;`;
+  html += `<br><b>Endereço:</b> ${w.caso.bairro || ''}${w.caso.logradouro ? (' - ' + w.caso.logradouro) : ''}${w.caso.numero && w.caso.numero !== '0' ? (', ' + w.caso.numero) : ''}`;
+  if (w.caso.reds_relacionados) html += `<br><b>REDS relacionados:</b> ${w.caso.reds_relacionados}`;
+  html += `</div>`;
+
+  if (w.step < 3) {
+    const dim = dims[w.step];
+    const opts = criterios[dim];
+    const sugestao = sugestoes[dim];
+    html += `<div class="page-title" style="margin-top:24px;font-size:16px">Pergunta ${w.step + 1} de 3 — ${dimLabels[dim]}</div>`;
+    if (sugestao) {
+      html += `<div class="def-box" style="border-color:var(--amber)">💡 Sugestão automática com base nos dados do REDS: <b>nível ${sugestao}</b> — confira e escolha a opção que melhor descreve a situação (pode ser diferente da sugestão).</div>`;
+    }
+    html += `<div class="ppvd-card">`;
+    opts.forEach(o => {
+      const marcado = w.valores[dim] === o.v;
+      const destacar = sugestao === o.v;
+      html += `<button class="ppvd-btn ${marcado ? 'ppvd-btn-primary' : ''}" style="display:block;width:100%;text-align:left;margin-bottom:8px;white-space:normal;${destacar ? 'border-color:var(--amber)' : ''}" onclick="ppvdWizardResponder('${dim}', ${o.v})"><b>${o.v}</b> — ${o.d}${destacar ? ' 💡' : ''}</button>`;
+    });
+    html += `</div>`;
+    if (w.step > 0) html += `<button class="ppvd-btn" onclick="ppvdWizardVoltarPergunta()">← Pergunta anterior</button>`;
+  } else {
+    const g = w.valores.gravidade, u = w.valores.urgencia, t = w.valores.tendencia;
+    const score = (g || 0) * (u || 0) * (t || 0);
+    const orient = ppvdOrientacao(g, u, t);
+    html += `<div class="page-title" style="margin-top:24px;font-size:16px">Revisão e finalização</div>`;
+    html += `<div class="kpi-grid">`;
+    html += `<div class="kpi-card ${orient.nivel === 'critica' ? 'kpi-red' : (orient.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${score || '—'}</div><div class="lbl">Score GUT (G×U×T)</div></div>`;
+    html += `<div class="kpi-card kpi-neutral"><div class="val" style="font-size:14px">${orient.texto}</div><div class="lbl">Orientação Automática</div></div>`;
+    html += `</div>`;
+    html += `<div class="ppvd-card">`;
+    dims.forEach(dim => {
+      const v = w.valores[dim];
+      const opt = criterios[dim].find(o => o.v === v);
+      html += `<div style="margin-bottom:10px"><b>${dimLabels[dim]}: ${v}</b> — ${opt ? opt.d : ''} <button class="ppvd-btn" onclick="ppvdWizardEditarPergunta('${dim}')" style="margin-left:8px">Corrigir</button></div>`;
+    });
+    html += `</div>`;
+    html += `<div class="ppvd-card"><b>Militar Responsável pela visita</b><br><br>`;
+    html += `<div class="ppvd-field"><input id="ppvdMilitarResp" placeholder="Nome/graduação de quem fez a visita" value="${w.militar_responsavel || ''}"></div>`;
+    html += `</div>`;
+    html += `<div class="ppvd-card"><b>Anexar BOS (imagem ou PDF)</b><br><br>`;
+    html += `<div class="ppvd-field"><input type="file" id="ppvdBosFile" accept="image/*,application/pdf"></div>`;
+    if (w.caso.bos_url) html += `<div style="margin-top:6px;color:var(--muted)">Este caso já tem um BOS anexado. Enviar um novo arquivo substitui.</div>`;
+    html += `</div>`;
+    html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdWizardSalvar()">Salvar caso</button>`;
+  }
+
+  document.getElementById('main').innerHTML = html;
+}
+
+function ppvdWizardResponder(dim, valor) {
+  ppvdWizard.valores[dim] = valor;
+  ppvdWizard.step += 1;
+  ppvdRenderWizard();
+}
+function ppvdWizardVoltarPergunta() {
+  ppvdWizard.step = Math.max(0, ppvdWizard.step - 1);
+  ppvdRenderWizard();
+}
+function ppvdWizardEditarPergunta(dim) {
+  const dims = ['gravidade', 'urgencia', 'tendencia'];
+  ppvdWizard.step = dims.indexOf(dim);
+  ppvdRenderWizard();
+}
+
+async function ppvdWizardSalvar() {
+  const w = ppvdWizard;
+  w.militar_responsavel = document.getElementById('ppvdMilitarResp').value || '';
+  const fileInput = document.getElementById('ppvdBosFile');
+  const file = fileInput && fileInput.files && fileInput.files[0];
+
+  let bosUrl = w.caso.bos_url || null;
+  if (file) {
+    const path = `${w.modalidade}/${w.casoId}/${Date.now()}_${file.name}`;
+    const { error: upErr } = await ppvdSupa.storage.from('ppvd-bos').upload(path, file, { upsert: true });
+    if (upErr) { alert('Erro ao enviar BOS: ' + upErr.message); return; }
+    bosUrl = path;
+  }
+
+  const upd = {
+    gravidade: w.valores.gravidade, urgencia: w.valores.urgencia, tendencia: w.valores.tendencia,
+    militar_responsavel: w.militar_responsavel || null,
+    bos_url: bosUrl,
+    status: 'em_acompanhamento',
+  };
+  const { error } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', w.casoId);
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  alert('Caso salvo com sucesso.');
+  goToPage(ppvdModalidadeVoltarPage(w.modalidade));
+}
+
+function ppvdAbrirCasoCV(redsNumero) {
+  const dadosBase = (window.ppvdCVLookup || {})[redsNumero];
+  if (!dadosBase) { alert('Dados da ocorrência não encontrados.'); return; }
+  ppvdAbrirCasoModalidade('crimes_violentos', redsNumero, dadosBase, dadosBase._origem);
+}
+function ppvdAbrirCasoReinc(lookupId) {
+  const dadosBase = (window.ppvdReincLookup || {})[lookupId];
+  if (!dadosBase) { alert('Dados do endereço não encontrados.'); return; }
+  ppvdAbrirCasoModalidade('reincidencia', dadosBase.endereco_key, dadosBase, dadosBase._origem);
 }
 
 function ppvdToIso(dmy) {
