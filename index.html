@@ -293,7 +293,7 @@
       <div class="nav-group-label">Guias e Documentos</div>
       <button class="nav-btn" data-page="guia_comandantes">Guia de Comandantes</button>
       <button class="nav-btn" data-page="apresentacao_gdo">Apresentação GDO</button>
-      <button class="nav-btn" data-page="analise_gdo">Análise GDO</button>
+      <button class="nav-btn" data-page="ementario">Ementário 70º BPM</button>
       <button class="nav-btn" data-page="checklist" title="Uso interno — P3 e comandantes autorizados">Checklist de Atualização</button>
     </div>
   </div>
@@ -305,7 +305,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 20/08/2026 16:08</span>
+      <span>Gerado em 20/08/2026 16:31</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -2193,10 +2193,15 @@ function renderApresentacaoGdoPage() {
   });
 }
 
-function renderAnaliseGdoPage() {
-  let html = `<div class="page-title">Análise GDO</div>`;
-  html += `<div class="def-box">Espaço reservado para análise da Gestão da Doutrina Operacional (GDO). Estrutura inicial abaixo — conteúdo ainda a ser definido.</div>`;
-  html += `<div class="pending-box" style="margin-top:16px">Aguardando definição do conteúdo desta aba.</div>`;
+function renderEmentarioPage() {
+  const FOLDER_ID = '1__xvbNY9cQhhq2lLRrOJQ3tLK5bgO4tv';
+  let html = `<div class="page-title">Ementário 70º BPM</div>`;
+  html += `<div class="def-box">Memorandos e Ordens de Serviço assinados e atualizados do 70º BPM — direto da pasta oficial do Drive da P3. Clique num arquivo pra abrir/baixar. A lista abaixo é sempre a versão mais recente da pasta (não depende de eu atualizar o painel).</div>`;
+  html += `<a class="ppvd-btn" href="https://drive.google.com/drive/folders/${FOLDER_ID}" target="_blank" rel="noopener" style="display:inline-block;margin-bottom:14px">Abrir a pasta completa no Google Drive ▸</a>`;
+  html += `<div style="border:1px solid var(--panel-border);border-radius:8px;overflow:hidden;background:#fff">`;
+  html += `<iframe src="https://drive.google.com/embeddedfolderview?id=${FOLDER_ID}#list" style="width:100%;height:70vh;border:0" title="Ementário 70º BPM — Memorandos e OS"></iframe>`;
+  html += `</div>`;
+  html += `<div class="updated" style="margin-top:10px">Se a lista acima aparecer vazia ou pedir login, a pasta ainda não está compartilhada como "Qualquer pessoa com o link" no Drive — avisar a P3.</div>`;
   document.getElementById('main').innerHTML = html;
 }
 
@@ -2404,7 +2409,7 @@ const pages = {
   esforco_furto: renderEsforcoFurtoPage,
   guia_comandantes: renderGuiaComandantesPage,
   apresentacao_gdo: renderApresentacaoGdoPage,
-  analise_gdo: renderAnaliseGdoPage,
+  ementario: renderEmentarioPage,
   rc: () => renderImportedRankingPage('rc', 'Reuniões Comunitárias'),
   vcp: () => renderImportedRankingPage('vcp', 'Visitas Comunitárias Preventivas'),
   vtcv: () => renderImportedRankingPage('vtcv', 'Visitas Tranquilizadoras a Vítimas de Crime Violento'),
