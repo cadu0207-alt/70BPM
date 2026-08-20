@@ -303,7 +303,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 20/08/2026 08:20</span>
+      <span>Gerado em 20/08/2026 11:07</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1136,7 +1136,6 @@ function renderCavaloAcoPage() {
       html += `<tr><td style="text-align:left">${m.nome}</td>
         <td>${mMes}</td><td>${rMes}</td>${monthCell(cumpriuMes)}
         <td class="col-divider">${mAc}</td><td>${rAc}</td><td><span class="${cls}">${dAc.toFixed(0)}%</span></td>
-        <td class="col-divider">${m.motos_mes[mi]}</td><td>${m.motos_acum[mi]}</td>
       </tr>`;
     });
     const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
@@ -1145,7 +1144,6 @@ function renderCavaloAcoPage() {
     html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
       <td>${tMMes}</td><td>${tRMes}</td>${monthCell(tCumpriuMes)}
       <td class="col-divider">${tMAc}</td><td>${tRAc}</td><td><span class="${tDAc>=100?'neg':'pos'}">${tDAc.toFixed(0)}%</span></td>
-      <td class="col-divider">${d.total_motos_mes[mi]}</td><td>${d.total_motos_acum[mi]}</td>
     </tr>`;
     return html;
   }
@@ -1218,7 +1216,6 @@ function renderCavaloAcoPage() {
   html += `<table class="data-table" id="cavaloacoTable"><thead><tr>
     <th style="text-align:left">Município</th><th>Meta Op. Mês</th><th>Op. Mês</th><th>Cumpriu Mês?</th>
     <th class="col-divider">Meta Op. Acum</th><th>Op. Acum</th><th>Desemp.</th>
-    <th class="col-divider">Motos Abord. Mês</th><th>Motos Abord. Acum</th>
   </tr></thead><tbody>${rows(mi)}</tbody></table>`;
   html += `<div class="updated">Fonte: export REDS (Natureza=Y01003 E Histórico contém "Cavalo de Aço" E Unidade Responsável=70 BPM), ${d.total_acum[d.total_acum.length-1]} operações jan-ago/2026 (filtro atualizado em 2026-08-11 — antes não exigia o Histórico, o que contava toda operação Y01003, não só as de Cavalo de Aço). Op. = nº de REDS; Motos Abordadas = soma do indicador "Qde de motocicletas fiscalizadas" de cada RAT (fonte separada, não tocada por essa mudança). Falta confirmar os códigos exatos dos componentes de recuperação de veículo/prisão/arma/drogas/clonagem pra fechar o indicador IDOCA completo (fórmula ainda pendente de validação).</div>`;
 
@@ -1362,33 +1359,29 @@ function renderAnalisePreditivaPage() {
 
   const totalGeral = sum(d.panorama.total_mes);
   const precGeral = sum(d.panorama.prec_mes);
-  const vdGeral = sum(d.panorama.vd_mes);
   const mpGeral = sum(d.panorama.mp_mes);
   const homicGeral = sum(d.panorama.homic_mes);
   const armasGeral = sum(d.panorama.armas_mes);
   const prisGeral = sum(d.panorama.pris_mes);
-  const vdPct = precGeral ? (vdGeral / precGeral * 100) : 0;
-  const totalEnderecos = Object.values(d.enderecos_reincidentes).reduce((s, arr) => s + arr.length, 0);
 
   let html = `<div class="page-title">Análise Preditiva de Crimes</div>`;
   html += `<div class="def-box">${DEFS.analise_preditiva}</div>`;
 
   html += `<div class="kpi-grid">`;
   html += `<div class="kpi-card kpi-neutral"><div class="val">${precGeral}</div><div class="lbl">Ocorrências Graves (${d.periodo_dados})</div></div>`;
-  html += `<div class="kpi-card ${vdPct >= 30 ? 'kpi-red' : 'kpi-neutral'}"><div class="val">${vdPct.toFixed(1)}%</div><div class="lbl">Contexto de Viol. Doméstica</div></div>`;
   html += `<div class="kpi-card ${homicGeral > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${homicGeral}</div><div class="lbl">Homicídios/Feminicídios</div></div>`;
   html += `<div class="kpi-card ${mpGeral > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${mpGeral}</div><div class="lbl">Descumpr. Medida Protetiva</div></div>`;
+  html += `<div class="kpi-card kpi-neutral"><div class="val">${armasGeral}</div><div class="lbl">Com Arma de Fogo</div></div>`;
   html += `</div>`;
   html += `<div class="kpi-grid">`;
-  html += `<div class="kpi-card kpi-neutral"><div class="val">${armasGeral}</div><div class="lbl">Com Arma de Fogo</div></div>`;
   html += `<div class="kpi-card kpi-green"><div class="val">${prisGeral}</div><div class="lbl">Prisões</div></div>`;
-  html += `<div class="kpi-card ${totalEnderecos > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${totalEnderecos}</div><div class="lbl">Endereços com Reincidência (2+ VD)</div></div>`;
   html += `<div class="kpi-card kpi-neutral"><div class="val">${totalGeral}</div><div class="lbl">Total de REDS no Período</div></div>`;
   html += `</div>`;
+  html += `<div class="def-box" style="margin-top:10px"><span class="neg">⚠ Violência Doméstica saiu desta página — tem página própria no menu ("Violência Doméstica"), com ranking por população e o mesmo detalhamento por município/mês.</span></div>`;
 
-  html += `<table class="data-table"><thead><tr><th style="text-align:left">Mês</th><th>Total REDS</th><th>Ocorr. Graves</th><th>Contexto VD</th><th>Descumpr. MP</th><th>Homicídios</th><th>Com Arma</th><th>Prisões</th></tr></thead><tbody>`;
+  html += `<table class="data-table"><thead><tr><th style="text-align:left">Mês</th><th>Total REDS</th><th>Ocorr. Graves</th><th>Descumpr. MP</th><th>Homicídios</th><th>Com Arma</th><th>Prisões</th></tr></thead><tbody>`;
   mesesLocais.forEach((m, i) => {
-    html += `<tr><td style="text-align:left">${m}</td><td>${d.panorama.total_mes[i]}</td><td>${d.panorama.prec_mes[i]}</td><td>${d.panorama.vd_mes[i]}</td><td>${d.panorama.mp_mes[i]}</td><td>${d.panorama.homic_mes[i]}</td><td>${d.panorama.armas_mes[i]}</td><td>${d.panorama.pris_mes[i]}</td></tr>`;
+    html += `<tr><td style="text-align:left">${m}</td><td>${d.panorama.total_mes[i]}</td><td>${d.panorama.prec_mes[i]}</td><td>${d.panorama.mp_mes[i]}</td><td>${d.panorama.homic_mes[i]}</td><td>${d.panorama.armas_mes[i]}</td><td>${d.panorama.pris_mes[i]}</td></tr>`;
   });
   html += `</tbody></table>`;
 
@@ -1407,61 +1400,46 @@ function renderAnalisePreditivaPage() {
   html += `</div>`;
   html += `<div id="apMuniPanel"></div>`;
 
-  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Protocolo de Acompanhamento por Visita (Proposta)</div>`;
+  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Visitas Obrigatórias do 70º BPM</div>`;
   html += `<div class="def-box">
-    <b>Regra operacional proposta</b> — ainda não implementada como indicador, pois depende de padronização do lançamento no SiGOp:<br>
-    &bull; Qualquer ocorrência sinalizada como grave (gravidade ALTA ou CRÍTICA) deve gerar <b>no mínimo 1 visita de acompanhamento posterior</b>, feita pelo pelotão/destacamento da área.<br>
-    &bull; Para ocorrências com contexto de <b>violência doméstica</b>: <b>no mínimo 2 visitas</b> — uma ao autor, outra à vítima.<br>
-    &bull; Endereços com reincidência (2+ chamados de VD) exigem atenção redobrada e visita prioritária.<br><br>
-    <b>Codificação em aberto</b> — pra rastrear se a visita ocorreu ou não, precisamos de um padrão de lançamento no REDS (provavelmente Natureza A21.007, como já fazemos com Padrinhos/Saque Seguro/VCP, diferenciado por um Histórico específico — ex: "ACOMPANHAMENTO PÓS-OCORRÊNCIA — AUTOR" / "...— VÍTIMA", citando o nº do REDS de origem pra cruzar os dois registros). Essa é uma decisão operacional que precisa ser confirmada e divulgada às frações antes de existir dado real pra alimentar essa parte do painel — por enquanto funciona só como checklist.
+    O <b>Memorando nº 0013/P3.3/2026</b> (20/08/2026) padronizou as visitas obrigatórias decorrentes de ocorrências: Violência Doméstica, Visita Preventiva (ameaça/lesão/descumpr. MP), Pós-Furto, Vítima de Crime Violento e Visita Preditiva por Reincidência de Endereço — cada uma com natureza RAT/REDS, prazo e histórico padronizado próprios.<br>
+    Essa página passou a focar só nas ocorrências (não mais no protocolo de visita). O acompanhamento de cumprimento das visitas (feito/pendente/atrasado por fração) está em construção numa página dedicada, alimentada pelos B.O.S. que Eduardo vai carregar em <code>entrada/Visitas Preventivas/</code>.
   </div>`;
-  html += `<div class="pending-box">Assim que o padrão de registro for definido e divulgado, essa seção passa a mostrar o indicador de cumprimento real (visitas realizadas &divide; visitas devidas) por pelotão/destacamento.</div>`;
 
   document.getElementById('main').innerHTML = html;
 
   function renderMuniPanel(muniIdx, periodo) {
     const m = municipiosData[muniIdx];
     const nome = m.nome;
-    let prec, vd, mp, homic;
+    let prec, mp, homic;
     if (periodo === 'acum') {
-      prec = sum(m.prec_mes); vd = sum(m.vd_mes); mp = sum(m.mp_mes); homic = sum(m.homic_mes);
+      prec = sum(m.prec_mes); mp = sum(m.mp_mes); homic = sum(m.homic_mes);
     } else {
       const mi = parseInt(periodo);
-      prec = m.prec_mes[mi] || 0; vd = m.vd_mes[mi] || 0; mp = m.mp_mes[mi] || 0; homic = m.homic_mes[mi] || 0;
+      prec = m.prec_mes[mi] || 0; mp = m.mp_mes[mi] || 0; homic = m.homic_mes[mi] || 0;
     }
     let h = `<div class="kpi-grid">`;
     h += `<div class="kpi-card kpi-neutral"><div class="val">${prec}</div><div class="lbl">Ocorrências Graves</div></div>`;
-    h += `<div class="kpi-card ${vd > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${vd}</div><div class="lbl">Contexto VD</div></div>`;
     h += `<div class="kpi-card ${homic > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${homic}</div><div class="lbl">Homicídios</div></div>`;
     h += `<div class="kpi-card ${mp > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${mp}</div><div class="lbl">Descumpr. MP</div></div>`;
     h += `</div>`;
 
-    const listaAll = d.ocorrencias_graves[nome] || [];
+    const listaAll = (d.ocorrencias_graves[nome] || []).filter(o => !o.vd);
     const lista = (periodo === 'acum') ? listaAll.slice() : listaAll.filter(o => o.m === parseInt(periodo) + 1);
     const ordemGrav = { critica: 0, alta: 1, media: 2 };
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th></tr></thead><tbody>`;
+    h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th></tr></thead><tbody>`;
     if (lista.length === 0) {
-      h += `<tr><td colspan="8" style="text-align:center;color:var(--muted)">Nenhuma ocorrência grave no período selecionado.</td></tr>`;
+      h += `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhuma ocorrência grave no período selecionado.</td></tr>`;
     } else {
       lista.forEach(o => {
         const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
-        h += `<tr><td style="text-align:left">${o.d}</td><td style="text-align:left">${o.n}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td></tr>`;
+        h += `<tr><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td style="text-align:left">${o.n}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td></tr>`;
       });
     }
     h += `</tbody></table>`;
-
-    const enderecos = d.enderecos_reincidentes[nome] || [];
-    if (enderecos.length > 0) {
-      h += `<div class="def-box" style="margin-top:16px;border-color:var(--alert)"><b>⚠ Endereços com Reincidência de Violência Doméstica</b><br>`;
-      enderecos.forEach(e => {
-        const end = `${e.b || ''}${e.l ? (' - ' + e.l) : ''}${e.nu && e.nu !== '0' ? (', ' + e.nu) : ''}`;
-        h += `${end} — ${e.q} chamados (meses: ${e.meses.map(mm => mesesLocais[mm - 1] || mm).join(', ')})<br>`;
-      });
-      h += `Endereço com 2+ chamados de violência doméstica no período é tratado como gatilho automático de risco — recomenda-se visita de acompanhamento e atenção redobrada da fração responsável.</div>`;
-    }
     document.getElementById('apMuniPanel').innerHTML = h;
   }
 
@@ -1559,9 +1537,9 @@ function renderViolenciaDomesticaPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th><th>Caso PPVD</th></tr></thead><tbody>`;
+    h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th><th>Caso PPVD</th></tr></thead><tbody>`;
     if (lista.length === 0) {
-      h += `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
+      h += `<tr><td colspan="10" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
     } else {
       lista.forEach(o => {
         const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
@@ -1571,7 +1549,7 @@ function renderViolenciaDomesticaPage() {
           window.ppvdOcorrenciaLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu };
         }
         const casoBtn = o.r ? `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Abrir Caso ▸</button>` : '—';
-        h += `<tr><td style="text-align:left">${o.d}</td><td style="text-align:left">${natLabel}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td><td>${casoBtn}</td></tr>`;
+        h += `<tr><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td style="text-align:left">${natLabel}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td><td>${casoBtn}</td></tr>`;
       });
     }
     h += `</tbody></table>`;
