@@ -311,7 +311,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 28/08/2026 16:39</span>
+      <span>Gerado em 28/08/2026 16:41</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -2534,6 +2534,7 @@ function highlightMunRows() {
 let currentPageKey = 'home';
 function goToPage(key) {
   currentPageKey = key;
+  try { sessionStorage.setItem('paginaAtualPPVD', key); } catch (e) {}
   try {
     pages[key]();
   } catch (e) {
@@ -3453,7 +3454,20 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   });
 });
 
-goToPage('home');
+// Se o Chrome descartou a aba em segundo plano e recarregou, volta pra onde
+// o usuário estava (sessionStorage sobrevive a esse reload, some só quando
+// a aba/janela fecha de verdade) em vez de reiniciar sempre na Home.
+let paginaRestaurada = 'home';
+try {
+  const salva = sessionStorage.getItem('paginaAtualPPVD');
+  if (salva && pages[salva]) paginaRestaurada = salva;
+} catch (e) {}
+if (!(location.hash || '').startsWith('#visita=')) {
+  goToPage(paginaRestaurada);
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === paginaRestaurada);
+  });
+} // se for link publico de visita (#visita=...), ppvdCheckVisitaPublica ja assumiu o #main — nao sobrescreve
 </script>
 </body>
 </html>
