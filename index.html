@@ -218,6 +218,12 @@
   .ppvd-badge-alta { background:rgba(232,168,60,0.18); color:var(--amber); border:1px solid rgba(232,168,60,0.4); }
   .ppvd-badge-media { background:rgba(120,140,160,0.18); color:var(--muted); border:1px solid var(--panel-border); }
   .ppvd-badge-semcaso { background:transparent; color:var(--muted-dim); border:1px dashed var(--panel-border); }
+  .ppvd-badge-verde { background:rgba(33,201,138,0.16); color:var(--signal); border:1px solid var(--signal-dim); }
+  .vd-row-vermelho td { background: rgba(230,72,79,0.08) !important; }
+  .vd-row-amarelo td { background: rgba(232,168,60,0.10) !important; }
+  .vd-row-verde td { background: rgba(33,201,138,0.07) !important; }
+  .vd-check-ok { color: var(--signal); font-weight:700; }
+  .vd-check-no { color: var(--muted-dim); }
   .ppvd-card { background:var(--panel); border:1px solid var(--panel-border); border-radius:6px; padding:20px 22px; margin-bottom:18px; }
 
   .ap-cta {
@@ -305,7 +311,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 28/08/2026 11:07</span>
+      <span>Gerado em 28/08/2026 14:37</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -1583,7 +1589,7 @@ function renderViolenciaDomesticaPage() {
 
   document.getElementById('main').innerHTML = html;
 
-  function renderMuniPanel(muniIdx, periodo) {
+  async function renderMuniPanel(muniIdx, periodo) {
     const m = municipiosData[muniIdx];
     const nome = m.nome;
     let total, taxaPeriodo;
@@ -1608,22 +1614,42 @@ function renderViolenciaDomesticaPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th><th>Caso PPVD</th></tr></thead><tbody>`;
+    const redsDaLista = lista.map(o => o.r).filter(Boolean);
+    const casosMap = await ppvdBuscarCasosVD(redsDaLista);
+    h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th><th>FONAR</th><th style="text-align:left">Responsável</th><th>V. Autor</th><th>V. Vítima</th><th>GUT Inicial</th><th>GUT Final</th><th>Status</th><th>Retornos</th><th>Ação</th></tr></thead><tbody>`;
     if (lista.length === 0) {
-      h += `<tr><td colspan="10" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
+      h += `<tr><td colspan="18" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
     } else {
       lista.forEach(o => {
         const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
         const natLabel = o.vd_homic ? (o.n + ' ⚠') : o.n;
         window.ppvdOcorrenciaLookup = window.ppvdOcorrenciaLookup || {};
         if (o.r) {
-          window.ppvdOcorrenciaLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu };
+          window.ppvdOcorrenciaLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, fonar_feito: !!o.fonar_feito };
         }
-        const casoBtn = o.r ? `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Abrir Caso ▸</button>` : '—';
-        h += `<tr><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td style="text-align:left">${natLabel}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td><td>${casoBtn}</td></tr>`;
+        const caso = o.r ? (casosMap[o.r] || null) : null;
+        const sem = ppvdSemaforoVD(caso);
+        const rowClass = 'vd-row-' + sem;
+        const fonarTxt = o.fonar_feito ? '<span class="vd-check-ok">✓</span>' : '<span class="vd-check-no">—</span>';
+        const sugestao = !caso ? ppvdSugerirResponsavel(nome) : null;
+        const respNome = caso ? (caso.militar_responsavel || '—') : (sugestao ? sugestao.nome : '—');
+        const vAutor = caso && caso.visita_autor_feita ? '<span class="vd-check-ok">✓</span>' : '<span class="vd-check-no">—</span>';
+        const vVitima = caso && caso.visita_vitima_feita ? '<span class="vd-check-ok">✓</span>' : '<span class="vd-check-no">—</span>';
+        const gutIni = caso && caso.gravidade ? `${caso.gravidade}×${caso.urgencia}×${caso.tendencia}=${caso.gut_score}` : '—';
+        const gutFin = caso && caso.gut_final_gravidade ? `${caso.gut_final_gravidade}×${caso.gut_final_urgencia}×${caso.gut_final_tendencia}=${caso.gut_final_score}` : '—';
+        const statusTxt = caso ? ppvdStatusLabelVD(caso.status) : 'Sem caso';
+        const statusBadgeClass = sem === 'verde' ? 'ppvd-badge-verde' : (sem === 'amarelo' ? 'ppvd-badge-alta' : 'ppvd-badge-critica');
+        const retornosTxt = caso && caso.qtd_retornos > 0 ? String(caso.qtd_retornos) : '—';
+        const podeAbrir = ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_abrir_caso);
+        let acaoBtn = '—';
+        if (o.r) {
+          if (!caso) acaoBtn = podeAbrir ? `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Abrir Caso ▸</button>` : `<span class="ppvd-badge ppvd-badge-semcaso">sem caso</span>`;
+          else acaoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Ver Caso ▸</button>`;
+        }
+        h += `<tr class="${rowClass}"><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td style="text-align:left">${natLabel}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td><td>${fonarTxt}</td><td style="text-align:left">${respNome}</td><td>${vAutor}</td><td>${vVitima}</td><td>${gutIni}</td><td>${gutFin}</td><td><span class="ppvd-badge ${statusBadgeClass}">${statusTxt}</span></td><td>${retornosTxt}</td><td>${acaoBtn}</td></tr>`;
       });
     }
-    h += `</tbody></table>`;
+    h += `</tbody></table></div>`;
 
     const enderecos = d.enderecos_reincidentes[nome] || [];
     if (enderecos.length > 0) {
@@ -2862,10 +2888,14 @@ function ppvdIniciais(nome) {
 
 async function ppvdInit() {
   if (!ppvdSupa) return;
+  ppvdCheckVisitaPublica();
   const { data: { session } } = await ppvdSupa.auth.getSession();
   await ppvdOnSession(session);
+  await ppvdCarregarMilitares();
   ppvdSupa.auth.onAuthStateChange(async (event, session) => {
     await ppvdOnSession(session);
+    ppvdMilitaresCache = null;
+    await ppvdCarregarMilitares();
   });
 }
 
@@ -2896,7 +2926,7 @@ function ppvdRenderAuthWidget() {
     el.innerHTML = `<span style="color:var(--muted)">${ppvdPerfil.nome} &middot; aguardando aprovação</span> <button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
   } else {
     el.innerHTML = `<span style="color:var(--text)">${ppvdPerfil.nome} (${ppvdPerfil.cargo})</span> ` +
-      (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> ` : '') +
+      (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> <button class="ppvd-btn" onclick="ppvdOpenMilitares()">Militares Responsáveis</button> ` : '') +
       `<button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
   }
 }
@@ -2950,6 +2980,53 @@ function ppvdRenderAguardando() {
   document.getElementById('main').innerHTML = html;
 }
 
+function ppvdSemaforoVD(caso) {
+  if (!caso) return 'vermelho';
+  if (caso.status === 'estabilizada') return 'verde';
+  if (caso.status === 'decisao_cmd') return 'amarelo';
+  return 'vermelho'; // aberto, em_visita, retorno
+}
+function ppvdStatusLabelVD(status) {
+  const map = { aberto: 'Aberto', em_visita: 'Em Visita', decisao_cmd: 'Decisão Cmd', retorno: 'Retorno', estabilizada: 'Estabilizada' };
+  return map[status] || status || 'Sem caso';
+}
+async function ppvdBuscarCasosVD(redsList) {
+  if (!ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado || !redsList || redsList.length === 0) return {};
+  const { data, error } = await ppvdSupa.from('ppvd_casos').select('*').eq('modalidade', 'violencia_domestica').in('reds_numero', redsList);
+  const map = {};
+  if (!error && data) data.forEach(c => { if (c.reds_numero) map[c.reds_numero] = c; });
+  return map;
+}
+let ppvdMilitaresCache = null;
+async function ppvdCarregarMilitares() {
+  if (!ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) { ppvdMilitaresCache = []; return ppvdMilitaresCache; }
+  const { data, error } = await ppvdSupa.from('militares_responsaveis').select('*').eq('ativo', true);
+  ppvdMilitaresCache = (!error && data) ? data : [];
+  return ppvdMilitaresCache;
+}
+function ppvdSugerirResponsavel(municipio) {
+  if (!ppvdMilitaresCache || !municipio) return null;
+  const alvo = normMun(municipio);
+  return ppvdMilitaresCache.find(m => normMun(m.municipio) === alvo) || null;
+}
+function ppvdLinkVisitaPublica(token) {
+  return window.location.href.split('#')[0] + '#visita=' + token;
+}
+function ppvdMontarMensagemWhatsApp(caso, token) {
+  const link = ppvdLinkVisitaPublica(token);
+  return `Olá! Ocorrência REDS ${caso.reds_numero || '—'}, ocorrida em ${caso.reds_data || '—'}, natureza ${caso.natureza || '—'}, município ${caso.municipio || ''}${caso.bairro ? (' - ' + caso.bairro) : ''}.
+
+Favor realizar a leitura do fato e a visita ao autor e à vítima, no prazo preferencial de 24h (máximo 72h).
+
+Após o término, acesse o link abaixo, anexe o BOS da visita ao autor e à vítima, e preencha o GUT novo:
+${link}`;
+}
+async function ppvdAbrirBos(path) {
+  if (!path) { alert('Nenhum arquivo anexado.'); return; }
+  const { data, error } = await ppvdSupa.storage.from('ppvd-bos-visita').createSignedUrl(path, 3600);
+  if (error || !data) { alert('Erro ao gerar link do arquivo: ' + (error ? error.message : '')); return; }
+  window.open(data.signedUrl, '_blank');
+}
 function ppvdOrientacao(g, u, t) {
   if (!g || !u || !t) return { texto: 'Classificação GUT pendente de preenchimento.', nivel: 'media', score: 0 };
   const score = g * u * t;
@@ -2979,7 +3056,8 @@ async function ppvdAbrirCaso(redsNumero) {
       bairro: dadosBase.bairro || null,
       logradouro: dadosBase.logradouro || null,
       numero: dadosBase.numero || null,
-      status: 'novo'
+      fonar_feito: dadosBase.fonar_feito || false,
+      status: 'aberto'
     };
     const { data: novo, error: errIns } = await ppvdSupa.from('ppvd_casos').insert(insertObj).select().single();
     if (errIns) { document.getElementById('main').innerHTML = `<div class="def-box">Erro ao criar caso: ${errIns.message}</div>`; return; }
@@ -2989,25 +3067,33 @@ async function ppvdAbrirCaso(redsNumero) {
 }
 
 async function ppvdRenderCaso(caso) {
+  window.ppvdCasoAtual = caso;
   const { data: visitas } = await ppvdSupa.from('ppvd_visitas').select('*').eq('caso_id', caso.id).order('created_at', { ascending: false });
+  const ehVD = (caso.modalidade || 'violencia_domestica') === 'violencia_domestica';
   const orient = ppvdOrientacao(caso.gravidade, caso.urgencia, caso.tendencia);
+  const orientFinal = ppvdOrientacao(caso.gut_final_gravidade, caso.gut_final_urgencia, caso.gut_final_tendencia);
 
   let html = `<div class="page-title">Caso PPVD — ${caso.municipio || ''}</div>`;
-  html += `<button class="ppvd-btn" onclick="goToPage('violencia_domestica')">← Voltar pra Violência Doméstica</button>`;
+  html += `<button class="ppvd-btn" onclick="goToPage('${ppvdModalidadeVoltarPage(caso.modalidade)}')">← Voltar</button>`;
 
   html += `<div class="ppvd-card" style="margin-top:16px">`;
   html += `<b>REDS:</b> ${caso.reds_numero || '—'} &nbsp; <b>Data:</b> ${caso.reds_data || '—'} &nbsp; <b>Natureza:</b> ${caso.natureza || '—'} &nbsp; <b>Causa:</b> ${caso.causa || '—'}<br>`;
   html += `<b>Endereço:</b> ${caso.bairro || ''}${caso.logradouro ? (' - ' + caso.logradouro) : ''}${caso.numero && caso.numero !== '0' ? (', ' + caso.numero) : ''}<br><br>`;
-  html += `<b>Status:</b> <select id="ppvdStatusSel">${['novo', 'em_acompanhamento', 'recusa', 'encerrado'].map(s => `<option value="${s}" ${s === caso.status ? 'selected' : ''}>${s}</option>`).join('')}</select> `;
+  if (ehVD) {
+    html += `<b>FONAR:</b> ${caso.fonar_feito ? '<span class="vd-check-ok">✓ preenchido</span>' : '<span class="vd-check-no">não localizado ainda</span>'}<br>`;
+    html += `<b>Status:</b> <select id="ppvdStatusSel">${['aberto', 'em_visita', 'decisao_cmd', 'retorno', 'estabilizada'].map(s => `<option value="${s}" ${s === caso.status ? 'selected' : ''}>${ppvdStatusLabelVD(s)}</option>`).join('')}</select> `;
+  } else {
+    html += `<b>Status:</b> <select id="ppvdStatusSel">${['novo', 'em_acompanhamento', 'recusa', 'encerrado'].map(s => `<option value="${s}" ${s === caso.status ? 'selected' : ''}>${s}</option>`).join('')}</select> `;
+  }
   html += `<button class="ppvd-btn" onclick="ppvdSalvarStatus('${caso.id}')">Salvar status</button>`;
   html += `</div>`;
 
   html += `<div class="kpi-grid">`;
-  html += `<div class="kpi-card ${orient.nivel === 'critica' ? 'kpi-red' : (orient.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${orient.score || '—'}</div><div class="lbl">Score GUT (G×U×T)</div></div>`;
-  html += `<div class="kpi-card kpi-neutral"><div class="val" style="font-size:14px">${orient.texto}</div><div class="lbl">Orientação Automática</div></div>`;
+  html += `<div class="kpi-card ${orient.nivel === 'critica' ? 'kpi-red' : (orient.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${orient.score || '—'}</div><div class="lbl">GUT Inicial (G×U×T)</div></div>`;
+  html += `<div class="kpi-card ${orientFinal.nivel === 'critica' ? 'kpi-red' : (orientFinal.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${caso.gut_final_score || '—'}</div><div class="lbl">GUT Final (última visita)</div></div>`;
   html += `</div>`;
 
-  html += `<div class="ppvd-card"><b>Classificação GUT atual</b><br><br>`;
+  html += `<div class="ppvd-card"><b>Classificação GUT Inicial</b> <span style="color:var(--muted);font-size:11px">(preenchida pelo comandante ao abrir o caso, com base no REDS + FONAR)</span><br><br>`;
   html += `<div class="ppvd-field"><label>Gravidade</label>${ppvdSelectGUT('ppvdG', 'gravidade', caso.gravidade)}</div>`;
   html += `<div class="ppvd-field"><label>Urgência</label>${ppvdSelectGUT('ppvdU', 'urgencia', caso.urgencia)}</div>`;
   html += `<div class="ppvd-field"><label>Tendência</label>${ppvdSelectGUT('ppvdT', 'tendencia', caso.tendencia)}</div>`;
@@ -3024,34 +3110,62 @@ async function ppvdRenderCaso(caso) {
   html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSalvarDados('${caso.id}')">Salvar dados</button>`;
   html += `</div>`;
 
-  html += `<div class="ppvd-card"><b>Despachar guarnição pra visita</b><br><br>`;
-  html += `<div class="ppvd-field"><label>Guarnição designada</label><input id="ppvdGuarnicao" placeholder="Ex: VTR 1234"></div>`;
-  html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdDespachar('${caso.id}')">Despachar</button>`;
-  html += `</div>`;
+  const semVisitaPendente = !visitas || visitas.every(v => v.visita_realizada_em);
+  if (ehVD && semVisitaPendente && caso.status !== 'estabilizada') {
+    const sugestao = ppvdSugerirResponsavel(caso.municipio);
+    const ehRetorno = caso.status === 'decisao_cmd';
+    html += `<div class="ppvd-card"><b>Despachar visita — ${ehRetorno ? 'Retorno' : 'Visita inicial'}</b><br><br>`;
+    html += `<div class="ppvd-field"><label>Militar responsável (nome)</label><input id="ppvdRespNome" value="${caso.militar_responsavel || (sugestao ? sugestao.nome : '')}"></div>`;
+    html += `<div class="ppvd-field"><label>WhatsApp (com DDD)</label><input id="ppvdRespWhats" value="${caso.militar_responsavel_whatsapp || (sugestao ? sugestao.whatsapp : '')}"></div>`;
+    html += `<div style="color:var(--muted);font-size:11.5px;margin-bottom:10px">Ao despachar, abre o WhatsApp com a mensagem já pronta e o link da página de registro da visita. Dá pra trocar o nome/WhatsApp aqui sem alterar o cadastro fixo.</div>`;
+    html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdDespacharVD('${caso.id}', ${ehRetorno})">Despachar${ehRetorno ? ' Retorno' : ''} (WhatsApp)</button>`;
+    html += `</div>`;
+  }
 
   const pendente = (visitas || []).find(v => v.despachado_em && !v.visita_realizada_em);
   if (pendente) {
-    html += `<div class="ppvd-card" style="border-color:var(--amber)"><b>⚠ Visita pendente de resultado</b> — despachada em ${ppvdFmtDT(pendente.despachado_em)} por ${pendente.despachado_por || '—'} (${pendente.guarnicao || 'guarnição não informada'})<br><br>`;
+    html += `<div class="ppvd-card" style="border-color:var(--amber)"><b>⏳ Visita pendente de resposta do militar</b> — despachada em ${ppvdFmtDT(pendente.despachado_em)} por ${pendente.despachado_por || '—'} pra ${pendente.guarnicao || '—'}<br>`;
+    html += `<div style="color:var(--muted);font-size:11.5px;margin:8px 0">Link enviado: <code>${ppvdLinkVisitaPublica(pendente.token)}</code></div>`;
+    html += `<details><summary style="cursor:pointer;color:var(--amber)">Registrar manualmente (se o militar não conseguiu usar o link)</summary><br>`;
+    html += `<div class="ppvd-field"><label>Visita ao autor realizada?</label><select id="ppvdManAutorFeita"><option value="false">Não</option><option value="true">Sim</option></select></div>`;
+    html += `<div class="ppvd-field"><label>Visita à vítima realizada?</label><select id="ppvdManVitimaFeita"><option value="false">Não</option><option value="true">Sim</option></select></div>`;
     html += `<div class="ppvd-field"><label>Situação encontrada</label><textarea id="ppvdSituacao"></textarea></div>`;
     html += `<div class="ppvd-field"><label>Vítima presente?</label><select id="ppvdVitPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
     html += `<div class="ppvd-field"><label>Autor presente?</label><select id="ppvdAutPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
     html += `<div class="ppvd-field"><label>Reclassificação — Gravidade</label>${ppvdSelectGUT('ppvdNovaG', 'gravidade', '')}</div>`;
     html += `<div class="ppvd-field"><label>Reclassificação — Urgência</label>${ppvdSelectGUT('ppvdNovaU', 'urgencia', '')}</div>`;
     html += `<div class="ppvd-field"><label>Reclassificação — Tendência</label>${ppvdSelectGUT('ppvdNovaT', 'tendencia', '')}</div>`;
-    html += `<div class="ppvd-field"><label>Próxima visita recomendada</label><input type="date" id="ppvdProxVisita"></div>`;
     html += `<div class="ppvd-field"><label>Observações</label><textarea id="ppvdObsVisita"></textarea></div>`;
     html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdRegistrarResultado('${pendente.id}', '${caso.id}')">Registrar resultado da visita</button>`;
+    html += `</details></div>`;
+  }
+
+  if (ehVD && caso.status === 'decisao_cmd') {
+    const ultima = (visitas || []).find(v => v.visita_realizada_em);
+    html += `<div class="ppvd-card" style="border-color:var(--amber)"><b>⚠ Decisão do Comandante</b><br><br>`;
+    if (ultima) {
+      html += `<b>BOS anexados:</b> `;
+      html += ultima.bos_autor_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${ultima.bos_autor_url}')">Ver BOS autor</button> ` : 'sem BOS autor ';
+      html += ultima.bos_vitima_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${ultima.bos_vitima_url}')">Ver BOS vítima</button>` : 'sem BOS vítima';
+      html += `<br><br>`;
+    }
+    html += `<div style="color:var(--muted);font-size:12px;margin-bottom:10px">Leia o BOS e o GUT final acima e decida: estabilizar o caso ou despachar mais um retorno (card "Despachar visita — Retorno" acima).</div>`;
+    html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdEstabilizarVD('${caso.id}')">✓ Marcar como Estabilizada</button>`;
     html += `</div>`;
   }
 
-  html += `<div class="page-title" style="margin-top:24px;font-size:16px">Histórico de Visitas</div>`;
+  html += `<div class="page-title" style="margin-top:24px;font-size:16px">Histórico de Visitas${caso.qtd_retornos ? (' — ' + caso.qtd_retornos + ' retorno(s)') : ''}</div>`;
   if (!visitas || visitas.length === 0) {
     html += `<div class="pending-box">Nenhuma visita registrada ainda.</div>`;
   } else {
-    html += `<table class="data-table"><thead><tr><th style="text-align:left">Despachada em</th><th style="text-align:left">Guarnição</th><th style="text-align:left">Visita realizada em</th><th style="text-align:left">Situação</th><th>Reclassificação GUT</th></tr></thead><tbody>`;
+    html += `<table class="data-table"><thead><tr><th style="text-align:left">Despachada em</th><th style="text-align:left">Militar</th><th style="text-align:left">Visita realizada em</th><th style="text-align:left">Situação</th><th>Reclassificação GUT</th><th>BOS</th></tr></thead><tbody>`;
     visitas.forEach(v => {
       const reclass = (v.nova_gravidade && v.nova_urgencia && v.nova_tendencia) ? `${v.nova_gravidade}×${v.nova_urgencia}×${v.nova_tendencia}=${v.nova_gravidade * v.nova_urgencia * v.nova_tendencia}` : '—';
-      html += `<tr><td style="text-align:left">${ppvdFmtDT(v.despachado_em)}</td><td style="text-align:left">${v.guarnicao || '—'}</td><td style="text-align:left">${ppvdFmtDT(v.visita_realizada_em)}</td><td style="text-align:left">${v.situacao_encontrada || '—'}</td><td>${reclass}</td></tr>`;
+      const bosLinks = [
+        v.bos_autor_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${v.bos_autor_url}')">Autor</button>` : '',
+        v.bos_vitima_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${v.bos_vitima_url}')">Vítima</button>` : '',
+      ].filter(Boolean).join(' ') || '—';
+      html += `<tr><td style="text-align:left">${ppvdFmtDT(v.despachado_em)}</td><td style="text-align:left">${v.guarnicao || '—'}</td><td style="text-align:left">${ppvdFmtDT(v.visita_realizada_em)}</td><td style="text-align:left">${v.situacao_encontrada || '—'}</td><td>${reclass}</td><td>${bosLinks}</td></tr>`;
     });
     html += `</tbody></table>`;
   }
@@ -3092,13 +3206,28 @@ async function ppvdSalvarDados(casoId) {
   await ppvdRenderCaso(caso);
 }
 
-async function ppvdDespachar(casoId) {
-  const guarnicao = document.getElementById('ppvdGuarnicao').value || null;
-  const insertObj = { caso_id: casoId, despachado_por: ppvdPerfil.nome, despachado_em: new Date().toISOString(), guarnicao };
-  const { error } = await ppvdSupa.from('ppvd_visitas').insert(insertObj);
+async function ppvdDespacharVD(casoId, isRetorno) {
+  const nomeEl = document.getElementById('ppvdRespNome');
+  const whatsEl = document.getElementById('ppvdRespWhats');
+  const nome = nomeEl ? nomeEl.value.trim() : '';
+  const whats = whatsEl ? whatsEl.value.trim().replace(/\D/g, '') : '';
+  if (!nome || !whats) { alert('Preencha nome e WhatsApp do militar responsável.'); return; }
+  const { data: visita, error } = await ppvdSupa.from('ppvd_visitas').insert({
+    caso_id: casoId, despachado_por: ppvdPerfil.nome, despachado_em: new Date().toISOString(), guarnicao: nome
+  }).select().single();
+  if (error) { alert('Erro ao despachar: ' + error.message); return; }
+  const upd = { status: 'em_visita', militar_responsavel: nome, militar_responsavel_whatsapp: whats };
+  if (isRetorno) upd.qtd_retornos = (window.ppvdCasoAtual ? (window.ppvdCasoAtual.qtd_retornos || 0) + 1 : 1);
+  const { data: caso, error: errUpd } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', casoId).select().single();
+  if (errUpd) { alert('Erro: ' + errUpd.message); return; }
+  const msg = ppvdMontarMensagemWhatsApp(caso, visita.token);
+  window.open(`https://wa.me/${whats}?text=${encodeURIComponent(msg)}`, '_blank');
+  await ppvdRenderCaso(caso);
+}
+async function ppvdEstabilizarVD(casoId) {
+  const upd = { status: 'estabilizada', estabilizado_em: new Date().toISOString(), estabilizado_por: ppvdPerfil.nome };
+  const { data: caso, error } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', casoId).select().single();
   if (error) { alert('Erro: ' + error.message); return; }
-  await ppvdSupa.from('ppvd_casos').update({ status: 'em_acompanhamento' }).eq('id', casoId);
-  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
   await ppvdRenderCaso(caso);
 }
 
@@ -3111,17 +3240,19 @@ async function ppvdRegistrarResultado(visitaId, casoId) {
     nova_gravidade: parseInt(document.getElementById('ppvdNovaG').value) || null,
     nova_urgencia: parseInt(document.getElementById('ppvdNovaU').value) || null,
     nova_tendencia: parseInt(document.getElementById('ppvdNovaT').value) || null,
-    proxima_visita_recomendada: document.getElementById('ppvdProxVisita').value || null,
     observacoes: document.getElementById('ppvdObsVisita').value || null,
   };
   const { error } = await ppvdSupa.from('ppvd_visitas').update(upd).eq('id', visitaId);
   if (error) { alert('Erro: ' + error.message); return; }
-  const casoUpd = {};
-  if (upd.nova_gravidade) casoUpd.gravidade = upd.nova_gravidade;
-  if (upd.nova_urgencia) casoUpd.urgencia = upd.nova_urgencia;
-  if (upd.nova_tendencia) casoUpd.tendencia = upd.nova_tendencia;
-  if (Object.keys(casoUpd).length) await ppvdSupa.from('ppvd_casos').update(casoUpd).eq('id', casoId);
-  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
+  const casoUpd = { status: 'decisao_cmd' };
+  if (upd.nova_gravidade) casoUpd.gut_final_gravidade = upd.nova_gravidade;
+  if (upd.nova_urgencia) casoUpd.gut_final_urgencia = upd.nova_urgencia;
+  if (upd.nova_tendencia) casoUpd.gut_final_tendencia = upd.nova_tendencia;
+  const autorFeitaEl = document.getElementById('ppvdManAutorFeita');
+  const vitimaFeitaEl = document.getElementById('ppvdManVitimaFeita');
+  if (autorFeitaEl && autorFeitaEl.value === 'true') casoUpd.visita_autor_feita = true;
+  if (vitimaFeitaEl && vitimaFeitaEl.value === 'true') casoUpd.visita_vitima_feita = true;
+  const { data: caso } = await ppvdSupa.from('ppvd_casos').update(casoUpd).eq('id', casoId).select().single();
   await ppvdRenderCaso(caso);
 }
 
@@ -3146,13 +3277,151 @@ async function ppvdOpenAprovacoes() {
   if (!aprovados || aprovados.length === 0) {
     html += `<div class="pending-box">Nenhum usuário aprovado ainda.</div>`;
   } else {
-    html += `<table class="data-table"><thead><tr><th style="text-align:left">Nome</th><th style="text-align:left">Cargo</th><th style="text-align:left">Cidade</th><th>Admin</th></tr></thead><tbody>`;
+    html += `<table class="data-table"><thead><tr><th style="text-align:left">Nome</th><th style="text-align:left">Cargo</th><th style="text-align:left">Cidade</th><th>Admin</th><th>Pode abrir caso VD</th></tr></thead><tbody>`;
     aprovados.forEach(p => {
-      html += `<tr><td style="text-align:left">${p.nome}</td><td style="text-align:left">${p.cargo}</td><td style="text-align:left">${p.cidade}</td><td>${p.is_admin ? '✓' : '—'}</td></tr>`;
+      const podeBtn = p.is_admin ? '✓ (admin)' : `<button class="ppvd-btn" onclick="ppvdTogglePodeAbrir('${p.user_id}', ${!p.pode_abrir_caso})">${p.pode_abrir_caso ? '✓ Autorizado (clique p/ revogar)' : 'Autorizar'}</button>`;
+      html += `<tr><td style="text-align:left">${p.nome}</td><td style="text-align:left">${p.cargo}</td><td style="text-align:left">${p.cidade}</td><td>${p.is_admin ? '✓' : '—'}</td><td>${podeBtn}</td></tr>`;
     });
     html += `</tbody></table>`;
   }
   document.getElementById('main').innerHTML = html;
+}
+
+async function ppvdTogglePodeAbrir(userId, novoValor) {
+  const { error } = await ppvdSupa.from('perfis').update({ pode_abrir_caso: novoValor }).eq('user_id', userId);
+  if (error) { alert('Erro: ' + error.message); return; }
+  ppvdOpenAprovacoes();
+}
+
+async function ppvdOpenMilitares() {
+  if (!ppvdPerfil || !ppvdPerfil.is_admin) return;
+  const { data: militares, error } = await ppvdSupa.from('militares_responsaveis').select('*').order('municipio');
+  let html = `<div class="page-title">Militares Responsáveis (PPVD)</div>`;
+  html += `<button class="ppvd-btn" onclick="goToPage('violencia_domestica')">← Voltar</button>`;
+  html += `<div class="def-box">Cadastro das policiais femininas que atuam na rua e ficam responsáveis por ocorrências de Violência Doméstica. O nome cadastrado aqui aparece pré-preenchido na hora de despachar — o comandante do destacamento/pelotão sempre pode trocar por outro nome/WhatsApp no momento do despacho.</div>`;
+  html += `<div class="ppvd-card"><b>Cadastrar nova</b><br><br>`;
+  html += `<div class="ppvd-field"><label>Nome</label><input id="milNome"></div>`;
+  html += `<div class="ppvd-field"><label>WhatsApp (com DDD, só números)</label><input id="milWhats" placeholder="Ex: 33999999999"></div>`;
+  html += `<div class="ppvd-field"><label>Município</label><input id="milMunicipio"></div>`;
+  html += `<div class="ppvd-field"><label>Destacamento</label><input id="milDestacamento"></div>`;
+  html += `<div class="ppvd-field"><label>Pelotão</label><input id="milPelotao"></div>`;
+  html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSalvarMilitar()">Cadastrar</button>`;
+  html += `</div>`;
+  if (error) html += `<div class="def-box">Erro: ${error.message}</div>`;
+  if (!militares || militares.length === 0) {
+    html += `<div class="pending-box">Nenhuma militar cadastrada ainda.</div>`;
+  } else {
+    html += `<table class="data-table"><thead><tr><th style="text-align:left">Nome</th><th style="text-align:left">WhatsApp</th><th style="text-align:left">Município</th><th style="text-align:left">Destacamento</th><th style="text-align:left">Pelotão</th><th>Ativa</th><th></th></tr></thead><tbody>`;
+    militares.forEach(m => {
+      html += `<tr><td style="text-align:left">${m.nome}</td><td style="text-align:left">${m.whatsapp}</td><td style="text-align:left">${m.municipio || '—'}</td><td style="text-align:left">${m.destacamento || '—'}</td><td style="text-align:left">${m.pelotao || '—'}</td><td>${m.ativo ? '✓' : '—'}</td><td><button class="ppvd-btn" onclick="ppvdToggleMilitar('${m.id}', ${!m.ativo})">${m.ativo ? 'Desativar' : 'Ativar'}</button></td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  document.getElementById('main').innerHTML = html;
+}
+
+async function ppvdSalvarMilitar() {
+  const nome = document.getElementById('milNome').value.trim();
+  const whatsapp = document.getElementById('milWhats').value.trim().replace(/\D/g, '');
+  if (!nome || !whatsapp) { alert('Preencha nome e WhatsApp.'); return; }
+  const obj = {
+    nome, whatsapp,
+    municipio: document.getElementById('milMunicipio').value.trim() || null,
+    destacamento: document.getElementById('milDestacamento').value.trim() || null,
+    pelotao: document.getElementById('milPelotao').value.trim() || null,
+  };
+  const { error } = await ppvdSupa.from('militares_responsaveis').insert(obj);
+  if (error) { alert('Erro: ' + error.message); return; }
+  ppvdMilitaresCache = null;
+  await ppvdCarregarMilitares();
+  ppvdOpenMilitares();
+}
+
+async function ppvdToggleMilitar(id, novoValor) {
+  const { error } = await ppvdSupa.from('militares_responsaveis').update({ ativo: novoValor }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  ppvdMilitaresCache = null;
+  await ppvdCarregarMilitares();
+  ppvdOpenMilitares();
+}
+
+function ppvdCheckVisitaPublica() {
+  const m = (location.hash || '').match(/^#visita=([0-9a-fA-F-]{36})/);
+  if (m) ppvdRenderVisitaPublica(m[1]);
+}
+
+async function ppvdRenderVisitaPublica(token) {
+  document.getElementById('main').innerHTML = `<div class="page-title">Carregando…</div>`;
+  const { data, error } = await ppvdSupa.rpc('ppvd_consultar_visita', { p_token: token });
+  const info = data && data[0];
+  if (error || !info) { document.getElementById('main').innerHTML = `<div class="def-box">Link inválido ou expirado. Fale com quem despachou a visita.</div>`; return; }
+  if (info.ja_respondida) { document.getElementById('main').innerHTML = `<div class="def-box">Essa visita já foi registrada. Obrigado.</div>`; return; }
+
+  let html = `<div class="page-title">Registro de Visita — PPVD</div>`;
+  html += `<div class="ppvd-card">`;
+  html += `<b>REDS:</b> ${info.reds_numero || '—'} &nbsp; <b>Data do fato:</b> ${info.reds_data || '—'} &nbsp; <b>Natureza:</b> ${info.natureza || '—'}<br>`;
+  html += `<b>Município/Bairro:</b> ${info.municipio || ''} — ${info.bairro || ''}<br>`;
+  html += `<b>Militar responsável:</b> ${info.militar_responsavel || '—'}`;
+  html += `</div>`;
+
+  html += `<div class="ppvd-card"><b>Visitas realizadas</b><br><br>`;
+  html += `<div class="ppvd-field"><label>Visita ao autor realizada?</label><select id="pvAutorFeita"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
+  html += `<div class="ppvd-field"><label>Visita à vítima realizada?</label><select id="pvVitimaFeita"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
+  html += `<div class="ppvd-field"><label>Vítima presente?</label><select id="pvVitPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
+  html += `<div class="ppvd-field"><label>Autor presente?</label><select id="pvAutPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
+  html += `<div class="ppvd-field"><label>Situação encontrada</label><textarea id="pvSituacao"></textarea></div>`;
+  html += `</div>`;
+
+  html += `<div class="ppvd-card"><b>Anexar BOS (PDF ou foto)</b><br><br>`;
+  html += `<div class="ppvd-field"><label>BOS — visita ao autor</label><input type="file" id="pvBosAutor" accept=".pdf,image/*"></div>`;
+  html += `<div class="ppvd-field"><label>BOS — visita à vítima</label><input type="file" id="pvBosVitima" accept=".pdf,image/*"></div>`;
+  html += `</div>`;
+
+  html += `<div class="ppvd-card"><b>Nova classificação GUT</b><br><br>`;
+  html += `<div class="ppvd-field"><label>Gravidade</label>${ppvdSelectGUT('pvG', 'gravidade', '')}</div>`;
+  html += `<div class="ppvd-field"><label>Urgência</label>${ppvdSelectGUT('pvU', 'urgencia', '')}</div>`;
+  html += `<div class="ppvd-field"><label>Tendência</label>${ppvdSelectGUT('pvT', 'tendencia', '')}</div>`;
+  html += `<div class="ppvd-field"><label>Observações</label><textarea id="pvObs"></textarea></div>`;
+  html += `<button class="ppvd-btn ppvd-btn-primary" id="pvSubmitBtn" onclick="ppvdSubmeterVisitaPublica('${token}')">Enviar</button>`;
+  html += `</div>`;
+
+  document.getElementById('main').innerHTML = html;
+}
+
+async function ppvdUploadBos(token, inputId, tipo) {
+  const inp = document.getElementById(inputId);
+  if (!inp || !inp.files || !inp.files[0]) return null;
+  const file = inp.files[0];
+  const path = `${token}/${tipo}_${Date.now()}_${file.name}`;
+  const { error } = await ppvdSupa.storage.from('ppvd-bos-visita').upload(path, file);
+  if (error) { alert(`Erro ao enviar BOS (${tipo}): ` + error.message); return null; }
+  return path;
+}
+
+async function ppvdSubmeterVisitaPublica(token) {
+  const btn = document.getElementById('pvSubmitBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  const bosAutorPath = await ppvdUploadBos(token, 'pvBosAutor', 'autor');
+  const bosVitimaPath = await ppvdUploadBos(token, 'pvBosVitima', 'vitima');
+  const payload = {
+    p_token: token,
+    p_visita_autor: document.getElementById('pvAutorFeita').value === 'true',
+    p_visita_vitima: document.getElementById('pvVitimaFeita').value === 'true',
+    p_situacao: document.getElementById('pvSituacao').value || null,
+    p_vitima_presente: document.getElementById('pvVitPresente').value === 'true',
+    p_autor_presente: document.getElementById('pvAutPresente').value === 'true',
+    p_gut_g: parseInt(document.getElementById('pvG').value) || null,
+    p_gut_u: parseInt(document.getElementById('pvU').value) || null,
+    p_gut_t: parseInt(document.getElementById('pvT').value) || null,
+    p_bos_autor_url: bosAutorPath,
+    p_bos_vitima_url: bosVitimaPath,
+    p_observacoes: document.getElementById('pvObs').value || null,
+  };
+  const { error } = await ppvdSupa.rpc('ppvd_submeter_visita', payload);
+  if (error) { alert('Erro ao enviar: ' + error.message); btn.disabled = false; btn.textContent = 'Enviar'; return; }
+  document.getElementById('main').innerHTML = `<div class="page-title">Visita registrada ✓</div><div class="def-box">Obrigado. O comandante já pode ver o resultado e decidir os próximos passos.</div>`;
 }
 
 async function ppvdAprovar(userId) {
