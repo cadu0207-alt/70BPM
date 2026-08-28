@@ -311,7 +311,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 28/08/2026 16:41</span>
+      <span>Gerado em 28/08/2026 16:47</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -3074,6 +3074,7 @@ async function ppvdRenderCaso(caso) {
   const ehVD = (caso.modalidade || 'violencia_domestica') === 'violencia_domestica';
   const orient = ppvdOrientacao(caso.gravidade, caso.urgencia, caso.tendencia);
   const orientFinal = ppvdOrientacao(caso.gut_final_gravidade, caso.gut_final_urgencia, caso.gut_final_tendencia);
+  const podeGerenciar = ehVD && ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_abrir_caso);
 
   let html = `<div class="page-title">Caso PPVD — ${caso.municipio || ''}</div>`;
   html += `<button class="ppvd-btn" onclick="goToPage('${ppvdModalidadeVoltarPage(caso.modalidade)}')">← Voltar</button>`;
@@ -3088,6 +3089,9 @@ async function ppvdRenderCaso(caso) {
     html += `<b>Status:</b> <select id="ppvdStatusSel">${['novo', 'em_acompanhamento', 'recusa', 'encerrado'].map(s => `<option value="${s}" ${s === caso.status ? 'selected' : ''}>${s}</option>`).join('')}</select> `;
   }
   html += `<button class="ppvd-btn" onclick="ppvdSalvarStatus('${caso.id}')">Salvar status</button>`;
+  if (podeGerenciar) {
+    html += ` <button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdReiniciarCaso('${caso.id}')">⟲ Reiniciar Caso</button>`;
+  }
   html += `</div>`;
 
   html += `<div class="kpi-grid">`;
@@ -3160,19 +3164,97 @@ async function ppvdRenderCaso(caso) {
   if (!visitas || visitas.length === 0) {
     html += `<div class="pending-box">Nenhuma visita registrada ainda.</div>`;
   } else {
-    html += `<table class="data-table"><thead><tr><th style="text-align:left">Despachada em</th><th style="text-align:left">Militar</th><th style="text-align:left">Visita realizada em</th><th style="text-align:left">Situação</th><th>Reclassificação GUT</th><th>BOS</th></tr></thead><tbody>`;
+    html += `<table class="data-table"><thead><tr><th style="text-align:left">Despachada em</th><th style="text-align:left">Militar</th><th style="text-align:left">Visita realizada em</th><th style="text-align:left">Situação</th><th>Reclassificação GUT</th><th>BOS</th>${podeGerenciar ? '<th>Ações</th>' : ''}</tr></thead><tbody>`;
     visitas.forEach(v => {
       const reclass = (v.nova_gravidade && v.nova_urgencia && v.nova_tendencia) ? `${v.nova_gravidade}×${v.nova_urgencia}×${v.nova_tendencia}=${v.nova_gravidade * v.nova_urgencia * v.nova_tendencia}` : '—';
       const bosLinks = [
         v.bos_autor_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${v.bos_autor_url}')">Autor</button>` : '',
         v.bos_vitima_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${v.bos_vitima_url}')">Vítima</button>` : '',
       ].filter(Boolean).join(' ') || '—';
-      html += `<tr><td style="text-align:left">${ppvdFmtDT(v.despachado_em)}</td><td style="text-align:left">${v.guarnicao || '—'}</td><td style="text-align:left">${ppvdFmtDT(v.visita_realizada_em)}</td><td style="text-align:left">${v.situacao_encontrada || '—'}</td><td>${reclass}</td><td>${bosLinks}</td></tr>`;
+      let acoes = '';
+      if (podeGerenciar) {
+        acoes = `<button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdApagarVisita('${v.id}','${caso.id}')">🗑 Apagar</button>`;
+        if (v.visita_realizada_em) {
+          acoes += ` <button class="ppvd-btn" onclick="ppvdSolicitarNovoPreenchimento('${v.id}','${caso.id}')">↺ Solicitar novo preenchimento</button>`;
+        }
+      }
+      html += `<tr><td style="text-align:left">${ppvdFmtDT(v.despachado_em)}</td><td style="text-align:left">${v.guarnicao || '—'}</td><td style="text-align:left">${ppvdFmtDT(v.visita_realizada_em)}</td><td style="text-align:left">${v.situacao_encontrada || '—'}</td><td>${reclass}</td><td>${bosLinks}</td>${podeGerenciar ? `<td>${acoes}</td>` : ''}</tr>`;
     });
     html += `</tbody></table>`;
   }
 
   document.getElementById('main').innerHTML = html;
+}
+
+async function ppvdRecalcularStatusCaso(casoId) {
+  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
+  if (!caso || caso.status === 'estabilizada') { if (caso) await ppvdRenderCaso(caso); return; }
+  const { data: visitas } = await ppvdSupa.from('ppvd_visitas').select('*').eq('caso_id', casoId).order('despachado_em', { ascending: false });
+  let novoStatus;
+  if (!visitas || visitas.length === 0) {
+    novoStatus = 'aberto';
+  } else {
+    const pendente = visitas.find(v => !v.visita_realizada_em);
+    novoStatus = pendente ? 'em_visita' : 'decisao_cmd';
+  }
+  const { data: casoAtualizado, error } = await ppvdSupa.from('ppvd_casos').update({ status: novoStatus }).eq('id', casoId).select().single();
+  if (error) { alert('Erro: ' + error.message); return; }
+  await ppvdRenderCaso(casoAtualizado);
+}
+
+async function ppvdApagarVisita(visitaId, casoId) {
+  if (!confirm('Apagar este registro de visita? Essa ação não pode ser desfeita.')) return;
+  const { error } = await ppvdSupa.from('ppvd_visitas').delete().eq('id', visitaId);
+  if (error) { alert('Erro: ' + error.message); return; }
+  await ppvdRecalcularStatusCaso(casoId);
+}
+
+async function ppvdSolicitarNovoPreenchimento(visitaId, casoId) {
+  if (!confirm('Solicitar que o(a) militar preencha essa visita novamente? Os dados já enviados (situação, GUT, BOS) serão apagados e o link continuará valendo para um novo preenchimento.')) return;
+  const upd = {
+    visita_realizada_em: null,
+    situacao_encontrada: null,
+    vitima_presente: null,
+    autor_presente: null,
+    nova_gravidade: null,
+    nova_urgencia: null,
+    nova_tendencia: null,
+    bos_autor_url: null,
+    bos_vitima_url: null,
+    observacoes: null,
+  };
+  const { error } = await ppvdSupa.from('ppvd_visitas').update(upd).eq('id', visitaId);
+  if (error) { alert('Erro: ' + error.message); return; }
+  const { error: err2 } = await ppvdSupa.from('ppvd_casos').update({ status: 'em_visita' }).eq('id', casoId);
+  if (err2) { alert('Erro: ' + err2.message); return; }
+  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
+  await ppvdRenderCaso(caso);
+}
+
+async function ppvdReiniciarCaso(casoId) {
+  if (!confirm('Reiniciar este caso? TODAS as visitas registradas serão apagadas e o caso volta ao status inicial (aberto), mantendo REDS, endereço, identificação e FONAR. Essa ação não pode ser desfeita.')) return;
+  if (!confirm('Tem certeza? Essa é uma ação destrutiva e definitiva.')) return;
+  const { error: errDel } = await ppvdSupa.from('ppvd_visitas').delete().eq('caso_id', casoId);
+  if (errDel) { alert('Erro ao apagar visitas: ' + errDel.message); return; }
+  const upd = {
+    status: 'aberto',
+    gravidade: null,
+    urgencia: null,
+    tendencia: null,
+    gut_final_gravidade: null,
+    gut_final_urgencia: null,
+    gut_final_tendencia: null,
+    qtd_retornos: 0,
+    visita_autor_feita: false,
+    visita_vitima_feita: false,
+    militar_responsavel: null,
+    militar_responsavel_whatsapp: null,
+    estabilizado_em: null,
+    estabilizado_por: null,
+  };
+  const { data: caso, error } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', casoId).select().single();
+  if (error) { alert('Erro: ' + error.message); return; }
+  await ppvdRenderCaso(caso);
 }
 
 async function ppvdSalvarStatus(casoId) {
