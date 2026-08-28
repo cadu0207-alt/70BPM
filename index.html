@@ -311,7 +311,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 28/08/2026 16:37</span>
+      <span>Gerado em 28/08/2026 16:39</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -2926,7 +2926,8 @@ function ppvdRenderAuthWidget() {
     el.innerHTML = `<span style="color:var(--muted)">${ppvdPerfil.nome} &middot; aguardando aprovação</span> <button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
   } else {
     el.innerHTML = `<span style="color:var(--text)">${ppvdPerfil.nome} (${ppvdPerfil.cargo})</span> ` +
-      (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> <button class="ppvd-btn" onclick="ppvdOpenMilitares()">Militares Responsáveis</button> ` : '') +
+      (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> ` : '') +
+      `<button class="ppvd-btn" onclick="ppvdOpenMilitares()">Militares Responsáveis</button> ` +
       `<button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
   }
 }
@@ -3300,22 +3301,27 @@ async function ppvdTogglePodeAbrir(userId, novoValor) {
 }
 
 async function ppvdOpenMilitares() {
-  if (!ppvdPerfil || !ppvdPerfil.is_admin) return;
-  const { data: militares, error } = await ppvdSupa.from('militares_responsaveis').select('*').order('municipio');
+  if (!ppvdPerfil || !ppvdPerfil.aprovado) return;
+  const souAdmin = !!ppvdPerfil.is_admin;
+  const minhaCidade = (ppvdPerfil.cidade || '').trim();
+  const { data: todos, error } = await ppvdSupa.from('militares_responsaveis').select('*').order('municipio');
+  const militares = souAdmin ? todos : (todos || []).filter(m => normMun(m.municipio) === normMun(minhaCidade));
   let html = `<div class="page-title">Militares Responsáveis (PPVD)</div>`;
   html += `<button class="ppvd-btn" onclick="goToPage('violencia_domestica')">← Voltar</button>`;
-  html += `<div class="def-box">Cadastro das policiais femininas que atuam na rua e ficam responsáveis por ocorrências de Violência Doméstica. O nome cadastrado aqui aparece pré-preenchido na hora de despachar — o comandante do destacamento/pelotão sempre pode trocar por outro nome/WhatsApp no momento do despacho.</div>`;
+  html += `<div class="def-box">Cadastro das policiais femininas que atuam na rua e ficam responsáveis por ocorrências de Violência Doméstica. O nome cadastrado aqui aparece pré-preenchido na hora de despachar — o comandante do destacamento/pelotão sempre pode trocar por outro nome/WhatsApp no momento do despacho. ${souAdmin ? 'Como admin, você vê e cadastra pra qualquer cidade.' : `Você cadastra e gerencia as militares da sua cidade (${minhaCidade || 'defina sua cidade no cadastro PPVD'}).`}</div>`;
   html += `<div class="ppvd-card"><b>Cadastrar nova</b><br><br>`;
   html += `<div class="ppvd-field"><label>Nome</label><input id="milNome"></div>`;
   html += `<div class="ppvd-field"><label>WhatsApp (com DDD, só números)</label><input id="milWhats" placeholder="Ex: 33999999999"></div>`;
-  html += `<div class="ppvd-field"><label>Município</label><input id="milMunicipio"></div>`;
+  html += souAdmin
+    ? `<div class="ppvd-field"><label>Município</label><input id="milMunicipio"></div>`
+    : `<div class="ppvd-field"><label>Município</label><input id="milMunicipio" value="${minhaCidade}" readonly></div>`;
   html += `<div class="ppvd-field"><label>Destacamento</label><input id="milDestacamento"></div>`;
   html += `<div class="ppvd-field"><label>Pelotão</label><input id="milPelotao"></div>`;
   html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSalvarMilitar()">Cadastrar</button>`;
   html += `</div>`;
   if (error) html += `<div class="def-box">Erro: ${error.message}</div>`;
   if (!militares || militares.length === 0) {
-    html += `<div class="pending-box">Nenhuma militar cadastrada ainda.</div>`;
+    html += `<div class="pending-box">Nenhuma militar cadastrada ainda${souAdmin ? '' : ' pra sua cidade'}.</div>`;
   } else {
     html += `<table class="data-table"><thead><tr><th style="text-align:left">Nome</th><th style="text-align:left">WhatsApp</th><th style="text-align:left">Município</th><th style="text-align:left">Destacamento</th><th style="text-align:left">Pelotão</th><th>Ativa</th><th></th></tr></thead><tbody>`;
     militares.forEach(m => {
