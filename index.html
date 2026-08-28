@@ -311,7 +311,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 28/08/2026 14:37</span>
+      <span>Gerado em 28/08/2026 16:37</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -3206,11 +3206,17 @@ async function ppvdSalvarDados(casoId) {
   await ppvdRenderCaso(caso);
 }
 
+function ppvdNormalizarWhatsApp(v) {
+  let d = (v || '').replace(/\D/g, '');
+  if (!d) return '';
+  if (d.length <= 11 && !d.startsWith('55')) d = '55' + d;
+  return d;
+}
 async function ppvdDespacharVD(casoId, isRetorno) {
   const nomeEl = document.getElementById('ppvdRespNome');
   const whatsEl = document.getElementById('ppvdRespWhats');
   const nome = nomeEl ? nomeEl.value.trim() : '';
-  const whats = whatsEl ? whatsEl.value.trim().replace(/\D/g, '') : '';
+  const whats = whatsEl ? ppvdNormalizarWhatsApp(whatsEl.value) : '';
   if (!nome || !whats) { alert('Preencha nome e WhatsApp do militar responsável.'); return; }
   const { data: visita, error } = await ppvdSupa.from('ppvd_visitas').insert({
     caso_id: casoId, despachado_por: ppvdPerfil.nome, despachado_em: new Date().toISOString(), guarnicao: nome
@@ -3322,7 +3328,7 @@ async function ppvdOpenMilitares() {
 
 async function ppvdSalvarMilitar() {
   const nome = document.getElementById('milNome').value.trim();
-  const whatsapp = document.getElementById('milWhats').value.trim().replace(/\D/g, '');
+  const whatsapp = ppvdNormalizarWhatsApp(document.getElementById('milWhats').value);
   if (!nome || !whatsapp) { alert('Preencha nome e WhatsApp.'); return; }
   const obj = {
     nome, whatsapp,
