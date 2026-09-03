@@ -448,8 +448,11 @@ function bannerAcompanhamentoDiario(itens) {
     const metaAjustada = metaMensalAjustada(it.meta || 0);
     const diff = higherIsBetter ? ((it.realizado || 0) - metaAjustada) : (metaAjustada - (it.realizado || 0));
     const cls = diff >= 0 ? 'neg' : 'pos'; // neg=verde(bom), pos=vermelho(ruim) — mesma convenção já usada no painel
-    const statusTxt = diff >= 0 ? 'em dia' : 'abaixo do esperado pro dia de hoje';
-    linhas += `<div>${it.label}: meta ajustada até ontem <b>${metaAjustada.toFixed(1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${cls}">${statusTxt}</span></div>`;
+    const statusTxt = higherIsBetter
+      ? (diff >= 0 ? 'em dia' : 'abaixo do esperado pro dia de hoje')
+      : (diff >= 0 ? 'dentro do teto esperado até hoje' : 'já passou do teto esperado pro dia de hoje');
+    const rotuloMeta = higherIsBetter ? 'meta ajustada até ontem' : 'teto ajustado até ontem';
+    linhas += `<div>${it.label}: ${rotuloMeta} <b>${metaAjustada.toFixed(1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${cls}">${statusTxt}</span></div>`;
   });
   return `<div class="def-box" style="border-color:var(--amber);margin-bottom:14px">
     <b>📅 Acompanhamento diário</b> — hoje é dia ${diaHoje} de ${diasNoMes} do mês corrente (proporção já fechada: ${diasDecorridos}/${diasNoMes} dias).
@@ -2702,11 +2705,11 @@ const pages = {
   violencia_domestica: renderViolenciaDomesticaPage,
   crimes_violentos: renderCrimesViolentosPage,
   reincidencia: renderReincidenciaPage,
-  imv: () => renderIndicatorPage('mv', 'MV — Mortes Violentas', 'mv_local', 'mv_faixa'),
-  cvpe: () => renderIndicatorPage('cvpe', 'CVPE — Crimes Violentos contra a Pessoa', 'cvpe_local', 'cvpe_faixa'),
-  cvpa: () => renderIndicatorPage('cvpa', 'CVPa — Crimes Violentos contra o Patrimônio', 'cvpa_local', 'cvpa_faixa'),
-  armas: () => renderIndicatorPage('armas', 'Armas de Fogo e Simulacros Apreendidos', null, null, true),
-  furto: () => renderIndicatorPage('furto', 'Furto em Zona Rural', 'furto_causa', 'furto_logradouro'),
+  imv: () => renderIndicatorPage('mv', 'MV — Mortes Violentas', 'mv_local', 'mv_faixa', false, true),
+  cvpe: () => renderIndicatorPage('cvpe', 'CVPE — Crimes Violentos contra a Pessoa', 'cvpe_local', 'cvpe_faixa', false, true),
+  cvpa: () => renderIndicatorPage('cvpa', 'CVPa — Crimes Violentos contra o Patrimônio', 'cvpa_local', 'cvpa_faixa', false, true),
+  armas: () => renderIndicatorPage('armas', 'Armas de Fogo e Simulacros Apreendidos', null, null, true, true),
+  furto: () => renderIndicatorPage('furto', 'Furto em Zona Rural', 'furto_causa', 'furto_logradouro', false, true),
   pog: renderPOGPage,
   ppag: renderPPAGPage,
   idob: renderIDOBPage,
