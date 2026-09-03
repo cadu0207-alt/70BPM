@@ -251,6 +251,10 @@
       <button class="nav-btn active" data-page="home">Home</button>
     </div>
     <div class="nav-group">
+      <div class="nav-group-label">Auditoria</div>
+      <button class="nav-btn" data-page="auditoria" title="Uso interno — exige login PPVD">Painel de Auditoria</button>
+    </div>
+    <div class="nav-group">
       <div class="nav-group-label">Análise Preditiva</div>
       <button class="nav-btn" data-page="analise_preditiva">Análise Preditiva de Crimes</button>
       <button class="nav-btn" data-page="violencia_domestica">Violência Doméstica</button>
@@ -418,6 +422,40 @@ function fmtPct(v) {
   const cls = v > 0 ? 'pos' : 'neg';
   const sign = v > 0 ? '+' : '';
   return `<span class="${cls}">${sign}${v.toFixed(1)}%</span>`;
+}
+
+// ---------- Acompanhamento diário de metas mensais (pedido de Eduardo em 2026-09-03) ----------
+// Metas de Operações são fixas por mês inteiro; sem isso, olhar o realizado no meio do mês
+// contra a meta cheia sempre parece "atrasado" até o último dia. Mostra quanto já deveria ter
+// sido feito até ontem, proporcional aos dias corridos do mês corrente (data real do navegador,
+// não depende de atualizar MES_ATUAL_IDX à mão).
+function diasCorridosAteOntem() {
+  const hoje = new Date();
+  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  const diasDecorridos = Math.max(0, hoje.getDate() - 1);
+  return { diasNoMes, diaHoje: hoje.getDate(), diasDecorridos };
+}
+function metaMensalAjustada(metaMesCheia) {
+  const { diasNoMes, diasDecorridos } = diasCorridosAteOntem();
+  return diasNoMes ? (metaMesCheia * diasDecorridos / diasNoMes) : 0;
+}
+function bannerAcompanhamentoDiario(itens) {
+  // itens: [{ label, meta, realizado, higherIsBetter=true }]
+  const { diaHoje, diasNoMes, diasDecorridos } = diasCorridosAteOntem();
+  let linhas = '';
+  itens.forEach(it => {
+    const higherIsBetter = it.higherIsBetter !== false;
+    const metaAjustada = metaMensalAjustada(it.meta || 0);
+    const diff = higherIsBetter ? ((it.realizado || 0) - metaAjustada) : (metaAjustada - (it.realizado || 0));
+    const cls = diff >= 0 ? 'neg' : 'pos'; // neg=verde(bom), pos=vermelho(ruim) — mesma convenção já usada no painel
+    const statusTxt = diff >= 0 ? 'em dia' : 'abaixo do esperado pro dia de hoje';
+    linhas += `<div>${it.label}: meta ajustada até ontem <b>${metaAjustada.toFixed(1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${cls}">${statusTxt}</span></div>`;
+  });
+  return `<div class="def-box" style="border-color:var(--amber);margin-bottom:14px">
+    <b>📅 Acompanhamento diário</b> — hoje é dia ${diaHoje} de ${diasNoMes} do mês corrente (proporção já fechada: ${diasDecorridos}/${diasNoMes} dias).
+    ${linhas}
+    <span style="color:var(--muted);font-size:11px">Vale só pro mês em andamento — meses fechados no seletor abaixo continuam comparando com a meta cheia normalmente.</span>
+  </div>`;
 }
 
 function kpiCard(label, val, isGoodWhenNegative=true) {
@@ -793,7 +831,7 @@ function drawBarChart(canvasId, labels, values, color) {
   });
 }
 
-function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=false) {
+function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=false, showDailyBanner=false) {
   const d = DATA[key];
   const mesesLocais = d.meses || MESES.slice(0, d.total_mes.length);
   let monthIdx = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1); // mês mais recente disponível pra esse indicador, capado no mês atual real
@@ -843,6 +881,9 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   html += freshBadge(mesesLocais[monthIdx]);
   html += sigopButton(key);
   if (DEFS[key]) html += `<div class="def-box">${DEFS[key]}</div>`;
+  if (showDailyBanner) {
+    html += bannerAcompanhamentoDiario([{ label: title, meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], higherIsBetter }]);
+  }
   html += `<select class="month-select" id="monthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===monthIdx?'selected':''}>${m}</option>`);
   html += `</select>`;
@@ -916,6 +957,7 @@ function renderPOGPage() {
   let html = `<div class="page-title">Operações de POG por frações em ${mesesLocais[mi]} de 2026</div>`;
   html += sigopButton('pog');
   html += `<div class="def-box">${DEFS.pog}</div>`;
+  html += bannerAcompanhamentoDiario([{ label: 'POG (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX] }]);
   html += `<select class="month-select" id="pogMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
   html += `</select>`;
@@ -1000,6 +1042,11 @@ function renderPPAGPage() {
   let html = `<div class="page-title">Policiamento de proximidade | Dados de ${mesesLocais[mi]}</div>`;
   html += sigopButton('ppag');
   html += `<div class="def-box">${DEFS.ppag}</div>`;
+  html += bannerAcompanhamentoDiario(subs.map(s => ({
+    label: 'PPAG ' + s.label,
+    meta: DATA.ppag[s.key].total_meta_mes[MES_ATUAL_IDX],
+    realizado: DATA.ppag[s.key].total_mes[MES_ATUAL_IDX],
+  })));
   html += `<select class="month-select" id="ppagMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
   html += `</select>`;
@@ -1143,6 +1190,7 @@ function renderIDOBPage() {
     let miBm = Math.min(MES_ATUAL_IDX, bmMesesLocais.length - 1);
     html += `<div class="page-title" style="margin-top:28px;font-size:1.1em">Meta de Operações Boemia do Batalhão</div>`;
     html += `<div class="def-box">Métrica DIFERENTE do IDOB acima (que mede qualidade/vítimas em %). Aqui é contagem simples de operações Boemia realizadas × meta fixa por tipo de fração, mesma régua já usada em Cavalo de Aço/Visibilidade: <b>1 operação/mês por Destacamento, 2/mês por sede de Pelotão, 3/mês por sede de Companhia</b> (recorrente todo mês, não meta anual). Meta total do 70º BPM: 23 operações/mês. Fonte do "Realizado": mesmo dado de Qtde de Operações Boemia usado no IDOB (export da pasta entrada/IDOB/, filtro NOME_OPERACAO contém "BOEMIA").</div>`;
+    html += bannerAcompanhamentoDiario([{ label: 'Operações Boemia (Batalhão)', meta: bm.total_meta_mes[MES_ATUAL_IDX], realizado: bm.total_mes[MES_ATUAL_IDX] }]);
     html += `<select class="month-select" id="boemiaMetaMonthSel">`;
     bmMesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===miBm?'selected':''}>${m}</option>`);
     html += `</select>`;
@@ -1310,6 +1358,7 @@ function renderCavaloAcoPage() {
 
   let html = `<div class="page-title">Operação Cavalo de Aço em ${mesesLocais[mi]} de 2026</div>`;
   html += `<div class="def-box">${DEFS.cavaloaco}</div>`;
+  html += bannerAcompanhamentoDiario([{ label: 'Cavalo de Aço (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX] }]);
   html += `<select class="month-select" id="cavaloacoMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
   html += `</select>`;
@@ -1375,6 +1424,7 @@ function renderRolezinhoPage() {
 
   let html = `<div class="page-title">Operação Rolezinho em ${mesesLocais[mi]} de 2026</div>`;
   html += `<div class="def-box">${DEFS.rolezinho}</div>`;
+  html += bannerAcompanhamentoDiario([{ label: 'Rolezinho (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX] }]);
   html += `<select class="month-select" id="rolezinhoMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
   html += `</select>`;
@@ -2421,6 +2471,147 @@ function renderChecklistPage() {
   });
 }
 
+// ============ Painel de Auditoria (pedido de Eduardo em 2026-09-03) ============
+// Reúne, por município, o que está "em vermelho" a partir de Setembro/2026:
+// - Violência Doméstica: casos com mais de 72h desde o fato e ainda não estabilizados
+//   (sem visita registrada = "nenhuma informação/BO carregado"; status != estabilizada =
+//   "sem solução final"). Reaproveita o mesmo semáforo (ppvdSemaforoVD) já usado na página
+//   de Violência Doméstica, só que aqui somando o critério de prazo de 72h.
+// - MV/CVPE/CVPa: contagem do mês corrente por município. Endereço por ocorrência ainda não
+//   existe nesse nível de detalhe pra esses três indicadores (só existe agregado do batalhão
+//   inteiro por tipo de local) — ver aviso na própria página.
+function auditoriaHorasDesde(dataBr) {
+  const iso = ppvdToIso(dataBr);
+  if (!iso) return null;
+  const dt = new Date(iso + 'T00:00:00');
+  if (isNaN(dt.getTime())) return null;
+  return (Date.now() - dt.getTime()) / 3600000;
+}
+
+function auditoriaTopicoCriminal(label, qtd, nomeMunicipio, mesNome) {
+  const badge = qtd > 0 ? `<span class="ppvd-badge ppvd-badge-critica">${qtd}</span>` : `<span class="ppvd-badge ppvd-badge-verde">0</span>`;
+  let h = `<details style="margin-top:10px;border-top:1px solid var(--panel-border);padding-top:6px" ${qtd > 0 ? 'open' : ''}>
+    <summary style="cursor:pointer;padding:4px 0;font-weight:600">${label} ${badge}</summary>`;
+  if (qtd > 0) {
+    h += `<div class="def-box" style="border-color:var(--alert)">${qtd} ocorrência(s) de ${label} em ${nomeMunicipio} em ${mesNome}/2026. Endereço por ocorrência ainda não disponível nesta auditoria (ver aviso no topo da página) — consulte a página do indicador ${label} ou o SiGOp pra detalhar.</div>`;
+  } else {
+    h += `<div class="def-box">Nenhuma ocorrência de ${label} em ${nomeMunicipio} em ${mesNome}/2026.</div>`;
+  }
+  h += `</details>`;
+  return h;
+}
+
+async function renderAuditoriaPage() {
+  let html = `<div class="page-title">Painel de Auditoria</div>`;
+  html += `<div class="def-box"><b>Uso interno — exige login PPVD aprovado</b><br>
+    Reúne, cidade por cidade, o que está "em vermelho" a partir de Setembro/2026: casos de Violência Doméstica fora do prazo de 72h e sem solução final, e ocorrências de MV/CVPE/CVPa do mês corrente. Clique em cada tópico pra abrir os detalhes.</div>`;
+
+  if (!ppvdSupa) {
+    html += `<div class="def-box" style="border-color:var(--alert)">Auditoria de Violência Doméstica exige conexão com o Supabase (PPVD), indisponível neste carregamento.</div>`;
+    document.getElementById('main').innerHTML = html;
+    return;
+  }
+  if (!ppvdUser) {
+    html += `<div class="def-box" style="border-color:var(--alert)">Entre com sua conta PPVD (botão "Entrar (PPVD)" no topo da página) pra ver o painel de auditoria.</div>`;
+    document.getElementById('main').innerHTML = html;
+    return;
+  }
+  if (!ppvdPerfil) {
+    html += `<div class="def-box" style="border-color:var(--amber)">Complete seu cadastro PPVD (formulário no topo) pra liberar o acesso à auditoria.</div>`;
+    document.getElementById('main').innerHTML = html;
+    return;
+  }
+  if (!ppvdPerfil.aprovado) {
+    html += `<div class="def-box" style="border-color:var(--amber)">Seu cadastro PPVD ainda não foi aprovado pelo administrador. Assim que for aprovado, a auditoria fica disponível.</div>`;
+    document.getElementById('main').innerHTML = html;
+    return;
+  }
+
+  const MES_LIMITE = 9; // a partir de Setembro/2026
+  const idxAtual = Math.min(MES_ATUAL_IDX, DATA.mv.meses.length - 1);
+  const mesNomeAtual = DATA.mv.meses[idxAtual];
+
+  html += `<div id="auditoriaBody"></div>`;
+  document.getElementById('main').innerHTML = html;
+  const body = document.getElementById('auditoriaBody');
+  body.innerHTML = `<div class="def-box">Carregando casos de Violência Doméstica…</div>`;
+
+  function acharMunicipio(dataIndicador, nomeCanonico) {
+    const alvo = normMun(nomeCanonico);
+    return (dataIndicador.municipios || []).find(m => normMun(m.nome) === alvo) || null;
+  }
+
+  const vdData = DATA.violencia_domestica;
+  const ocorrenciasPorMunicipio = {};
+  MUNICIPIOS_CANONICAL.forEach(nome => {
+    const chaveDados = Object.keys(vdData.ocorrencias).find(k => normMun(k) === normMun(nome));
+    const lista = chaveDados ? vdData.ocorrencias[chaveDados] : [];
+    ocorrenciasPorMunicipio[nome] = lista.filter(o => o.m >= MES_LIMITE);
+  });
+  const todosReds = Object.values(ocorrenciasPorMunicipio).flat().map(o => o.r).filter(Boolean);
+  const casosMap = await ppvdBuscarCasosVD(todosReds);
+
+  let htmlCidades = '';
+  MUNICIPIOS_CANONICAL.forEach(nome => {
+    const lista = ocorrenciasPorMunicipio[nome];
+    const flagged = lista.map(o => {
+      const caso = o.r ? (casosMap[o.r] || null) : null;
+      const sem = ppvdSemaforoVD(caso);
+      const horas = auditoriaHorasDesde(o.d);
+      const atrasado = horas !== null && horas > 72;
+      return { o, caso, sem, horas, atrasado };
+    }).filter(x => x.sem !== 'verde' && x.atrasado);
+
+    const mMv = acharMunicipio(DATA.mv, nome);
+    const mCvpe = acharMunicipio(DATA.cvpe, nome);
+    const mCvpa = acharMunicipio(DATA.cvpa, nome);
+    const qtdMv = mMv ? (mMv.realizado_mes[Math.min(idxAtual, mMv.realizado_mes.length - 1)] || 0) : 0;
+    const qtdCvpe = mCvpe ? (mCvpe.realizado_mes[Math.min(idxAtual, mCvpe.realizado_mes.length - 1)] || 0) : 0;
+    const qtdCvpa = mCvpa ? (mCvpa.realizado_mes[Math.min(idxAtual, mCvpa.realizado_mes.length - 1)] || 0) : 0;
+
+    const totalVermelho = flagged.length + qtdMv + qtdCvpe + qtdCvpa;
+    const badgeGeral = totalVermelho > 0
+      ? `<span class="ppvd-badge ppvd-badge-critica">${totalVermelho} em vermelho</span>`
+      : `<span class="ppvd-badge ppvd-badge-verde">0 em vermelho</span>`;
+
+    htmlCidades += `<div class="chart-box" style="margin-bottom:14px;min-width:0">
+      <h3 style="display:flex;justify-content:space-between;align-items:center;gap:10px">${nome} ${badgeGeral}</h3>`;
+
+    htmlCidades += `<details style="padding-top:2px" ${flagged.length ? 'open' : ''}>
+      <summary style="cursor:pointer;padding:4px 0;font-weight:600">Violência Doméstica ${flagged.length ? `<span class="ppvd-badge ppvd-badge-critica">${flagged.length}</span>` : '<span class="ppvd-badge ppvd-badge-verde">0</span>'}</summary>`;
+    if (flagged.length === 0) {
+      htmlCidades += `<div class="def-box">Nenhum caso de VD fora do prazo de 72h/sem solução em ${nome} desde Setembro/2026.</div>`;
+    } else {
+      htmlCidades += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data do Fato</th><th>Em Aberto</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Responsável</th><th>Status</th><th style="text-align:left">Problema</th></tr></thead><tbody>`;
+      flagged.sort((a, b) => b.horas - a.horas).forEach(({ o, caso, horas }) => {
+        const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
+        const resp = caso ? (caso.militar_responsavel || '—') : '—';
+        const statusTxt = ppvdStatusLabelVD(caso ? caso.status : null);
+        const problema = !caso
+          ? 'Nenhuma informação/BO carregado — caso nem foi aberto'
+          : (!caso.status || caso.status === 'aberto' ? 'Sem visita registrada até agora' : 'Sem solução final (não estabilizado)');
+        const diasTxt = horas >= 24 ? `${(horas / 24).toFixed(1)}d` : `${horas.toFixed(0)}h`;
+        htmlCidades += `<tr class="vd-row-vermelho"><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td>${diasTxt}</td><td style="text-align:left">${end}</td><td style="text-align:left">${resp}</td><td>${statusTxt}</td><td style="text-align:left">${problema}</td></tr>`;
+      });
+      htmlCidades += `</tbody></table></div>`;
+    }
+    htmlCidades += `</details>`;
+
+    htmlCidades += auditoriaTopicoCriminal('MV (Mortes Violentas)', qtdMv, nome, mesNomeAtual);
+    htmlCidades += auditoriaTopicoCriminal('CVPE', qtdCvpe, nome, mesNomeAtual);
+    htmlCidades += auditoriaTopicoCriminal('CVPa', qtdCvpa, nome, mesNomeAtual);
+
+    htmlCidades += `</div>`;
+  });
+
+  const avisoMvCvpe = `<div class="def-box" style="border-color:var(--amber)">
+    <b>Sobre MV/CVPE/CVPa nesta auditoria</b><br>
+    Por enquanto só temos a contagem de ocorrências por município e mês (abaixo) — o endereço exato de cada ocorrência ainda não está estruturado por município no data.json (só existe um agregado do batalhão inteiro por tipo de local, sem separar por cidade). Assim que houver um export nesse nível de detalhe, esta seção passa a listar ocorrência por ocorrência, igual à de Violência Doméstica.
+  </div>`;
+
+  body.innerHTML = avisoMvCvpe + htmlCidades;
+}
+
 function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {
   let html = `<div class="chart-box" style="margin-top:20px;min-width:0"><h3>${titulo}</h3>`;
   html += `<div class="def-box"><b>${d.periodo}</b><br>${defHtml}</div>`;
@@ -2506,6 +2697,7 @@ function renderPending(name) {
 
 const pages = {
   home: renderHome,
+  auditoria: renderAuditoriaPage,
   analise_preditiva: renderAnalisePreditivaPage,
   violencia_domestica: renderViolenciaDomesticaPage,
   crimes_violentos: renderCrimesViolentosPage,
@@ -2530,8 +2722,8 @@ const pages = {
   vt: () => renderImportedRankingPage('vt', 'Visitas Tranquilizadoras (Furto)'),
   mrpp: () => renderImportedRankingPage('mrpp', 'Manutenção da Rede de Proteção Preventiva'),
   itvd: renderITVDPage,
-  padesc: () => renderIndicatorPage('padesc', 'Padrinhos da Escola', null, null, true),
-  saque_seguro: () => renderIndicatorPage('saque_seguro', 'Saque Seguro', null, null, true),
+  padesc: () => renderIndicatorPage('padesc', 'Padrinhos da Escola', null, null, true, true),
+  saque_seguro: () => renderIndicatorPage('saque_seguro', 'Saque Seguro', null, null, true, true),
   checklist: renderChecklistPage,
 };
 
@@ -2940,6 +3132,8 @@ async function ppvdOnSession(session) {
     ppvdRenderCadastroForm();
   } else if (currentPageKey === 'violencia_domestica' && pages.violencia_domestica) {
     pages.violencia_domestica();
+  } else if (currentPageKey === 'auditoria' && pages.auditoria) {
+    pages.auditoria();
   }
 }
 
