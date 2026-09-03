@@ -439,20 +439,27 @@ function metaMensalAjustada(metaMesCheia) {
   const { diasNoMes, diasDecorridos } = diasCorridosAteOntem();
   return diasNoMes ? (metaMesCheia * diasDecorridos / diasNoMes) : 0;
 }
+// Núcleo do cálculo (usado pelo banner das páginas de indicador E pela aba de Auditoria por
+// município, pra garantir que os dois lugares mostrem exatamente o mesmo número).
+function statusAcompanhamentoDiario(meta, realizado, higherIsBetter = true) {
+  const metaAjustada = metaMensalAjustada(meta || 0);
+  const diff = higherIsBetter ? ((realizado || 0) - metaAjustada) : (metaAjustada - (realizado || 0));
+  const atrasado = diff < 0;
+  const cls = atrasado ? 'pos' : 'neg'; // neg=verde(bom), pos=vermelho(ruim) — mesma convenção já usada no painel
+  const statusTxt = higherIsBetter
+    ? (atrasado ? 'abaixo do esperado pro dia de hoje' : 'em dia')
+    : (atrasado ? 'já passou do teto esperado pro dia de hoje' : 'dentro do teto esperado até hoje');
+  const rotuloMeta = higherIsBetter ? 'meta ajustada até ontem' : 'teto ajustado até ontem';
+  return { metaAjustada, diff, atrasado, cls, statusTxt, rotuloMeta };
+}
 function bannerAcompanhamentoDiario(itens) {
   // itens: [{ label, meta, realizado, higherIsBetter=true }]
   const { diaHoje, diasNoMes, diasDecorridos } = diasCorridosAteOntem();
   let linhas = '';
   itens.forEach(it => {
     const higherIsBetter = it.higherIsBetter !== false;
-    const metaAjustada = metaMensalAjustada(it.meta || 0);
-    const diff = higherIsBetter ? ((it.realizado || 0) - metaAjustada) : (metaAjustada - (it.realizado || 0));
-    const cls = diff >= 0 ? 'neg' : 'pos'; // neg=verde(bom), pos=vermelho(ruim) — mesma convenção já usada no painel
-    const statusTxt = higherIsBetter
-      ? (diff >= 0 ? 'em dia' : 'abaixo do esperado pro dia de hoje')
-      : (diff >= 0 ? 'dentro do teto esperado até hoje' : 'já passou do teto esperado pro dia de hoje');
-    const rotuloMeta = higherIsBetter ? 'meta ajustada até ontem' : 'teto ajustado até ontem';
-    linhas += `<div>${it.label}: ${rotuloMeta} <b>${metaAjustada.toFixed(1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${cls}">${statusTxt}</span></div>`;
+    const s = statusAcompanhamentoDiario(it.meta, it.realizado, higherIsBetter);
+    linhas += `<div>${it.label}: ${s.rotuloMeta} <b>${s.metaAjustada.toFixed(1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${s.cls}">${s.statusTxt}</span></div>`;
   });
   return `<div class="def-box" style="border-color:var(--amber);margin-bottom:14px">
     <b>📅 Acompanhamento diário</b> — hoje é dia ${diaHoje} de ${diasNoMes} do mês corrente (proporção já fechada: ${diasDecorridos}/${diasNoMes} dias).
@@ -2507,7 +2514,7 @@ function auditoriaTopicoCriminal(label, qtd, nomeMunicipio, mesNome) {
 async function renderAuditoriaPage() {
   let html = `<div class="page-title">Painel de Auditoria</div>`;
   html += `<div class="def-box"><b>Uso interno — exige login PPVD aprovado</b><br>
-    Reúne, cidade por cidade, o que está "em vermelho" a partir de Setembro/2026: casos de Violência Doméstica fora do prazo de 72h e sem solução final, e ocorrências de MV/CVPE/CVPa do mês corrente. Clique em cada tópico pra abrir os detalhes.</div>`;
+    Reúne, cidade por cidade, o que está "em vermelho" a partir de Setembro/2026: casos de Violência Doméstica fora do prazo de 72h e sem solução final, ocorrências de MV/CVPE/CVPa do mês corrente, e o ritmo diário das metas de Operações (meta/teto do mês ajustado aos dias já corridos). Clique em cada tópico pra abrir os detalhes.</div>`;
 
   if (!ppvdSupa) {
     html += `<div class="def-box" style="border-color:var(--alert)">Auditoria de Violência Doméstica exige conexão com o Supabase (PPVD), indisponível neste carregamento.</div>`;
@@ -2540,8 +2547,59 @@ async function renderAuditoriaPage() {
   body.innerHTML = `<div class="def-box">Carregando casos de Violência Doméstica…</div>`;
 
   function acharMunicipio(dataIndicador, nomeCanonico) {
+    if (!dataIndicador) return null;
     const alvo = normMun(nomeCanonico);
     return (dataIndicador.municipios || []).find(m => normMun(m.nome) === alvo) || null;
+  }
+
+  // Mesmos indicadores que já têm o banner "Acompanhamento diário" nas próprias páginas —
+  // aqui quebrado por município, pra pedido de Eduardo em 2026-09-03.
+  function coletarMetasDiarias(nome) {
+    const linhas = [];
+    const add = (dataObj, label, higherIsBetter) => {
+      const m = acharMunicipio(dataObj, nome);
+      if (!m || !Array.isArray(m.meta_mes) || !Array.isArray(m.realizado_mes)) return;
+      const i = Math.min(idxAtual, m.meta_mes.length - 1, m.realizado_mes.length - 1);
+      if (i < 0) return;
+      const meta = m.meta_mes[i], realizado = m.realizado_mes[i];
+      const s = statusAcompanhamentoDiario(meta, realizado, higherIsBetter);
+      linhas.push({ label, meta, realizado, ...s });
+    };
+    add(DATA.pog, 'POG', true);
+    if (DATA.ppag) {
+      add(DATA.ppag.y15001, 'PPAG Y15001 (Escolar)', true);
+      add(DATA.ppag.y07012, 'PPAG Y07012 (V. Doméstica)', true);
+      add(DATA.ppag.y07014, 'PPAG Y07014 (Rural)', true);
+    }
+    add(DATA.boemia_meta, 'Boemia (meta de operações)', true);
+    add(DATA.cavaloaco, 'Cavalo de Aço', true);
+    add(DATA.rolezinho, 'Rolezinho', true);
+    add(DATA.padesc, 'Padrinhos da Escola', true);
+    add(DATA.saque_seguro, 'Saque Seguro', true);
+    add(DATA.mv, 'MV (Mortes Violentas)', false);
+    add(DATA.cvpe, 'CVPE', false);
+    add(DATA.cvpa, 'CVPa', false);
+    add(DATA.furto, 'Furto Rural', false);
+    add(DATA.armas, 'Armas de Fogo', true);
+    return linhas;
+  }
+
+  function auditoriaTopicoMetas(nome) {
+    const metas = coletarMetasDiarias(nome);
+    const atrasadas = metas.filter(m => m.atrasado);
+    let h = `<details style="margin-top:10px;border-top:1px solid var(--panel-border);padding-top:6px" ${atrasadas.length ? 'open' : ''}>
+      <summary style="cursor:pointer;padding:4px 0;font-weight:600">Metas do Mês (dia a dia) ${atrasadas.length ? `<span class="ppvd-badge ppvd-badge-critica">${atrasadas.length}</span>` : '<span class="ppvd-badge ppvd-badge-verde">0</span>'}</summary>`;
+    if (metas.length === 0) {
+      h += `<div class="def-box">Sem indicadores de meta mensal cadastrados pra ${nome}.</div>`;
+    } else {
+      h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Indicador</th><th>Meta/Teto Mês</th><th>Ajustada até ontem</th><th>Realizado</th><th style="text-align:left">Status</th></tr></thead><tbody>`;
+      metas.slice().sort((a, b) => (b.atrasado ? 1 : 0) - (a.atrasado ? 1 : 0)).forEach(m => {
+        h += `<tr class="${m.atrasado ? 'vd-row-vermelho' : ''}"><td style="text-align:left">${m.label}</td><td>${m.meta}</td><td>${m.metaAjustada.toFixed(1)}</td><td>${m.realizado}</td><td style="text-align:left"><span class="${m.cls}">${m.statusTxt}</span></td></tr>`;
+      });
+      h += `</tbody></table></div>`;
+    }
+    h += `</details>`;
+    return h;
   }
 
   const vdData = DATA.violencia_domestica;
@@ -2572,7 +2630,8 @@ async function renderAuditoriaPage() {
     const qtdCvpe = mCvpe ? (mCvpe.realizado_mes[Math.min(idxAtual, mCvpe.realizado_mes.length - 1)] || 0) : 0;
     const qtdCvpa = mCvpa ? (mCvpa.realizado_mes[Math.min(idxAtual, mCvpa.realizado_mes.length - 1)] || 0) : 0;
 
-    const totalVermelho = flagged.length + qtdMv + qtdCvpe + qtdCvpa;
+    const metasAtrasadas = coletarMetasDiarias(nome).filter(m => m.atrasado).length;
+    const totalVermelho = flagged.length + qtdMv + qtdCvpe + qtdCvpa + metasAtrasadas;
     const badgeGeral = totalVermelho > 0
       ? `<span class="ppvd-badge ppvd-badge-critica">${totalVermelho} em vermelho</span>`
       : `<span class="ppvd-badge ppvd-badge-verde">0 em vermelho</span>`;
@@ -2603,6 +2662,7 @@ async function renderAuditoriaPage() {
     htmlCidades += auditoriaTopicoCriminal('MV (Mortes Violentas)', qtdMv, nome, mesNomeAtual);
     htmlCidades += auditoriaTopicoCriminal('CVPE', qtdCvpe, nome, mesNomeAtual);
     htmlCidades += auditoriaTopicoCriminal('CVPa', qtdCvpa, nome, mesNomeAtual);
+    htmlCidades += auditoriaTopicoMetas(nome);
 
     htmlCidades += `</div>`;
   });
