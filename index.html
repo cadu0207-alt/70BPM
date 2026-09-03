@@ -249,6 +249,9 @@
     <div class="nav-group">
       <div class="nav-group-label">Visão Geral</div>
       <button class="nav-btn active" data-page="home">Home</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Análise Preditiva</div>
       <button class="nav-btn" data-page="analise_preditiva">Análise Preditiva de Crimes</button>
       <button class="nav-btn" data-page="violencia_domestica">Violência Doméstica</button>
       <button class="nav-btn" data-page="crimes_violentos">Crimes Violentos</button>
@@ -256,43 +259,37 @@
     </div>
     <div class="nav-group">
       <div class="nav-group-label">Indicadores Criminais</div>
-      <button class="nav-btn" data-page="imv">IMV (Mortes Viol.)</button>
+      <button class="nav-btn" data-page="imv">MV (Mortes Violentas)</button>
       <button class="nav-btn" data-page="cvpe">CVPE</button>
       <button class="nav-btn" data-page="cvpa">CVPa</button>
-      <button class="nav-btn" data-page="furto">Furto Rural</button>
-      <button class="nav-btn" data-page="armas">Armas de Fogo</button>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Operações Especiais</div>
+      <div class="nav-group-label">Outros Indicadores</div>
+      <button class="nav-btn" data-page="furto">Furto Rural</button>
+      <button class="nav-btn" data-page="esforco_furto">Prisões de Furto</button>
+      <button class="nav-btn" data-page="armas">Apreensões de Arma de Fogo e Simulacros</button>
+      <button class="nav-btn" data-page="itvd">ITVD &middot; Tráfico</button>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Operações</div>
+      <button class="nav-btn" data-page="pog">POG</button>
+      <button class="nav-btn" data-page="ppag">PPAG</button>
       <button class="nav-btn" data-page="idob">IDOB &middot; Boemia</button>
       <button class="nav-btn" data-page="cavaloaco">Cavalo de Aço</button>
       <button class="nav-btn" data-page="rolezinho">Rolezinho</button>
       <button class="nav-btn disabled" title="IDOCA completo aguarda quantidade de motos abordadas por RAT (só temos nº de operações)">IDOCA</button>
-      <button class="nav-btn" data-page="itvd">ITVD &middot; Tráfico</button>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Indicadores de Esforço</div>
-      <button class="nav-btn" data-page="esforco_furto">1.5 Prisões — Furto</button>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Policiamento Orientado</div>
-      <button class="nav-btn" data-page="pog">POG</button>
-      <button class="nav-btn" data-page="ppag">PPAG</button>
+      <button class="nav-btn" data-page="padesc">Padrinhos da Escola</button>
+      <button class="nav-btn" data-page="saque_seguro">Saque Seguro</button>
+      <button class="nav-btn disabled" title="Aguardando dados (Polícia Cidadã)">Pol.Cid.Em</button>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">Policiamento Comunitário</div>
       <button class="nav-btn" data-page="rc">Reuniões Comunitárias</button>
       <button class="nav-btn" data-page="vcp">Visitas Comunit. Prevent.</button>
-      <button class="nav-btn" data-page="vtcv">Visitas Tranq. Vít. Viol.</button>
+      <button class="nav-btn" data-page="vtcv">Visitas Tranq. Vít. Crime Violento</button>
       <button class="nav-btn" data-page="vt">Visitas Tranq. Furto</button>
       <button class="nav-btn disabled" title="Mesmo indicador VT acima, versão completa: aguardando export próprio (A20.028 furto / A20.001 crimes violentos) pra virar série histórica com meta, igual aos indicadores da esquerda. Até lá, 'Visitas Tranq. Furto' continua sendo o snapshot de julho já disponível.">VT &middot; Série Completa (em construção)</button>
       <button class="nav-btn" data-page="mrpp">Manut. Rede Proteção</button>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Programas Sociais</div>
-      <button class="nav-btn" data-page="padesc">Pad.Escolar</button>
-      <button class="nav-btn" data-page="saque_seguro">Saque Seguro</button>
-      <button class="nav-btn disabled" title="Aguardando dados (Polícia Cidadã)">Pol.Cid.Em</button>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">Guias e Documentos</div>
@@ -310,7 +307,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 03/09/2026 14:45</span>
+      <span>Gerado em 03/09/2026 15:09</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -2482,7 +2479,7 @@ const DETALHADO_CONFIG = {
   },
   cvpa: {
     dataKey: 'cvpa_detalhado',
-    titulo: 'Crimes Violentos Contra o Patrimônio (Ambulante) — Detalhamento por Natureza',
+    titulo: 'Crimes Violentos Contra o Patrimônio — Detalhamento por Natureza',
     colunas: [
       { key: 'roubo', label: 'Roubo' },
       { key: 'extorsao', label: 'Extorsão' },
@@ -2504,9 +2501,9 @@ const pages = {
   violencia_domestica: renderViolenciaDomesticaPage,
   crimes_violentos: renderCrimesViolentosPage,
   reincidencia: renderReincidenciaPage,
-  imv: () => renderIndicatorPage('mv', 'IMV — Mortes Violentas', 'mv_local', 'mv_faixa'),
-  cvpe: () => renderIndicatorPage('cvpe', 'CVPE — Crimes Violentos contra o Patrimônio (Pessoa)', 'cvpe_local', 'cvpe_faixa'),
-  cvpa: () => renderIndicatorPage('cvpa', 'CVPa — Crimes Violentos contra o Patrimônio (Ambulante)', 'cvpa_local', 'cvpa_faixa'),
+  imv: () => renderIndicatorPage('mv', 'MV — Mortes Violentas', 'mv_local', 'mv_faixa'),
+  cvpe: () => renderIndicatorPage('cvpe', 'CVPE — Crimes Violentos contra a Pessoa', 'cvpe_local', 'cvpe_faixa'),
+  cvpa: () => renderIndicatorPage('cvpa', 'CVPa — Crimes Violentos contra o Patrimônio', 'cvpa_local', 'cvpa_faixa'),
   armas: () => renderIndicatorPage('armas', 'Armas de Fogo e Simulacros Apreendidos', null, null, true),
   furto: () => renderIndicatorPage('furto', 'Furto em Zona Rural', 'furto_causa', 'furto_logradouro'),
   pog: renderPOGPage,
