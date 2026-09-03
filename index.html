@@ -269,7 +269,6 @@
       <button class="nav-btn" data-page="rolezinho">Rolezinho</button>
       <button class="nav-btn disabled" title="IDOCA completo aguarda quantidade de motos abordadas por RAT (só temos nº de operações)">IDOCA</button>
       <button class="nav-btn" data-page="itvd">ITVD &middot; Tráfico</button>
-      <button class="nav-btn" data-page="vd">PPAG VD (Prevenção)</button>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">Indicadores de Esforço</div>
@@ -311,7 +310,7 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 03/09/2026 14:25</span>
+      <span>Gerado em 03/09/2026 14:45</span>
     </div>
   </div>
   <div class="main" id="main"></div>
@@ -968,6 +967,30 @@ function renderPPAGPage() {
     return html;
   }
 
+  function rowsVD(mi) {
+    let html = '';
+    const d = DATA.ppag.y07012;
+    d.municipios.forEach(m => {
+      const realMes = m.realizado_mes[mi], metaMes = m.meta_mes[mi];
+      const realAcum = m.realizado_acum[mi], metaAcum = m.meta_acum[mi];
+      const pctAcum = metaAcum ? (realAcum/metaAcum*100) : 100;
+      const cls = pctAcum>=100?'neg':'pos';
+      html += `<tr><td style="text-align:left">${m.nome}</td>
+        <td>${realMes}</td><td>${metaMes}</td>
+        <td class="col-divider">${realAcum}</td><td>${metaAcum}</td>
+        <td><span class="${cls}">${pctAcum.toFixed(0)}%</span></td><td>${metaAcum-realAcum}</td>
+      </tr>`;
+    });
+    const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
+    const tPct = tMAc ? (tRAc/tMAc*100) : 100;
+    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
+      <td>${tRMes}</td><td>${tMMes}</td>
+      <td class="col-divider">${tRAc}</td><td>${tMAc}</td>
+      <td><span class="${tPct>=100?'neg':'pos'}">${tPct.toFixed(0)}%</span></td><td>${tMAc-tRAc}</td>
+    </tr>`;
+    return html;
+  }
+
   let html = `<div class="page-title">Policiamento de proximidade | Dados de ${mesesLocais[mi]}</div>`;
   html += sigopButton('ppag');
   html += `<div class="def-box">${DEFS.ppag}</div>`;
@@ -981,9 +1004,16 @@ function renderPPAGPage() {
     <th>Meta Y07014</th><th>Res.</th><th>Des.</th>
   </tr></thead><tbody>${rows(mi)}</tbody></table>`;
   html += `<div class="updated">Y15001 - Patrulha Escolar/Patrulha de Prevenção às Drogas; Y07012 - Operação de Prevenção a Violência Doméstica; Y07014 - Ação/Operação em Zonal Rural (meta herdada da coluna legada Meta_Y15010 na planilha).</div>`;
+  html += `<div class="page-title" style="margin-top:28px;font-size:1.1em">PPAG VD — Detalhamento (Y07012, Prevenção à Violência Doméstica)</div>`;
+  html += `<table class="data-table" id="ppagVdTable"><thead><tr>
+    <th style="text-align:left">Município</th><th>Realizado Mês</th><th>Meta Mês</th>
+    <th class="col-divider">Realizado Acum</th><th>Meta Acum</th><th>% vs Meta (Acum)</th><th>Saldo</th>
+  </tr></thead><tbody>${rowsVD(mi)}</tbody></table>`;
   document.getElementById('main').innerHTML = html;
   document.getElementById('ppagMonthSel').addEventListener('change', (e) => {
-    document.querySelector('#ppagTable tbody').innerHTML = rows(parseInt(e.target.value));
+    const idx = parseInt(e.target.value);
+    document.querySelector('#ppagTable tbody').innerHTML = rows(idx);
+    document.querySelector('#ppagVdTable tbody').innerHTML = rowsVD(idx);
   });
 }
 
@@ -1017,12 +1047,6 @@ function renderIDOBPage() {
         nome:m.nome, qopMes:m.qop_mes[mi], qopAcum:m.qop_acum[mi],
         mvMes:m.mv_mes[mi], cvpeMes:m.cvpe_mes[mi], cvpaMes:m.cvpa_mes[mi],
         mvAcum:m.mv_acum[mi], cvpeAcum:m.cvpe_acum[mi], cvpaAcum:m.cvpa_acum[mi],
-        idobMvMes: calcIdob(m.qop_mes[mi], m.mv_mes[mi]),
-        idobCvpeMes: calcIdob(m.qop_mes[mi], m.cvpe_mes[mi]),
-        idobCvpaMes: calcIdob(m.qop_mes[mi], m.cvpa_mes[mi]),
-        idobMvAcum: calcIdob(m.qop_acum[mi], m.mv_acum[mi]),
-        idobCvpeAcum: calcIdob(m.qop_acum[mi], m.cvpe_acum[mi]),
-        idobCvpaAcum: calcIdob(m.qop_acum[mi], m.cvpa_acum[mi]),
         idobTotalMes: calcIdob(m.qop_mes[mi], vitMes),
         idobTotalAcum: calcIdob(m.qop_acum[mi], vitAcum),
       };
@@ -1031,14 +1055,14 @@ function renderIDOBPage() {
     list.forEach(x => {
       html += `<tr><td style="text-align:left">${x.nome}</td>
         <td>${x.qopMes}</td>
-        <td>${x.mvMes}</td>${cell(x.idobMvMes)}
-        <td>${x.cvpeMes}</td>${cell(x.idobCvpeMes)}
-        <td>${x.cvpaMes}</td>${cell(x.idobCvpaMes)}
+        <td>${x.mvMes}</td>
+        <td>${x.cvpeMes}</td>
+        <td>${x.cvpaMes}</td>
         ${cell(x.idobTotalMes)}
         <td>${x.qopAcum}</td>
-        <td>${x.mvAcum}</td>${cell(x.idobMvAcum)}
-        <td>${x.cvpeAcum}</td>${cell(x.idobCvpeAcum)}
-        <td>${x.cvpaAcum}</td>${cell(x.idobCvpaAcum)}
+        <td>${x.mvAcum}</td>
+        <td>${x.cvpeAcum}</td>
+        <td>${x.cvpaAcum}</td>
         ${cell(x.idobTotalAcum)}
       </tr>`;
     });
@@ -1048,15 +1072,15 @@ function renderIDOBPage() {
     const tMvAcum=sum('mvAcum'), tCvpeAcum=sum('cvpeAcum'), tCvpaAcum=sum('cvpaAcum');
     html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
       <td>${tQopMes}</td>
-      <td>${tMvMes}</td>${cell(calcIdob(tQopMes,tMvMes))}
-      <td>${tCvpeMes}</td>${cell(calcIdob(tQopMes,tCvpeMes))}
-      <td>${tCvpaMes}</td>${cell(calcIdob(tQopMes,tCvpaMes))}
-      ${cell(calcIdob(tQopMes, tCvpeMes+tCvpaMes))}
+      <td>${tMvMes}</td>
+      <td>${tCvpeMes}</td>
+      <td>${tCvpaMes}</td>
+      ${cell(calcIdob(tQopMes, tMvMes+tCvpeMes+tCvpaMes))}
       <td>${tQopAcum}</td>
-      <td>${tMvAcum}</td>${cell(calcIdob(tQopAcum,tMvAcum))}
-      <td>${tCvpeAcum}</td>${cell(calcIdob(tQopAcum,tCvpeAcum))}
-      <td>${tCvpaAcum}</td>${cell(calcIdob(tQopAcum,tCvpaAcum))}
-      ${cell(calcIdob(tQopAcum, tCvpeAcum+tCvpaAcum))}
+      <td>${tMvAcum}</td>
+      <td>${tCvpeAcum}</td>
+      <td>${tCvpaAcum}</td>
+      ${cell(calcIdob(tQopAcum, tMvAcum+tCvpeAcum+tCvpaAcum))}
     </tr>`;
     return html;
   }
@@ -1069,12 +1093,12 @@ function renderIDOBPage() {
   html += `</select>`;
   html += `<table class="data-table" id="idobTable"><thead><tr>
     <th style="text-align:left" rowspan="2">Município</th>
-    <th colspan="8">${mesesLocais[mi]}</th><th colspan="8">Acumulado</th>
+    <th colspan="5">${mesesLocais[mi]}</th><th colspan="5">Acumulado</th>
   </tr><tr>
-    <th>Qtde Op</th><th>MV</th><th>IDOB_MV</th><th>CVPe</th><th>IDOB_CVPe</th><th>CVPa</th><th>IDOB_CVPa</th><th>IDOB Total</th>
-    <th>Qtde Op</th><th>MV</th><th>IDOB_MV</th><th>CVPe</th><th>IDOB_CVPe</th><th>CVPa</th><th>IDOB_CVPa</th><th>IDOB Total</th>
+    <th>Qtde Op</th><th>MV</th><th>CVPe</th><th>CVPa</th><th>IDOB</th>
+    <th>Qtde Op</th><th>MV</th><th>CVPe</th><th>CVPa</th><th>IDOB</th>
   </tr></thead><tbody>${rows(mi)}</tbody></table>`;
-  html += `<div class="updated">IDOB_X = [Qtde de Operações Boemia − Vítimas de X (em bar/boate como local do fato) × 10] ÷ Qtde de Operações × 100, calculado separado por MV, CVPe e CVPa pra identificar de onde vem a queda de desempenho. Quanto maior, melhor. Fonte: export específico da pasta IDOB (não mais o RAT geral, que superestimava por capturar operações fora de escopo), 1.557 registros, jan-ago/2026, atualizado em 2026-08-11, cruzado com o REDS geral pelo local do fato.</div>`;
+  html += `<div class="updated">IDOB = [Qtde de Operações Boemia − (MV+CVPe+CVPa com vítima em bar/boate como local do fato) × 10] ÷ Qtde de Operações × 100 — índice único, calculado com a soma dos 3 tipos de vítima de uma vez (não um IDOB separado por tipo). As colunas MV/CVPe/CVPa acima mostram a contagem bruta de cada tipo, só pra apoiar a leitura de onde vem a variação do índice. Quanto maior, melhor. Fonte: export específico da pasta IDOB (não mais o RAT geral, que superestimava por capturar operações fora de escopo), cruzado com o REDS geral pelo local do fato.</div>`;
 
   // ---------- Meta de Operações Boemia do Batalhão (contagem x meta fixa por fração, diferente do % de qualidade do IDOB acima) ----------
   const bm = DATA.boemia_meta;
@@ -2333,7 +2357,6 @@ const CHECKLIST_GRUPOS = [
       { id: 'snap_vtcv', label: 'Visitas Tranq. Vítimas de Crime Violento (VTCV) — print do ranking' },
       { id: 'snap_vt', label: 'Visitas Tranq. Furto (VT) — print do ranking' },
       { id: 'snap_mrpp', label: 'Manutenção da Rede de Proteção Preventiva (MRPP) — print do ranking' },
-      { id: 'snap_vd', label: '⚠ VD (Violência Doméstica) — hoje é um dado À PARTE do PPAG Y07012, mesmo parecendo igual; conferir se Eduardo quer manter os dois ou unificar' },
     ],
   },
   {
@@ -2501,7 +2524,6 @@ const pages = {
   vt: () => renderImportedRankingPage('vt', 'Visitas Tranquilizadoras (Furto)'),
   mrpp: () => renderImportedRankingPage('mrpp', 'Manutenção da Rede de Proteção Preventiva'),
   itvd: renderITVDPage,
-  vd: () => renderIndicatorPage('vd', 'Atividades de Prevenção à Violência Doméstica (Y07012)', null, null, true),
   padesc: () => renderIndicatorPage('padesc', 'Padrinhos da Escola', null, null, true),
   saque_seguro: () => renderIndicatorPage('saque_seguro', 'Saque Seguro', null, null, true),
   checklist: renderChecklistPage,
