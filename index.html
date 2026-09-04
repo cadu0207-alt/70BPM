@@ -441,16 +441,24 @@ function metaMensalAjustada(metaMesCheia) {
 }
 // Núcleo do cálculo (usado pelo banner das páginas de indicador E pela aba de Auditoria por
 // município, pra garantir que os dois lugares mostrem exatamente o mesmo número).
-function statusAcompanhamentoDiario(meta, realizado, higherIsBetter = true) {
+function statusAcompanhamentoDiario(meta, realizado, higherIsBetter = true, arredondarMeta = false) {
   const metaAjustada = metaMensalAjustada(meta || 0);
-  const diff = higherIsBetter ? ((realizado || 0) - metaAjustada) : (metaAjustada - (realizado || 0));
+  // Na Auditoria (arredondarMeta=true), pedido de Eduardo em 2026-09-04: não marcar "abaixo do
+  // esperado"/"passou do teto" por causa de fração de unidade — só quando a meta ajustada
+  // completar um número inteiro. Meta (quanto maior melhor) arredonda pra baixo (mais
+  // tolerante: só exige o que já "fechou"); teto (quanto menor melhor) arredonda pra cima
+  // (também mais tolerante: só considera excedido quando passa de uma unidade inteira).
+  const metaComparacao = arredondarMeta
+    ? (higherIsBetter ? Math.floor(metaAjustada) : Math.ceil(metaAjustada))
+    : metaAjustada;
+  const diff = higherIsBetter ? ((realizado || 0) - metaComparacao) : (metaComparacao - (realizado || 0));
   const atrasado = diff < 0;
   const cls = atrasado ? 'pos' : 'neg'; // neg=verde(bom), pos=vermelho(ruim) — mesma convenção já usada no painel
   const statusTxt = higherIsBetter
     ? (atrasado ? 'abaixo do esperado pro dia de hoje' : 'em dia')
     : (atrasado ? 'já passou do teto esperado pro dia de hoje' : 'dentro do teto esperado até hoje');
   const rotuloMeta = higherIsBetter ? 'meta ajustada até ontem' : 'teto ajustado até ontem';
-  return { metaAjustada, diff, atrasado, cls, statusTxt, rotuloMeta };
+  return { metaAjustada, metaComparacao, diff, atrasado, cls, statusTxt, rotuloMeta };
 }
 function bannerAcompanhamentoDiario(itens) {
   // itens: [{ label, meta, realizado, higherIsBetter=true }]
@@ -2562,7 +2570,7 @@ async function renderAuditoriaPage() {
       const i = Math.min(idxAtual, m.meta_mes.length - 1, m.realizado_mes.length - 1);
       if (i < 0) return;
       const meta = m.meta_mes[i], realizado = m.realizado_mes[i];
-      const s = statusAcompanhamentoDiario(meta, realizado, higherIsBetter);
+      const s = statusAcompanhamentoDiario(meta, realizado, higherIsBetter, true);
       linhas.push({ label, meta, realizado, ...s });
     };
     add(DATA.pog, 'POG', true);
@@ -2592,9 +2600,9 @@ async function renderAuditoriaPage() {
     if (metas.length === 0) {
       h += `<div class="def-box">Sem indicadores de meta mensal cadastrados pra ${nome}.</div>`;
     } else {
-      h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Indicador</th><th>Meta/Teto Mês</th><th>Ajustada até ontem</th><th>Realizado</th><th style="text-align:left">Status</th></tr></thead><tbody>`;
+      h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Indicador</th><th>Meta/Teto Mês</th><th>Ajustada até ontem (arred.)</th><th>Realizado</th><th style="text-align:left">Status</th></tr></thead><tbody>`;
       metas.slice().sort((a, b) => (b.atrasado ? 1 : 0) - (a.atrasado ? 1 : 0)).forEach(m => {
-        h += `<tr class="${m.atrasado ? 'vd-row-vermelho' : ''}"><td style="text-align:left">${m.label}</td><td>${m.meta}</td><td>${m.metaAjustada.toFixed(1)}</td><td>${m.realizado}</td><td style="text-align:left"><span class="${m.cls}">${m.statusTxt}</span></td></tr>`;
+        h += `<tr class="${m.atrasado ? 'vd-row-vermelho' : ''}"><td style="text-align:left">${m.label}</td><td>${m.meta}</td><td title="valor exato: ${m.metaAjustada.toFixed(2)}">${m.metaComparacao}</td><td>${m.realizado}</td><td style="text-align:left"><span class="${m.cls}">${m.statusTxt}</span></td></tr>`;
       });
       h += `</tbody></table></div>`;
     }
