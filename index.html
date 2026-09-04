@@ -2592,8 +2592,7 @@ async function renderAuditoriaPage() {
     return linhas;
   }
 
-  function auditoriaTopicoMetas(nome) {
-    const metas = coletarMetasDiarias(nome);
+  function auditoriaTopicoMetas(nome, metas) {
     const atrasadas = metas.filter(m => m.atrasado);
     let h = `<details style="margin-top:10px;border-top:1px solid var(--panel-border);padding-top:6px" ${atrasadas.length ? 'open' : ''}>
       <summary style="cursor:pointer;padding:4px 0;font-weight:600">Metas do Mês (dia a dia) ${atrasadas.length ? `<span class="ppvd-badge ppvd-badge-critica">${atrasadas.length}</span>` : '<span class="ppvd-badge ppvd-badge-verde">0</span>'}</summary>`;
@@ -2620,8 +2619,11 @@ async function renderAuditoriaPage() {
   const todosReds = Object.values(ocorrenciasPorMunicipio).flat().map(o => o.r).filter(Boolean);
   const casosMap = await ppvdBuscarCasosVD(todosReds);
 
+  const { diaHoje: diaHojeReal } = diasCorridosAteOntem();
+  window.auditoriaResumo = {};
+
   let htmlCidades = '';
-  MUNICIPIOS_CANONICAL.forEach(nome => {
+  MUNICIPIOS_CANONICAL.forEach((nome, muniIdx) => {
     const lista = ocorrenciasPorMunicipio[nome];
     const flagged = lista.map(o => {
       const caso = o.r ? (casosMap[o.r] || null) : null;
@@ -2638,14 +2640,44 @@ async function renderAuditoriaPage() {
     const qtdCvpe = mCvpe ? (mCvpe.realizado_mes[Math.min(idxAtual, mCvpe.realizado_mes.length - 1)] || 0) : 0;
     const qtdCvpa = mCvpa ? (mCvpa.realizado_mes[Math.min(idxAtual, mCvpa.realizado_mes.length - 1)] || 0) : 0;
 
-    const metasAtrasadas = coletarMetasDiarias(nome).filter(m => m.atrasado).length;
-    const totalVermelho = flagged.length + qtdMv + qtdCvpe + qtdCvpa + metasAtrasadas;
+    const metasDiariasCidade = coletarMetasDiarias(nome);
+    const metasAtrasadasList = metasDiariasCidade.filter(m => m.atrasado);
+    const totalVermelho = flagged.length + qtdMv + qtdCvpe + qtdCvpa + metasAtrasadasList.length;
     const badgeGeral = totalVermelho > 0
       ? `<span class="ppvd-badge ppvd-badge-critica">${totalVermelho} em vermelho</span>`
       : `<span class="ppvd-badge ppvd-badge-verde">0 em vermelho</span>`;
 
+    // Guarda um resumo por município pra montar a mensagem do WhatsApp sem refazer as
+    // consultas — o botão só lê daqui (pedido de Eduardo em 2026-09-04).
+    window.auditoriaResumo[nome] = {
+      flaggedCount: flagged.length,
+      qtdMv, qtdCvpe, qtdCvpa,
+      metasAtrasadasList: metasAtrasadasList.map(m => ({ label: m.label, meta: m.metaComparacao, realizado: m.realizado })),
+      diaHoje: diaHojeReal,
+      mesNomeAtual,
+    };
+
+    const respSalvo = ppvdSugerirResponsavel(nome);
+    const nomeAtual = respSalvo ? respSalvo.nome : '';
+    const whatsAtual = respSalvo ? respSalvo.whatsapp : '';
+    const temPendencia = totalVermelho > 0;
+
     htmlCidades += `<div class="chart-box" style="margin-bottom:14px;min-width:0">
-      <h3 style="display:flex;justify-content:space-between;align-items:center;gap:10px">${nome} ${badgeGeral}</h3>`;
+      <h3 style="display:flex;justify-content:space-between;align-items:center;gap:10px">${nome} ${badgeGeral}</h3>
+      <div class="ppvd-card" style="margin:0 0 14px;padding:12px 14px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="ppvd-field" style="margin-bottom:0;flex:1;min-width:170px">
+            <label>Responsável (Cmt Destac./Pelotão)</label>
+            <input id="auditNome-${muniIdx}" value="${nomeAtual}" placeholder="Ex: Ten. Diego Silva">
+          </div>
+          <div class="ppvd-field" style="margin-bottom:0;flex:1;min-width:150px">
+            <label>WhatsApp (com DDD)</label>
+            <input id="auditWhats-${muniIdx}" value="${whatsAtual}" placeholder="Ex: 33999999999">
+          </div>
+          <button class="ppvd-btn" onclick="ppvdSalvarResponsavelAuditoria(${muniIdx})">💾 Salvar</button>
+          <button class="ppvd-btn ${temPendencia ? 'ppvd-btn-primary' : ''}" ${temPendencia ? '' : 'disabled style="opacity:.45;cursor:not-allowed"'} onclick="ppvdEnviarLembreteAuditoria('${nome}')">📱 Enviar Lembrete</button>
+        </div>
+      </div>`;
 
     htmlCidades += `<details style="padding-top:2px" ${flagged.length ? 'open' : ''}>
       <summary style="cursor:pointer;padding:4px 0;font-weight:600">Violência Doméstica ${flagged.length ? `<span class="ppvd-badge ppvd-badge-critica">${flagged.length}</span>` : '<span class="ppvd-badge ppvd-badge-verde">0</span>'}</summary>`;
@@ -2670,7 +2702,7 @@ async function renderAuditoriaPage() {
     htmlCidades += auditoriaTopicoCriminal('MV (Mortes Violentas)', qtdMv, nome, mesNomeAtual);
     htmlCidades += auditoriaTopicoCriminal('CVPE', qtdCvpe, nome, mesNomeAtual);
     htmlCidades += auditoriaTopicoCriminal('CVPa', qtdCvpa, nome, mesNomeAtual);
-    htmlCidades += auditoriaTopicoMetas(nome);
+    htmlCidades += auditoriaTopicoMetas(nome, metasDiariasCidade);
 
     htmlCidades += `</div>`;
   });
@@ -2681,6 +2713,58 @@ async function renderAuditoriaPage() {
   </div>`;
 
   body.innerHTML = avisoMvCvpe + htmlCidades;
+}
+
+// Reaproveita o cadastro de "Militares Responsáveis" (militares_responsaveis) que já existe
+// pro despacho de casos de VD — o contato salvo aqui na Auditoria é o mesmo usado lá.
+async function ppvdSalvarResponsavelAuditoria(muniIdx) {
+  const nomeMunicipio = MUNICIPIOS_CANONICAL[muniIdx];
+  const nomeInput = (document.getElementById('auditNome-' + muniIdx).value || '').trim();
+  const whatsInput = ppvdNormalizarWhatsApp(document.getElementById('auditWhats-' + muniIdx).value);
+  if (!nomeInput || !whatsInput) { alert('Preencha nome e WhatsApp do responsável.'); return; }
+  const existente = ppvdSugerirResponsavel(nomeMunicipio);
+  let error;
+  if (existente) {
+    ({ error } = await ppvdSupa.from('militares_responsaveis').update({ nome: nomeInput, whatsapp: whatsInput, ativo: true }).eq('id', existente.id));
+  } else {
+    ({ error } = await ppvdSupa.from('militares_responsaveis').insert({ nome: nomeInput, whatsapp: whatsInput, municipio: nomeMunicipio, ativo: true }));
+  }
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  ppvdMilitaresCache = null;
+  await ppvdCarregarMilitares();
+  goToPage('auditoria');
+}
+
+function ppvdMontarLembreteAuditoria(nomeMunicipio) {
+  const resumo = (window.auditoriaResumo || {})[nomeMunicipio];
+  if (!resumo) return null;
+  const resp = ppvdSugerirResponsavel(nomeMunicipio);
+
+  const linhas = [];
+  resumo.metasAtrasadasList.forEach(m => {
+    linhas.push(`• ${m.label}: até o dia ${resumo.diaHoje} deveria haver ${m.meta}, há ${m.realizado}`);
+  });
+  if (resumo.qtdMv > 0) linhas.push(`• MV (Mortes Violentas): ${resumo.qtdMv} ocorrência(s) em ${resumo.mesNomeAtual} a verificar`);
+  if (resumo.qtdCvpe > 0) linhas.push(`• CVPE: ${resumo.qtdCvpe} ocorrência(s) em ${resumo.mesNomeAtual} a verificar`);
+  if (resumo.qtdCvpa > 0) linhas.push(`• CVPa: ${resumo.qtdCvpa} ocorrência(s) em ${resumo.mesNomeAtual} a verificar`);
+  if (resumo.flaggedCount > 0) linhas.push(`• Violência Doméstica: ${resumo.flaggedCount} caso(s) com mais de 72h sem solução final`);
+  if (linhas.length === 0) return null;
+
+  const saudacao = resp && resp.nome ? `Bom dia, ${resp.nome}!` : 'Bom dia!';
+  return `${saudacao}
+
+Em auditoria do painel do 70º BPM, foram verificadas as seguintes pendências em ${nomeMunicipio} (posição de hoje, dia ${resumo.diaHoje}):
+
+${linhas.join('\n')}
+
+Favor regularizar assim que possível e, se já resolvido, atualizar no sistema. Qualquer dúvida, à disposição.`;
+}
+function ppvdEnviarLembreteAuditoria(nomeMunicipio) {
+  const resp = ppvdSugerirResponsavel(nomeMunicipio);
+  if (!resp || !resp.whatsapp) { alert('Cadastre o nome e WhatsApp do responsável antes de enviar (campo acima).'); return; }
+  const msg = ppvdMontarLembreteAuditoria(nomeMunicipio);
+  if (!msg) { alert('Nenhuma pendência encontrada pra ' + nomeMunicipio + ' agora.'); return; }
+  window.open(`https://wa.me/${resp.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {
