@@ -54,6 +54,17 @@ function checkSeries(label, obj, errors, warnings) {
   const n = obj.meses.length;
   if (n === 0) { errors.push(`${label}: "meses" está vazio`); return; }
 
+  // Indicadores com meta_mes alimentam o banner de "acompanhamento diário" (meta/teto
+  // ponderada pelos dias já corridos do mês) — desde 2026-09-08 essa ponderação usa o campo
+  // "atualizado_em" do próprio indicador (não mais "hoje" fixo). Sem esse campo, o painel cai
+  // pra "assume hoje" e avisa isso na tela — não é erro, mas empobrece o acompanhamento.
+  const temMeta = Array.isArray(obj.municipios) && obj.municipios.some(m => Array.isArray(m.meta_mes));
+  if (temMeta && !obj.atualizado_em) {
+    warnings.push(`${label}: sem campo "atualizado_em" — o acompanhamento diário vai assumir "hoje" como data de referência em vez da data real da última atualização`);
+  } else if (obj.atualizado_em && !/^\d{4}-\d{2}-\d{2}$/.test(obj.atualizado_em)) {
+    warnings.push(`${label}: "atualizado_em" = ${JSON.stringify(obj.atualizado_em)} não está no formato AAAA-MM-DD`);
+  }
+
   if (!Array.isArray(obj.municipios) || obj.municipios.length === 0) {
     errors.push(`${label}: "municipios" vazio ou ausente`);
     return;

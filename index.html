@@ -320,12 +320,13 @@
 <script>
 const DATA = JSON.parse((() => { const xhr = new XMLHttpRequest(); xhr.open('GET', 'data.json', false); xhr.send(null); if (xhr.status !== 200 && xhr.status !== 0) throw new Error('Falha ao carregar data.json: HTTP ' + xhr.status); return xhr.responseText; })());
 const MESES = DATA.mv.meses;
-// Mês "atual" real (0-based, Jan=0), calculado no momento da geração do painel (não no load do
-// navegador, pra ficar estável até a próxima publicação). Usado como teto padrão de exibição —
-// desde a migração de 03/09/2026 as metas de todos os indicadores já vão até dezembro, mas o
-// "realizado" só existe até o mês corrente; sem esse teto, as páginas abririam por padrão
-// mostrando o acumulado do ANO INTEIRO (meta de dezembro) em vez do acumulado até hoje.
-const MES_ATUAL_IDX = 8;
+// Mês "atual" real (0-based, Jan=0). Calculado a partir da data do navegador — antes era um
+// número fixo (8) que precisava ser trocado à mão todo mês; achado por Eduardo em 2026-09-08
+// junto com o pedido de automatizar tudo que dependia de mês "atual" hardcoded. Usado como teto
+// padrão de exibição — as metas de todos os indicadores já vão até dezembro, mas o "realizado"
+// só existe até o mês corrente; sem esse teto, as páginas abririam mostrando o acumulado do ANO
+// INTEIRO (meta de dezembro) em vez do acumulado até hoje.
+const MES_ATUAL_IDX = new Date().getMonth();
 
 // ---------- Selo "Atualizado até" (calculado em tempo de render, direto do DATA — nunca fica desatualizado sozinho) ----------
 // Compara o último mês disponível de um indicador com o mês mais avançado que existe em QUALQUER indicador do painel.
@@ -438,22 +439,48 @@ function fmtPct(v) {
 // ---------- Acompanhamento diário de metas mensais (pedido de Eduardo em 2026-09-03) ----------
 // Metas de Operações são fixas por mês inteiro; sem isso, olhar o realizado no meio do mês
 // contra a meta cheia sempre parece "atrasado" até o último dia. Mostra quanto já deveria ter
-// sido feito até ontem, proporcional aos dias corridos do mês corrente (data real do navegador,
-// não depende de atualizar MES_ATUAL_IDX à mão).
-function diasCorridosAteOntem() {
-  const hoje = new Date();
-  const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
-  const diasDecorridos = Math.max(0, hoje.getDate() - 1);
-  return { diasNoMes, diaHoje: hoje.getDate(), diasDecorridos };
+// sido feito até ontem, proporcional aos dias corridos do mês corrente.
+//
+// 2026-09-08 (pedido de Eduardo): a ponderação não pode assumir que TODO indicador foi
+// atualizado hoje — se um indicador só foi recalculado há 5 dias, cobrar meta "até ontem" (do
+// dia real de hoje) é injusto, porque os últimos 5 dias nem chegaram a ser lançados ainda. Cada
+// indicador agora carrega seu próprio "atualizado_em" (YYYY-MM-DD) no data.json, e a ponderação
+// usa ESSA data como referência — não mais sempre "hoje". Sem esse campo (indicador ainda não
+// migrado), cai de volta pro comportamento antigo (assume hoje) e avisa isso na tela.
+function dataAtualizacaoIndicador(d) {
+  if (!d || !d.atualizado_em) return null;
+  const dt = new Date(d.atualizado_em + 'T00:00:00');
+  return isNaN(dt.getTime()) ? null : dt;
 }
-function metaMensalAjustada(metaMesCheia) {
-  const { diasNoMes, diasDecorridos } = diasCorridosAteOntem();
+function diasCorridosAteOntem(dataAtualizacao) {
+  const agora = new Date();
+  const diasNoMes = new Date(agora.getFullYear(), MES_ATUAL_IDX + 1, 0).getDate();
+  let diaRef, semRegistro = false;
+  if (dataAtualizacao instanceof Date && !isNaN(dataAtualizacao.getTime())) {
+    const mesmoMes = dataAtualizacao.getFullYear() === agora.getFullYear() && dataAtualizacao.getMonth() === MES_ATUAL_IDX;
+    if (mesmoMes) {
+      diaRef = dataAtualizacao.getDate();
+    } else if (dataAtualizacao.getFullYear() < agora.getFullYear() || dataAtualizacao.getMonth() < MES_ATUAL_IDX) {
+      diaRef = 0; // atualizado antes do mês corrente começar — nenhum dia deste mês foi capturado ainda
+    } else {
+      diaRef = agora.getDate(); // data futura (não deveria acontecer) — cai pro comportamento padrão
+    }
+  } else {
+    diaRef = agora.getDate();
+    semRegistro = true;
+  }
+  const diasDecorridos = Math.max(0, diaRef - 1);
+  return { diasNoMes, diaRef, diasDecorridos, semRegistro };
+}
+function metaMensalAjustada(metaMesCheia, dataAtualizacao) {
+  const { diasNoMes, diasDecorridos } = diasCorridosAteOntem(dataAtualizacao);
   return diasNoMes ? (metaMesCheia * diasDecorridos / diasNoMes) : 0;
 }
 // Núcleo do cálculo (usado pelo banner das páginas de indicador E pela aba de Auditoria por
 // município, pra garantir que os dois lugares mostrem exatamente o mesmo número).
-function statusAcompanhamentoDiario(meta, realizado, higherIsBetter = true, arredondarMeta = false) {
-  const metaAjustada = metaMensalAjustada(meta || 0);
+function statusAcompanhamentoDiario(meta, realizado, higherIsBetter = true, arredondarMeta = false, dataAtualizacao = null) {
+  const ref = diasCorridosAteOntem(dataAtualizacao);
+  const metaAjustada = metaMensalAjustada(meta || 0, dataAtualizacao);
   // Na Auditoria (arredondarMeta=true), pedido de Eduardo em 2026-09-04: não marcar "abaixo do
   // esperado"/"passou do teto" por causa de fração de unidade — só quando a meta ajustada
   // completar um número inteiro. Meta (quanto maior melhor) arredonda pra baixo (mais
@@ -468,20 +495,22 @@ function statusAcompanhamentoDiario(meta, realizado, higherIsBetter = true, arre
   const statusTxt = higherIsBetter
     ? (atrasado ? 'abaixo do esperado pro dia de hoje' : 'em dia')
     : (atrasado ? 'já passou do teto esperado pro dia de hoje' : 'dentro do teto esperado até hoje');
-  const rotuloMeta = higherIsBetter ? 'meta ajustada até ontem' : 'teto ajustado até ontem';
-  return { metaAjustada, metaComparacao, diff, atrasado, cls, statusTxt, rotuloMeta };
+  const rotuloMeta = higherIsBetter ? 'meta ajustada' : 'teto ajustado';
+  return { metaAjustada, metaComparacao, diff, atrasado, cls, statusTxt, rotuloMeta, diaRef: ref.diaRef, semRegistro: ref.semRegistro };
 }
 function bannerAcompanhamentoDiario(itens) {
-  // itens: [{ label, meta, realizado, higherIsBetter=true }]
-  const { diaHoje, diasNoMes, diasDecorridos } = diasCorridosAteOntem();
+  // itens: [{ label, meta, realizado, higherIsBetter=true, dataAtualizacao=null }]
   let linhas = '';
   itens.forEach(it => {
     const higherIsBetter = it.higherIsBetter !== false;
-    const s = statusAcompanhamentoDiario(it.meta, it.realizado, higherIsBetter);
-    linhas += `<div>${it.label}: ${s.rotuloMeta} <b>${s.metaAjustada.toFixed(1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${s.cls}">${s.statusTxt}</span></div>`;
+    const s = statusAcompanhamentoDiario(it.meta, it.realizado, higherIsBetter, false, it.dataAtualizacao);
+    const refTxt = s.semRegistro
+      ? `<span style="color:var(--amber)">sem data de atualização registrada — assumindo hoje</span>`
+      : (s.diaRef === 0 ? `<span style="color:var(--amber)">nenhum lançamento neste mês ainda</span>` : `atualizado até o dia ${s.diaRef}`);
+    linhas += `<div>${it.label}: ${s.rotuloMeta} (${refTxt}) <b>${s.metaAjustada.toFixed(1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${s.cls}">${s.statusTxt}</span></div>`;
   });
   return `<div class="def-box" style="border-color:var(--amber);margin-bottom:14px">
-    <b>📅 Acompanhamento diário</b> — hoje é dia ${diaHoje} de ${diasNoMes} do mês corrente (proporção já fechada: ${diasDecorridos}/${diasNoMes} dias).
+    <b>📅 Acompanhamento diário</b> — cada indicador é ponderado pela sua própria data de atualização, não por "hoje" fixo.
     ${linhas}
     <span style="color:var(--muted);font-size:11px">Vale só pro mês em andamento — meses fechados no seletor abaixo continuam comparando com a meta cheia normalmente.</span>
   </div>`;
@@ -921,7 +950,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   html += sigopButton(key);
   if (DEFS[key]) html += `<div class="def-box">${DEFS[key]}</div>`;
   if (showDailyBanner) {
-    html += bannerAcompanhamentoDiario([{ label: title, meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], higherIsBetter }]);
+    html += bannerAcompanhamentoDiario([{ label: title, meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], higherIsBetter, dataAtualizacao: dataAtualizacaoIndicador(d) }]);
   }
   html += `<select class="month-select" id="monthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===monthIdx?'selected':''}>${m}</option>`);
@@ -1005,7 +1034,7 @@ function renderPOGPage() {
   let html = `<div class="page-title">Operações de POG por frações em ${mesesLocais[mi]} de 2026</div>`;
   html += sigopButton('pog');
   html += `<div class="def-box">${DEFS.pog}</div>`;
-  html += bannerAcompanhamentoDiario([{ label: 'POG (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX] }]);
+  html += bannerAcompanhamentoDiario([{ label: 'POG (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(d) }]);
   html += `<select class="month-select" id="pogMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
   html += `</select>`;
@@ -1096,6 +1125,7 @@ function renderPPAGPage() {
     label: 'PPAG ' + s.label,
     meta: DATA.ppag[s.key].total_meta_mes[MES_ATUAL_IDX],
     realizado: DATA.ppag[s.key].total_mes[MES_ATUAL_IDX],
+    dataAtualizacao: dataAtualizacaoIndicador(DATA.ppag[s.key]),
   })));
   html += `<select class="month-select" id="ppagMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
@@ -1240,7 +1270,7 @@ function renderIDOBPage() {
     let miBm = Math.min(MES_ATUAL_IDX, bmMesesLocais.length - 1);
     html += `<div class="page-title" style="margin-top:28px;font-size:1.1em">Meta de Operações Boemia do Batalhão</div>`;
     html += `<div class="def-box">Métrica DIFERENTE do IDOB acima (que mede qualidade/vítimas em %). Aqui é contagem simples de operações Boemia realizadas × meta fixa por tipo de fração, mesma régua já usada em Cavalo de Aço/Visibilidade: <b>1 operação/mês por Destacamento, 2/mês por sede de Pelotão, 3/mês por sede de Companhia</b> (recorrente todo mês, não meta anual). Meta total do 70º BPM: 23 operações/mês. Fonte do "Realizado": mesmo dado de Qtde de Operações Boemia usado no IDOB (export da pasta entrada/IDOB/, filtro NOME_OPERACAO contém "BOEMIA").</div>`;
-    html += bannerAcompanhamentoDiario([{ label: 'Operações Boemia (Batalhão)', meta: bm.total_meta_mes[MES_ATUAL_IDX], realizado: bm.total_mes[MES_ATUAL_IDX] }]);
+    html += bannerAcompanhamentoDiario([{ label: 'Operações Boemia (Batalhão)', meta: bm.total_meta_mes[MES_ATUAL_IDX], realizado: bm.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(bm) }]);
     html += `<select class="month-select" id="boemiaMetaMonthSel">`;
     bmMesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===miBm?'selected':''}>${m}</option>`);
     html += `</select>`;
@@ -1408,7 +1438,7 @@ function renderCavaloAcoPage() {
 
   let html = `<div class="page-title">Operação Cavalo de Aço em ${mesesLocais[mi]} de 2026</div>`;
   html += `<div class="def-box">${DEFS.cavaloaco}</div>`;
-  html += bannerAcompanhamentoDiario([{ label: 'Cavalo de Aço (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX] }]);
+  html += bannerAcompanhamentoDiario([{ label: 'Cavalo de Aço (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(d) }]);
   html += `<select class="month-select" id="cavaloacoMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
   html += `</select>`;
@@ -1474,7 +1504,7 @@ function renderRolezinhoPage() {
 
   let html = `<div class="page-title">Operação Rolezinho em ${mesesLocais[mi]} de 2026</div>`;
   html += `<div class="def-box">${DEFS.rolezinho}</div>`;
-  html += bannerAcompanhamentoDiario([{ label: 'Rolezinho (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX] }]);
+  html += bannerAcompanhamentoDiario([{ label: 'Rolezinho (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(d) }]);
   html += `<select class="month-select" id="rolezinhoMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
   html += `</select>`;
@@ -2504,7 +2534,10 @@ function renderChecklistPage() {
     Sequência de conferência pra cada rodada de atualização do painel. Marque o que já foi feito nesta rodada;
     o estado fica salvo neste navegador até você clicar em "Reiniciar checklist" (recomendado no início de cada rodada diária de atualização, seg-sex).
     Os botões SIGOP abrem a fonte oficial já filtrada, quando existe link direto — os demais indicadores exigem
-    baixar manualmente no SiGOp ou pedir o export/print correspondente.</div>`;
+    baixar manualmente no SiGOp ou pedir o export/print correspondente.<br><br>
+    <b>⚠ Novo campo obrigatório (2026-09-08):</b> ao recalcular um indicador, grave a data de hoje no campo <code>"atualizado_em": "AAAA-MM-DD"</code>
+    dele no data.json (mesmo nível de "meses"/"municipios"). O painel usa esse campo pra saber até que dia ponderar a meta diária de cada indicador —
+    sem ele, o painel assume "hoje" por padrão e avisa "sem data de atualização registrada" na tela.</div>`;
   html += `<div style="margin:10px 0 20px"><button class="nav-btn" id="btnReiniciarChecklist" style="width:auto;display:inline-flex;border:1px solid var(--panel-border);padding:8px 16px">↺ Reiniciar checklist (nova rodada diária)</button></div>`;
 
   CHECKLIST_GRUPOS.forEach(grupo => {
@@ -2624,7 +2657,7 @@ async function renderAuditoriaPage() {
       const i = Math.min(idxAtual, m.meta_mes.length - 1, m.realizado_mes.length - 1);
       if (i < 0) return;
       const meta = m.meta_mes[i], realizado = m.realizado_mes[i];
-      const s = statusAcompanhamentoDiario(meta, realizado, higherIsBetter, true);
+      const s = statusAcompanhamentoDiario(meta, realizado, higherIsBetter, true, dataAtualizacaoIndicador(dataObj));
       linhas.push({ label, meta, realizado, ...s });
     };
     add(DATA.pog, 'POG', true);
@@ -2653,9 +2686,12 @@ async function renderAuditoriaPage() {
     if (metas.length === 0) {
       h += `<div class="def-box">Sem indicadores de meta mensal cadastrados pra ${nome}.</div>`;
     } else {
-      h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Indicador</th><th>Meta/Teto Mês</th><th>Ajustada até ontem (arred.)</th><th>Realizado</th><th style="text-align:left">Status</th></tr></thead><tbody>`;
+      h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Indicador</th><th style="text-align:left">Atualizado</th><th>Meta/Teto Mês</th><th>Ajustada (arred.)</th><th>Realizado</th><th style="text-align:left">Status</th></tr></thead><tbody>`;
       metas.slice().sort((a, b) => (b.atrasado ? 1 : 0) - (a.atrasado ? 1 : 0)).forEach(m => {
-        h += `<tr class="${m.atrasado ? 'vd-row-vermelho' : ''}"><td style="text-align:left">${m.label}</td><td>${m.meta}</td><td title="valor exato: ${m.metaAjustada.toFixed(2)}">${m.metaComparacao}</td><td>${m.realizado}</td><td style="text-align:left"><span class="${m.cls}">${m.statusTxt}</span></td></tr>`;
+        const atualizadoTxt = m.semRegistro
+          ? '<span style="color:var(--amber)">sem registro</span>'
+          : (m.diaRef === 0 ? '<span style="color:var(--amber)">nada neste mês</span>' : `dia ${m.diaRef}`);
+        h += `<tr class="${m.atrasado ? 'vd-row-vermelho' : ''}"><td style="text-align:left">${m.label}</td><td style="text-align:left">${atualizadoTxt}</td><td>${m.meta}</td><td title="valor exato: ${m.metaAjustada.toFixed(2)}">${m.metaComparacao}</td><td>${m.realizado}</td><td style="text-align:left"><span class="${m.cls}">${m.statusTxt}</span></td></tr>`;
       });
       h += `</tbody></table></div>`;
     }
@@ -2673,7 +2709,7 @@ async function renderAuditoriaPage() {
   const todosReds = Object.values(ocorrenciasPorMunicipio).flat().map(o => o.r).filter(Boolean);
   const casosMap = await ppvdBuscarCasosVD(todosReds);
 
-  const { diaHoje: diaHojeReal } = diasCorridosAteOntem();
+  const diaHojeReal = new Date().getDate();
   window.auditoriaResumo = {};
 
   let htmlCidades = '';
