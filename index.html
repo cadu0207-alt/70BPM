@@ -302,14 +302,32 @@
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span><span class="dot"></span>Base local sincronizada</span>
-      <span>Gerado em 03/09/2026 15:22</span>
+      <span id="dadosAtualizadosEm">Dados atualizados em —</span>
     </div>
   </div>
   <div class="main" id="main"></div>
 </div>
 
 <script>
-const DATA = JSON.parse((() => { const xhr = new XMLHttpRequest(); xhr.open('GET', 'data.json', false); xhr.send(null); if (xhr.status !== 200 && xhr.status !== 0) throw new Error('Falha ao carregar data.json: HTTP ' + xhr.status); return xhr.responseText; })());
+const __dataXhr = new XMLHttpRequest();
+__dataXhr.open('GET', 'data.json', false);
+__dataXhr.send(null);
+if (__dataXhr.status !== 200 && __dataXhr.status !== 0) throw new Error('Falha ao carregar data.json: HTTP ' + __dataXhr.status);
+const DATA = JSON.parse(__dataXhr.responseText);
+// "Dados atualizados em" — antes era um "Gerado em" digitado à mão no HTML (achado por
+// Eduardo em 2026-09-08: ficava parado desde a última vez que alguém lembrou de editar).
+// Agora lê o header Last-Modified da própria resposta HTTP de data.json — reflete quando
+// o arquivo de dados foi salvo de verdade, não quando o HTML foi gerado (que hoje quase
+// nunca muda, quem muda toda hora é o data.json).
+(() => {
+  const el = document.getElementById('dadosAtualizadosEm');
+  if (!el) return;
+  const lm = __dataXhr.getResponseHeader('Last-Modified');
+  if (!lm) { el.textContent = 'Dados atualizados em — (servidor não informou)'; return; }
+  const d = new Date(lm);
+  const pad = n => String(n).padStart(2, '0');
+  el.textContent = `Dados atualizados em ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+})();
 const MESES = DATA.mv.meses;
 // Mês "atual" real (0-based, Jan=0). Calculado a partir da data do navegador — antes era um
 // número fixo (8) que precisava ser trocado à mão todo mês; achado por Eduardo em 2026-09-08
