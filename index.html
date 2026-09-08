@@ -287,15 +287,6 @@
       <button class="nav-btn disabled" title="Aguardando dados (Polícia Cidadã)">Pol.Cid.Em</button>
     </div>
     <div class="nav-group">
-      <div class="nav-group-label">Policiamento Comunitário</div>
-      <button class="nav-btn" data-page="rc">Reuniões Comunitárias</button>
-      <button class="nav-btn" data-page="vcp">Visitas Comunit. Prevent.</button>
-      <button class="nav-btn" data-page="vtcv">Visitas Tranq. Vít. Crime Violento</button>
-      <button class="nav-btn" data-page="vt">Visitas Tranq. Furto</button>
-      <button class="nav-btn disabled" title="Mesmo indicador VT acima, versão completa: aguardando export próprio (A20.028 furto / A20.001 crimes violentos) pra virar série histórica com meta, igual aos indicadores da esquerda. Até lá, 'Visitas Tranq. Furto' continua sendo o snapshot de julho já disponível.">VT &middot; Série Completa (em construção)</button>
-      <button class="nav-btn" data-page="mrpp">Manut. Rede Proteção</button>
-    </div>
-    <div class="nav-group">
       <div class="nav-group-label">Guias e Documentos</div>
       <button class="nav-btn" data-page="guia_comandantes">Guia de Comandantes</button>
       <button class="nav-btn" data-page="apresentacao_gdo">Apresentação GDO</button>
@@ -553,7 +544,7 @@ function renderHome() {
     </div>
     <div class="ap-cta-arrow">&#8594;</div>
   </div>`;
-  html += `<div class="updated">IMV/CVPe/CVPa/Furto/Armas/POG/PPAG/IDOB/ITVD/Esforço-Furto/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro atualizados até ${DATA.saque_seguro.meses[Math.min(MES_ATUAL_IDX, DATA.saque_seguro.meses.length-1)]}/2026 (ITVD e Esforço-Furto automatizados direto do TODOS OS B.O desde 28/08/2026). RC/VCP/VTCV/VT/MRPP têm só o snapshot de julho/2026 importado do Power BI oficial (sem série histórica ainda). Pol.Cid, IDOCA completo (falta vítimas MV/CVPe/CVPa do Cavalo de Aço) ainda aguardando export específico.</div>`;
+  html += `<div class="updated">IMV/CVPe/CVPa/Furto/Armas/POG/PPAG/IDOB/ITVD/Esforço-Furto/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro atualizados até ${DATA.saque_seguro.meses[Math.min(MES_ATUAL_IDX, DATA.saque_seguro.meses.length-1)]}/2026 (ITVD e Esforço-Furto automatizados direto do TODOS OS B.O desde 28/08/2026). Pol.Cid, IDOCA completo (falta vítimas MV/CVPe/CVPa do Cavalo de Aço) ainda aguardando export específico.</div>`;
   html += `<div class="kpi-grid">`;
   html += kpiCard('Mortes Violentas (Acum)', mvPct);
   html += kpiCard('CVpe Acum', cvpePct);
@@ -661,18 +652,6 @@ function renderRankingTable(modo) {
   function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 100; }
 
-  // pontos por posição no ranking importado do Power BI (sem meta numérica, só ranking 1º-13º)
-  function rankPointsMap(key) {
-    const map = {};
-    DATA[key].rows.forEach((r, i) => {
-      const pontos = i < 4 ? 2 : (i < 9 ? 1 : 0);
-      map[normKey(r.nome)] = pontos;
-    });
-    return map;
-  }
-  const rankRc = rankPointsMap('rc'), rankVcp = rankPointsMap('vcp'), rankVtcv = rankPointsMap('vtcv');
-  const rankVt = rankPointsMap('vt'), rankMrpp = rankPointsMap('mrpp');
-
   const ranking = MUNICIPIOS_CANON.map(nomeBonito => {
     const key = normKey(nomeBonito);
     const mv = DATA.mv.municipios[idxMv[key]];
@@ -709,13 +688,11 @@ function renderRankingTable(modo) {
     const itvdM = DATA.itvd.municipios[idxItvd[key]];
     const pItvd = statusToPoints(statusQualidade(calcItvdLocal(itvdM['trafico'+sufixo][miItvd], itvdM['vit'+sufixo][miItvd])));
 
-    const pRc = rankRc[key] ?? 0, pVcp = rankVcp[key] ?? 0, pVtcv = rankVtcv[key] ?? 0, pVt = rankVt[key] ?? 0, pMrpp = rankMrpp[key] ?? 0;
-
     const saque = DATA.saque_seguro.municipios[idxSaque[key]];
     const pSaque = statusToPoints(statusPiso(saque['realizado'+sufixo][miSaque], saque['meta'+sufixo][miSaque]));
 
-    const total = pMv+pCvpe+pCvpa+pPog+pY1+pY2+pY3+pCav+pRolez+pArmas+pPad+pIdob+pItvd+pRc+pVcp+pVtcv+pVt+pMrpp+pSaque;
-    return { nome: nomeBonito, pMv, pCvpe, pCvpa, pPog, pY1, pY2, pY3, pCav, pRolez, pArmas, pPad, pIdob, pItvd, pRc, pVcp, pVtcv, pVt, pMrpp, pSaque, total };
+    const total = pMv+pCvpe+pCvpa+pPog+pY1+pY2+pY3+pCav+pRolez+pArmas+pPad+pIdob+pItvd+pSaque;
+    return { nome: nomeBonito, pMv, pCvpe, pCvpa, pPog, pY1, pY2, pY3, pCav, pRolez, pArmas, pPad, pIdob, pItvd, pSaque, total };
   });
 
   ranking.sort((a,b) => b.total - a.total);
@@ -728,7 +705,7 @@ function renderRankingTable(modo) {
   const detalheLabels = [
     ['pMv','IMV'],['pCvpe','CVPe'],['pCvpa','CVPa'],['pArmas','Armas'],['pPog','POG'],
     ['pY1','PPAG Esc.'],['pY2','PPAG VD'],['pY3','PPAG Rural'],['pCav','Cav.Aço'],['pRolez','Rolez.'],
-    ['pPad','Pad.Esc.'],['pSaque','Saque Seg.'],['pIdob','IDOB'],['pItvd','ITVD'],['pRc','RC'],['pVcp','VCP'],['pVtcv','VTCV'],['pVt','VT'],['pMrpp','MRPP'],
+    ['pPad','Pad.Esc.'],['pSaque','Saque Seg.'],['pIdob','IDOB'],['pItvd','ITVD'],
   ];
 
   let rows = '';
@@ -753,7 +730,7 @@ function renderRankingTable(modo) {
   let html = `<div class="chart-box" style="margin-top:4px">
     <h3>Ranking Geral por Município &middot; ${tituloPeriodo}</h3>
     <div>${rows}</div>
-    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Barra = pontuação total do município (passe o mouse pra ver o detalhe por indicador). IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Indicadores com meta numérica (Armas/POG/PPAG/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro/IDOB/ITVD): 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). RC/VCP/VTCV/VT/MRPP ainda não têm meta definida (só o snapshot de julho importado do Power BI) — pontuados pela posição no ranking daquele indicador: 2 pts para o top 4, 1 pt para o meio (5º-9º), 0 pts para os 4 últimos. 3 primeiros em verde, 3 últimos em vermelho.</div>
+    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Barra = pontuação total do município (passe o mouse pra ver o detalhe por indicador). IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Indicadores com meta numérica (Armas/POG/PPAG/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro/IDOB/ITVD): 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). 3 primeiros em verde, 3 últimos em vermelho.</div>
   </div>`;
   return html;
 }
@@ -2030,36 +2007,6 @@ function fmtBr(n, dec) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
-function renderImportedRankingPage(key, title) {
-  const d = DATA[key];
-  const hasAbs = 'abs' in d.rows[0];
-  let html = `<div class="page-title">${title}</div>`;
-  html += freshBadge(d.periodo, {snapshot:true});
-  html += `<div class="def-box"><b>${d.periodo}</b><br>Tabela importada diretamente do painel Power BI oficial (ainda só temos o snapshot de julho/2026 — sem meta definida, ranking colorido do 1º ao 13º lugar). Só avança com um print novo — nenhum export/arquivo atualiza esta página sozinho.</div>`;
-  html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th>`;
-  d.extra_cols.forEach(c => html += `<th>${c}</th>`);
-  html += `</tr></thead><tbody>`;
-  d.rows.forEach((r, i) => {
-    const c = rankColor(i, d.rows.length);
-    html += `<tr><td style="background:${c};color:#0b0f14;font-weight:700">${i+1}</td><td style="text-align:left">${r.nome}</td><td>${fmtBr(r.pop,0)}</td>`;
-    if (hasAbs) {
-      html += `<td>${r.abs}</td><td>${fmtBr(r.rate,3)}</td>`;
-    } else {
-      html += `<td>${r.visitas}</td><td>${r.base}</td><td>${fmtBr(r.rate,3)}</td>`;
-    }
-    html += `</tr>`;
-  });
-  const t = d.total;
-  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(t.pop,0)}</td>`;
-  if (hasAbs) {
-    html += `<td>${t.abs}</td><td>${fmtBr(t.rate,3)}</td>`;
-  } else {
-    html += `<td>${t.visitas}</td><td>${t.base}</td><td>${fmtBr(t.rate,3)}</td>`;
-  }
-  html += `</tr></tbody></table>`;
-  document.getElementById('main').innerHTML = html;
-}
-
 function renderGuiaComandantesPage() {
   let html = `<div class="page-title">Guia de Comandantes</div>`;
   html += `<div class="def-box">Síntese de diretrizes, emprego estratégico e lançamento de registros (REDS/BOS/RAT) do 70º BPM. Baseado no "Guia Operacional e Indicadores 70º BPM" e no Memorando Técnico 002.2/2025-DOP. Três pilares: <b>Prevenção</b>, <b>Proximidade</b> e <b>Repressão Qualificada</b>. O sucesso das metas da UEOP depende da execução exata e do registro correto no sistema.</div>`;
@@ -2279,17 +2226,6 @@ function issuesForMunicipio(nome, mi) {
     }
   }
 
-  [['vcp','VCP (Interação)'], ['mrpp','MRPP'], ['rc','RC (Reuniões)'], ['vtcv','VTCV'], ['vt','VT (Furto)']].forEach(([key, label]) => {
-    const d = DATA[key];
-    if (!d || !d.rows) return;
-    const n = d.rows.length;
-    const posicao = d.rows.findIndex(r => normKey(r.nome) === nk) + 1;
-    if (posicao > 0 && posicao > n - 4) {
-      const detalhe = posicao === n ? 'Ranking (última posição)' : `Ranking ${posicao}º/${n}`;
-      issues.push({ indicador: label, severidade: 'ATENÇÃO', ordem: 3, detalhe });
-    }
-  });
-
   {
     const idx = findMuniIdx(DATA.idob.municipios, nome);
     if (idx >= 0) {
@@ -2504,17 +2440,6 @@ const CHECKLIST_GRUPOS = [
       { id: 'exp_rolezinho', label: 'Rolezinho — natureza mista (Y01003 e outras), Eduardo confirma manualmente por município' },
       { id: 'exp_padesc', label: 'Padrinhos da Escola — REDS Natureza=A21.007 E Histórico="PADRINHOS DA ESCOLA"' },
       { id: 'exp_saque', label: 'Saque Seguro — REDS Natureza=A21.007 E Histórico="OPERAÇÃO SAQUE SEGURO"' },
-    ],
-  },
-  {
-    titulo: 'Prints do Power BI (sem série histórica — só avançam com print novo)',
-    nota: 'Não existe export/arquivo que atualize esses sozinhos. Pedir print atualizado do painel oficial.',
-    itens: [
-      { id: 'snap_rc', label: 'Reuniões Comunitárias (RC) — print do ranking por município' },
-      { id: 'snap_vcp', label: 'Visitas Comunitárias Preventivas (VCP) — print do ranking' },
-      { id: 'snap_vtcv', label: 'Visitas Tranq. Vítimas de Crime Violento (VTCV) — print do ranking' },
-      { id: 'snap_vt', label: 'Visitas Tranq. Furto (VT) — print do ranking' },
-      { id: 'snap_mrpp', label: 'Manutenção da Rede de Proteção Preventiva (MRPP) — print do ranking' },
     ],
   },
   {
@@ -2961,11 +2886,6 @@ const pages = {
   guia_comandantes: renderGuiaComandantesPage,
   apresentacao_gdo: renderApresentacaoGdoPage,
   ementario: renderEmentarioPage,
-  rc: () => renderImportedRankingPage('rc', 'Reuniões Comunitárias'),
-  vcp: () => renderImportedRankingPage('vcp', 'Visitas Comunitárias Preventivas'),
-  vtcv: () => renderImportedRankingPage('vtcv', 'Visitas Tranquilizadoras a Vítimas de Crime Violento'),
-  vt: () => renderImportedRankingPage('vt', 'Visitas Tranquilizadoras (Furto)'),
-  mrpp: () => renderImportedRankingPage('mrpp', 'Manutenção da Rede de Proteção Preventiva'),
   itvd: renderITVDPage,
   padesc: () => renderIndicatorPage('padesc', 'Padrinhos da Escola', null, null, true, true),
   saque_seguro: () => renderIndicatorPage('saque_seguro', 'Saque Seguro', null, null, true, true),
