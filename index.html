@@ -2388,7 +2388,12 @@ function renderApresentacaoGdoPage() {
   const cias = Object.keys(CIA_MAP);
   let ciaAtiva = cias[0];
   html += `<div style="margin-top:34px;padding-top:24px;border-top:1px solid var(--line)">`;
-  html += `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:10px">GDO Jan-${mesesMv[miAnalise]}/2026</div>`;
+  html += `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+    <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="ciaAnaliseLabel">GDO Jan-${mesesMv[miAnalise]}/2026</div>
+    <select class="month-select" id="ciaMonthSel" style="width:auto">
+      ${mesesMv.slice(0, miAnalise + 1).map((m, i) => `<option value="${i}" ${i === miAnalise ? 'selected' : ''}>Acumulado até ${m}</option>`).join('')}
+    </select>
+  </div>`;
   html += `<div class="nav-scroll" style="display:flex;gap:8px;margin-bottom:6px" id="ciaTabs">`;
   cias.forEach((c, i) => {
     html += `<button class="nav-btn cia-tab${i===0?' active':''}" data-cia="${c}" style="width:auto;padding:8px 18px">${c}</button>`;
@@ -2405,8 +2410,15 @@ function renderApresentacaoGdoPage() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#ciaTabs .cia-tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      document.getElementById('ciaBlocoContainer').innerHTML = renderAnaliseCiaBloco(btn.dataset.cia, miAnalise);
+      ciaAtiva = btn.dataset.cia;
+      const miSel = parseInt(document.getElementById('ciaMonthSel').value);
+      document.getElementById('ciaBlocoContainer').innerHTML = renderAnaliseCiaBloco(ciaAtiva, miSel);
     });
+  });
+  document.getElementById('ciaMonthSel').addEventListener('change', (e) => {
+    const miSel = parseInt(e.target.value);
+    document.getElementById('ciaAnaliseLabel').textContent = `GDO Jan-${mesesMv[miSel]}/2026`;
+    document.getElementById('ciaBlocoContainer').innerHTML = renderAnaliseCiaBloco(ciaAtiva, miSel);
   });
 }
 
