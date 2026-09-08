@@ -1689,7 +1689,7 @@ function renderViolenciaDomesticaPage() {
   const ranking = municipiosData.slice().sort((a, b) => b.taxa_100k - a.taxa_100k);
   html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th><th>Endereços Reincid.</th></tr></thead><tbody>`;
   ranking.forEach((m, i) => {
-    const c = rankColor(i, ranking.length);
+    const c = rankColor(i, ranking.length, true);
     html += `<tr><td style="background:${c};color:#0b0f14;font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td><td>${m.enderecos_reincidentes > 0 ? ('⚠ ' + m.enderecos_reincidentes) : '—'}</td></tr>`;
   });
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td><td>${totalEnderecos}</td></tr>`;
@@ -1828,7 +1828,7 @@ function renderCrimesViolentosPage() {
   const ranking = municipiosData.slice().sort((a, b) => b.taxa_100k - a.taxa_100k);
   html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th></tr></thead><tbody>`;
   ranking.forEach((m, i) => {
-    const c = rankColor(i, ranking.length);
+    const c = rankColor(i, ranking.length, true);
     html += `<tr><td style="background:${c};color:#0b0f14;font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td></tr>`;
   });
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td></tr>`;
@@ -1924,7 +1924,7 @@ function renderReincidenciaPage() {
   const ranking = municipiosData.slice().sort((a, b) => b.enderecos_reincidentes - a.enderecos_reincidentes);
   html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Endereços Reincidentes</th></tr></thead><tbody>`;
   ranking.forEach((m, i) => {
-    const c = rankColor(i, ranking.length);
+    const c = rankColor(i, ranking.length, true);
     html += `<tr><td style="background:${c};color:#0b0f14;font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.enderecos_reincidentes}</td></tr>`;
   });
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(municipiosData.reduce((s,m)=>s+(m.pop||0),0), 0)}</td><td>${totalGeral}</td></tr>`;
@@ -1986,9 +1986,14 @@ function renderReincidenciaPage() {
   });
 }
 
-function rankColor(idx, total) {
+// invertido=true: pra rankings ordenados do PIOR pro melhor (ex: taxa de violência, onde
+// posição 1 = maior índice = pior). Sem isso, posição 1 saía sempre verde, mesmo sendo o
+// município com a maior taxa (achado por Eduardo em 2026-09-08, ranking de Violência
+// Doméstica mostrando Itinga verde na posição 1 apesar de ter o maior índice).
+function rankColor(idx, total, invertido = false) {
   const t = total > 1 ? idx / (total - 1) : 0;
-  const hue = 120 - 120 * t; // 120=verde ... 0=vermelho
+  const tAjustado = invertido ? (1 - t) : t;
+  const hue = 120 - 120 * tAjustado; // 120=verde ... 0=vermelho
   return `hsl(${hue}, 65%, 42%)`;
 }
 function fmtBr(n, dec) {
