@@ -344,6 +344,14 @@ function ultimoMesGlobal() {
 // a se comparar contra dezembro, mostrando badge de atraso falso em tudo que só chega até o mês real.
 const MES_MAIS_RECENTE_IDX = Math.min(ultimoMesGlobal(), MES_ATUAL_IDX);
 
+// Confere se o indicador tem QUALQUER lançamento != 0 em algum município naquele mês — sem
+// isso o freshBadge só olhava o tamanho do array de meses (quase sempre pré-cadastrado até
+// Dezembro) e dizia "Atualizado até Setembro" mesmo quando setembro ainda estava zerado em
+// tudo, só porque ninguém tinha rodado aquele export ainda. Achado por Eduardo em 2026-09-04.
+function indicadorSemDadoNoMes(d, monthIdx) {
+  if (!d || !Array.isArray(d.municipios)) return false;
+  return d.municipios.every(m => !Array.isArray(m.realizado_mes) || !m.realizado_mes[monthIdx]);
+}
 function freshBadge(ultimoMes, opts = {}) {
   const idx = MESES.indexOf(ultimoMes);
   const atraso = MES_MAIS_RECENTE_IDX - idx;
@@ -357,6 +365,9 @@ function freshBadge(ultimoMes, opts = {}) {
   } else if (atraso === 1) {
     cls = 'fresh-warn';
     texto = `Atualizado até ${ultimoMes} — 1 mês atrás do painel`;
+  } else if (opts.semDadoReal) {
+    cls = 'fresh-warn';
+    texto = `${ultimoMes} cadastrado, mas nenhum município tem lançamento ainda — confira se a rodada de atualização já passou por aqui (pode ser só início de mês)`;
   }
   return `<div class="fresh-badge ${cls}">${texto}</div>`;
 }
@@ -861,6 +872,17 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     const sign = v > 0 ? '+' : '';
     return `<span class="${cls}">${sign}${v.toFixed(1)}%</span>`;
   }
+  // Saldo: quanto falta (ruim) ou quanto passou (bom) da meta/teto acumulado. Corrigido em
+  // 2026-09-04 (achado por Eduardo em Saque Seguro) — antes calculava sempre meta-real, o que
+  // só faz sentido pra indicador de teto (mv/cvpe/cvpa/furto: positivo = folga antes de
+  // estourar). Pra indicador de meta (armas/padesc/saque_seguro), isso invertia o sinal —
+  // exceder a meta aparecia como saldo negativo sem cor, dando a entender que estava atrasado.
+  function fmtSaldo(realAcum, metaAcum) {
+    const saldo = higherIsBetter ? (realAcum - metaAcum) : (metaAcum - realAcum);
+    const cls = saldo >= 0 ? 'neg' : 'pos'; // 'neg' = verde, 'pos' = vermelho (mesma convenção do painel)
+    const sign = saldo > 0 ? '+' : '';
+    return `<span class="${cls}">${sign}${saldo}</span>`;
+  }
 
   function table(mi) {
     let rows = '';
@@ -870,7 +892,6 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
       const realAcum = m.realizado_acum[mi];
       const metaAcum = m.meta_acum[mi];
       const pctAcum = pct(realAcum, metaAcum);
-      const saldo = metaAcum - realAcum;
       rows += `<tr>
         <td style="text-align:left">${m.nome}</td>
         <td>${realMes}</td>
@@ -878,7 +899,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
         <td class="col-divider">${realAcum}</td>
         <td>${metaAcum}</td>
         <td>${fmtPctPolarity(pctAcum)}</td>
-        <td>${saldo}</td>
+        <td>${fmtSaldo(realAcum, metaAcum)}</td>
       </tr>`;
     });
     const totRealAcum = d.total_acum[mi], totMetaAcum = d.total_meta_acum[mi];
@@ -890,13 +911,13 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
         <td class="col-divider">${totRealAcum}</td>
         <td>${totMetaAcum}</td>
         <td>${fmtPctPolarity(totPct)}</td>
-        <td>${totMetaAcum-totRealAcum}</td>
+        <td>${fmtSaldo(totRealAcum, totMetaAcum)}</td>
       </tr>`;
     return rows;
   }
 
   let html = `<div class="page-title">${title}</div>`;
-  html += freshBadge(mesesLocais[monthIdx]);
+  html += freshBadge(mesesLocais[monthIdx], { semDadoReal: indicadorSemDadoNoMes(d, monthIdx) });
   html += sigopButton(key);
   if (DEFS[key]) html += `<div class="def-box">${DEFS[key]}</div>`;
   if (showDailyBanner) {
@@ -945,6 +966,15 @@ function pogCell(v) {
   const c = pogBandColor(v);
   return `<td style="background:${c.bg};color:${c.fg};font-weight:600">${v.toFixed(2)}%</td>`;
 }
+// Saldo do POG: realizado - meta (positivo = já passou da meta = bom). Direção já estava
+// certa aqui, só faltava a cor (achado por Eduardo em 2026-09-04, mesmo problema do Saque
+// Seguro, onde a direção TAMBÉM estava invertida — corrigido em renderIndicatorPage).
+function fmtSaldoPog(realAcum, metaAcum) {
+  const saldo = realAcum - metaAcum;
+  const cls = saldo >= 0 ? 'neg' : 'pos';
+  const sign = saldo > 0 ? '+' : '';
+  return `<span class="${cls}">${sign}${saldo}</span>`;
+}
 
 function renderPOGPage() {
   const d = DATA.pog;
@@ -960,14 +990,14 @@ function renderPOGPage() {
       const dAc = mAc ? (rAc/mAc*100) : 100;
       html += `<tr><td style="text-align:left">${m.nome}</td>
         <td>${mMes}</td><td>${rMes}</td>${pogCell(dMes)}
-        <td class="col-divider">${mAc}</td><td>${rAc}</td>${pogCell(dAc)}<td>${rAc-mAc}</td>
+        <td class="col-divider">${mAc}</td><td>${rAc}</td>${pogCell(dAc)}<td>${fmtSaldoPog(rAc, mAc)}</td>
       </tr>`;
     });
     const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
     const tDMes = tMMes? tRMes/tMMes*100:100, tDAc = tMAc? tRAc/tMAc*100:100;
     html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
       <td>${tMMes}</td><td>${tRMes}</td>${pogCell(tDMes)}
-      <td class="col-divider">${tMAc}</td><td>${tRAc}</td>${pogCell(tDAc)}<td>${tRAc-tMAc}</td>
+      <td class="col-divider">${tMAc}</td><td>${tRAc}</td>${pogCell(tDAc)}<td>${fmtSaldoPog(tRAc, tMAc)}</td>
     </tr>`;
     return html;
   }
@@ -1041,18 +1071,20 @@ function renderPPAGPage() {
       const realAcum = m.realizado_acum[mi], metaAcum = m.meta_acum[mi];
       const pctAcum = metaAcum ? (realAcum/metaAcum*100) : 100;
       const cls = pctAcum>=100?'neg':'pos';
+      const saldo = realAcum - metaAcum; // positivo = já passou da meta = bom (corrigido em 2026-09-04, estava metaAcum-realAcum e sem cor)
       html += `<tr><td style="text-align:left">${m.nome}</td>
         <td>${realMes}</td><td>${metaMes}</td>
         <td class="col-divider">${realAcum}</td><td>${metaAcum}</td>
-        <td><span class="${cls}">${pctAcum.toFixed(0)}%</span></td><td>${metaAcum-realAcum}</td>
+        <td><span class="${cls}">${pctAcum.toFixed(0)}%</span></td><td><span class="${saldo>=0?'neg':'pos'}">${saldo>0?'+':''}${saldo}</span></td>
       </tr>`;
     });
     const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
     const tPct = tMAc ? (tRAc/tMAc*100) : 100;
+    const tSaldo = tRAc - tMAc;
     html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
       <td>${tRMes}</td><td>${tMMes}</td>
       <td class="col-divider">${tRAc}</td><td>${tMAc}</td>
-      <td><span class="${tPct>=100?'neg':'pos'}">${tPct.toFixed(0)}%</span></td><td>${tMAc-tRAc}</td>
+      <td><span class="${tPct>=100?'neg':'pos'}">${tPct.toFixed(0)}%</span></td><td><span class="${tSaldo>=0?'neg':'pos'}">${tSaldo>0?'+':''}${tSaldo}</span></td>
     </tr>`;
     return html;
   }
@@ -2348,9 +2380,11 @@ function renderApresentacaoGdoPage() {
     Y07014 - Ação/Operação em Zonal Rural;
   </div>`;
 
+  // Antes tinha "Julho" fixo no código (não avançava sozinho — achado por Eduardo em
+  // 2026-09-04, mesma família do bug do selo "Atualizado até X"). Usa o mês atual real,
+  // igual ao resto do painel.
   const mesesMv = DATA.mv.meses || MESES;
-  let miAnalise = mesesMv.indexOf('Julho');
-  if (miAnalise < 0) miAnalise = Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length - 1);
+  const miAnalise = Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length - 1);
   const cias = Object.keys(CIA_MAP);
   let ciaAtiva = cias[0];
   html += `<div style="margin-top:34px;padding-top:24px;border-top:1px solid var(--line)">`;
@@ -2405,6 +2439,9 @@ const CHECKLIST_GRUPOS = [
       { id: 'bo_furto', label: 'Recalcular Furto em Zona Rural (flag IFZR) a partir desse arquivo', sigop: 'furto' },
       { id: 'bo_esforco', label: 'Recalcular Esforço-Furto / Prisões (natureza C01155 geral) a partir desse arquivo', sigop: 'esforco_furto' },
       { id: 'bo_preditiva', label: 'Recalcular Análise Preditiva de Crimes a partir desse arquivo' },
+      { id: 'bo_vd', label: 'Recalcular Violência Doméstica a partir desse arquivo (universo U33004)' },
+      { id: 'bo_crimesviolentos', label: 'Recalcular Crimes Violentos a partir desse arquivo (união IMV/CVPe/CVPa)' },
+      { id: 'bo_reincidencia', label: '⚠ Recalcular Reincidência de Endereço a partir desse arquivo — não tinha item aqui até 2026-09-04 e ficou pra trás por isso' },
       { id: 'bo_detalhados', label: '⚠ Recalcular junto os 3 "Detalhado" (MV, CVPe, CVPa por natureza/fração) — mesmo arquivo, mas é um passo à parte que já ficou pra trás antes' },
     ],
   },
