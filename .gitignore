@@ -1,0 +1,5 @@
+# Arquivos de trabalho do pipeline de atualização de dados — nunca devem ir pro repositório
+# (achado em 2026-09-08: foram parar aqui sem querer junto de uma atualização real de dados)
+data.json.bak_*
+data.json.candidate
+data.json.check
