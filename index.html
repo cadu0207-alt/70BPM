@@ -2999,7 +2999,10 @@ function highlightMunRows() {
 let currentPageKey = 'home';
 function goToPage(key) {
   currentPageKey = key;
-  try { sessionStorage.setItem('paginaAtualPPVD', key); } catch (e) {}
+  try {
+    sessionStorage.setItem('paginaAtualPPVD', key);
+    sessionStorage.removeItem('ppvdCasoAbertoReds'); // navegar pelo menu = saída deliberada de um caso aberto
+  } catch (e) {}
   try {
     pages[key]();
   } catch (e) {
@@ -3359,13 +3362,35 @@ async function ppvdInit() {
   await ppvdOnSession(session);
   await ppvdCarregarMilitares();
   ppvdSupa.auth.onAuthStateChange(async (event, session) => {
-    await ppvdOnSession(session);
+    await ppvdOnSession(session, event);
     ppvdMilitaresCache = null;
     await ppvdCarregarMilitares();
   });
 }
 
-async function ppvdOnSession(session) {
+// Se a aba recarregou de verdade (Chrome descartou em segundo plano por memória, ou F5) enquanto
+// um caso estava aberto, reabre ele sozinho em vez de devolver a lista/Home — só tenta uma vez,
+// na primeira resolução de sessão da aba (achado por Eduardo em 2026-09-08).
+let ppvdCaseRestoreTentado = false;
+async function ppvdTentarRestaurarCaso() {
+  if (ppvdCaseRestoreTentado) return;
+  ppvdCaseRestoreTentado = true;
+  let redsAberto = null;
+  try { redsAberto = sessionStorage.getItem('ppvdCasoAbertoReds'); } catch (e) {}
+  if (redsAberto && ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) {
+    await ppvdAbrirCaso(redsAberto);
+  }
+}
+
+async function ppvdOnSession(session, event) {
+  // TOKEN_REFRESHED dispara toda vez que a aba volta a ficar visível (o Supabase reconfere o
+  // token pra manter a sessão válida) — não é login nem logout de verdade. Sem esse filtro,
+  // voltar de outra aba (ex.: ir ler o REDS/BO e voltar) re-renderizava a página de Violência
+  // Doméstica/Auditoria do zero, derrubando quem estava com um caso aberto no meio do
+  // preenchimento do GUT. Achado por Eduardo em 2026-09-08. Só re-renderiza quando algo
+  // realmente mudou: login, logout, troca de usuário, ou aprovação de cadastro.
+  const userIdAntes = ppvdUser ? ppvdUser.id : null;
+  const aprovadoAntes = ppvdPerfil ? ppvdPerfil.aprovado : null;
   ppvdUser = session ? session.user : null;
   ppvdPerfil = null;
   if (ppvdUser) {
@@ -3373,6 +3398,10 @@ async function ppvdOnSession(session) {
     ppvdPerfil = data || null;
   }
   ppvdRenderAuthWidget();
+  await ppvdTentarRestaurarCaso();
+  const identidadeIgual = userIdAntes === (ppvdUser ? ppvdUser.id : null);
+  const aprovacaoIgual = aprovadoAntes === (ppvdPerfil ? ppvdPerfil.aprovado : null);
+  if (event === 'TOKEN_REFRESHED' && identidadeIgual && aprovacaoIgual) return;
   if (ppvdUser && !ppvdPerfil) {
     ppvdRenderCadastroForm();
   } else if (currentPageKey === 'violencia_domestica' && pages.violencia_domestica) {
@@ -3546,6 +3575,10 @@ async function ppvdAbrirCaso(redsNumero) {
 
   const dadosBase = (window.ppvdOcorrenciaLookup || {})[redsNumero] || {};
   document.getElementById('main').innerHTML = `<div class="page-title">Carregando caso…</div>`;
+  // Lembra qual caso está aberto — se a aba recarregar (Chrome descartando em segundo plano,
+  // por memória) enquanto o comandante estava com o caso aberto, reabre sozinho em vez de
+  // devolver a lista/Home. Achado por Eduardo em 2026-09-08.
+  try { sessionStorage.setItem('ppvdCasoAbertoReds', redsNumero); } catch (e) {}
 
   let { data: caso, error } = await ppvdSupa.from('ppvd_casos').select('*').eq('reds_numero', redsNumero).maybeSingle();
   if (error) { document.getElementById('main').innerHTML = `<div class="def-box">Erro ao consultar caso: ${error.message}</div>`; return; }
