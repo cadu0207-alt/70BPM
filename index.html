@@ -2579,6 +2579,13 @@ async function renderAuditoriaPage() {
   const idxAtual = Math.min(MES_ATUAL_IDX, DATA.mv.meses.length - 1);
   const mesNomeAtual = DATA.mv.meses[idxAtual];
 
+  // Editor da frase pré-pronta do lembrete de WhatsApp — visível só pro Thomaz
+  // (seuthomaz@gmail.com), a pedido de Eduardo em 2026-09-09. Fica salvo só no
+  // navegador dele (localStorage), não afeta o texto que os outros militares veem.
+  if (ppvdUser && ppvdUser.email === 'seuthomaz@gmail.com') {
+    html += ppvdTemplateLembreteEditorHtml();
+  }
+
   html += `<div id="auditoriaBody"></div>`;
   document.getElementById('main').innerHTML = html;
   const body = document.getElementById('auditoriaBody');
@@ -2768,6 +2775,50 @@ async function ppvdSalvarResponsavelAuditoria(muniIdx) {
   goToPage('auditoria');
 }
 
+// Frase pré-pronta do lembrete de WhatsApp — personalizável só pelo Thomaz (seuthomaz@gmail.com),
+// salva localmente (localStorage), a pedido de Eduardo em 2026-09-09. Placeholders disponíveis:
+// {saudacao}, {nomeMunicipio}, {diaHoje}, {linhas} (a lista de pendências, uma por linha).
+const PPVD_TEMPLATE_LEMBRETE_KEY = 'ppvdTemplateLembreteAuditoria';
+function ppvdTemplateLembretePadrao() {
+  return `{saudacao}
+
+Em auditoria do painel do 70º BPM, foram verificadas as seguintes pendências em {nomeMunicipio} (posição de hoje, dia {diaHoje}):
+
+{linhas}
+
+Favor regularizar assim que possível e, se já resolvido, atualizar no sistema. Qualquer dúvida, à disposição.`;
+}
+function ppvdObterTemplateLembrete() {
+  try {
+    const salvo = localStorage.getItem(PPVD_TEMPLATE_LEMBRETE_KEY);
+    if (salvo) return salvo;
+  } catch (e) {}
+  return ppvdTemplateLembretePadrao();
+}
+function ppvdTemplateLembreteEditorHtml() {
+  const atual = ppvdObterTemplateLembrete();
+  return `<div class="ppvd-card" style="margin-bottom:14px">
+    <div style="font-weight:600;margin-bottom:6px">✏️ Frase pré-pronta do lembrete (visível só pra você)</div>
+    <div class="def-box" style="margin-bottom:8px">Use os marcadores <code>{saudacao}</code>, <code>{nomeMunicipio}</code>, <code>{diaHoje}</code> e <code>{linhas}</code> (a lista de pendências) onde quiser no texto. Fica salvo só neste navegador — não muda o texto que os outros militares veem.</div>
+    <textarea id="ppvdTemplateLembreteInput" rows="7" style="width:100%;font-family:inherit;font-size:14px;padding:8px;box-sizing:border-box">${atual}</textarea>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button class="ppvd-btn" onclick="ppvdSalvarTemplateLembrete()">💾 Salvar frase</button>
+      <button class="ppvd-btn" onclick="ppvdRestaurarTemplateLembrete()">↺ Restaurar padrão</button>
+    </div>
+  </div>`;
+}
+function ppvdSalvarTemplateLembrete() {
+  const el = document.getElementById('ppvdTemplateLembreteInput');
+  if (!el) return;
+  try { localStorage.setItem(PPVD_TEMPLATE_LEMBRETE_KEY, el.value); } catch (e) {}
+  alert('Frase salva. Vale a partir do próximo lembrete que você enviar.');
+}
+function ppvdRestaurarTemplateLembrete() {
+  try { localStorage.removeItem(PPVD_TEMPLATE_LEMBRETE_KEY); } catch (e) {}
+  const el = document.getElementById('ppvdTemplateLembreteInput');
+  if (el) el.value = ppvdTemplateLembretePadrao();
+  alert('Restaurado o texto padrão.');
+}
 function ppvdMontarLembreteAuditoria(nomeMunicipio) {
   const resumo = (window.auditoriaResumo || {})[nomeMunicipio];
   if (!resumo) return null;
@@ -2784,13 +2835,11 @@ function ppvdMontarLembreteAuditoria(nomeMunicipio) {
   if (linhas.length === 0) return null;
 
   const saudacao = resp && resp.nome ? `Bom dia, ${resp.nome}!` : 'Bom dia!';
-  return `${saudacao}
-
-Em auditoria do painel do 70º BPM, foram verificadas as seguintes pendências em ${nomeMunicipio} (posição de hoje, dia ${resumo.diaHoje}):
-
-${linhas.join('\n')}
-
-Favor regularizar assim que possível e, se já resolvido, atualizar no sistema. Qualquer dúvida, à disposição.`;
+  return ppvdObterTemplateLembrete()
+    .replace(/\{saudacao\}/g, saudacao)
+    .replace(/\{nomeMunicipio\}/g, nomeMunicipio)
+    .replace(/\{diaHoje\}/g, resumo.diaHoje)
+    .replace(/\{linhas\}/g, linhas.join('\n'));
 }
 function ppvdEnviarLembreteAuditoria(nomeMunicipio) {
   const resp = ppvdSugerirResponsavel(nomeMunicipio);
