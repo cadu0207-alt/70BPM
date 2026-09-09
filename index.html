@@ -3311,13 +3311,15 @@ async function ppvdInit() {
 // na primeira resolução de sessão da aba (achado por Eduardo em 2026-09-08).
 let ppvdCaseRestoreTentado = false;
 async function ppvdTentarRestaurarCaso() {
-  if (ppvdCaseRestoreTentado) return;
+  if (ppvdCaseRestoreTentado) return false;
   ppvdCaseRestoreTentado = true;
   let redsAberto = null;
   try { redsAberto = sessionStorage.getItem('ppvdCasoAbertoReds'); } catch (e) {}
   if (redsAberto && ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) {
     await ppvdAbrirCaso(redsAberto);
+    return true;
   }
+  return false;
 }
 
 async function ppvdOnSession(session, event) {
@@ -3336,10 +3338,14 @@ async function ppvdOnSession(session, event) {
     ppvdPerfil = data || null;
   }
   ppvdRenderAuthWidget();
-  await ppvdTentarRestaurarCaso();
+  const casoRestaurado = await ppvdTentarRestaurarCaso();
   const identidadeIgual = userIdAntes === (ppvdUser ? ppvdUser.id : null);
   const aprovacaoIgual = aprovadoAntes === (ppvdPerfil ? ppvdPerfil.aprovado : null);
   if (event === 'TOKEN_REFRESHED' && identidadeIgual && aprovacaoIgual) return;
+  // Se acabou de restaurar um caso aberto (aba descartada/recarregada), não sobrescreve com a
+  // lista de novo — achado por Eduardo em 2026-09-09, o caso restaurado acima estava sendo
+  // apagado na mesma passada por este mesmo bloco de re-render.
+  if (casoRestaurado) return;
   if (ppvdUser && !ppvdPerfil) {
     ppvdRenderCadastroForm();
   } else if (currentPageKey === 'violencia_domestica' && pages.violencia_domestica) {
