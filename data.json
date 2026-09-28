@@ -839,7 +839,7 @@
       25,
       27
     ],
-    "atualizado_em": "2026-09-22"
+    "atualizado_em": "2026-09-28"
   },
   "cvpe": {
     "meses": [
@@ -1681,7 +1681,7 @@
       30,
       33
     ],
-    "atualizado_em": "2026-09-22"
+    "atualizado_em": "2026-09-28"
   },
   "cvpa": {
     "meses": [
@@ -2523,7 +2523,7 @@
       61,
       66
     ],
-    "atualizado_em": "2026-09-22"
+    "atualizado_em": "2026-09-28"
   },
   "mv_local": [
     [
@@ -3493,7 +3493,7 @@
       215,
       235
     ],
-    "atualizado_em": "2026-09-22"
+    "atualizado_em": "2026-09-28"
   },
   "furto": {
     "meses": [
@@ -4335,7 +4335,7 @@
       151,
       165
     ],
-    "atualizado_em": "2026-09-22"
+    "atualizado_em": "2026-09-28"
   },
   "furto_causa": [
     [
@@ -5255,7 +5255,7 @@
       4966,
       5399
     ],
-    "atualizado_em": "2026-09-22"
+    "atualizado_em": "2026-09-28"
   },
   "pog_bairros": [
     [
@@ -6182,7 +6182,7 @@
         435,
         474
       ],
-      "atualizado_em": "2026-09-22"
+      "atualizado_em": "2026-09-28"
     },
     "y07012": {
       "meses": [
@@ -7024,7 +7024,7 @@
         129,
         140
       ],
-      "atualizado_em": "2026-09-22"
+      "atualizado_em": "2026-09-28"
     },
     "y07014": {
       "meses": [
@@ -7866,7 +7866,7 @@
         322,
         349
       ],
-      "atualizado_em": "2026-09-22"
+      "atualizado_em": "2026-09-28"
     }
   },
   "idob": {
@@ -9493,7 +9493,7 @@
       0,
       0
     ],
-    "atualizado_em": "2026-09-24"
+    "atualizado_em": "2026-09-28"
   },
   "padesc": {
     "meses": [
@@ -11177,7 +11177,7 @@
       6,
       6
     ],
-    "atualizado_em": "2026-09-22"
+    "atualizado_em": "2026-09-28"
   },
   "vd": {
     "meses": [
@@ -12707,7 +12707,7 @@
       9,
       9
     ],
-    "atualizado_em": "2026-09-24"
+    "atualizado_em": "2026-09-28"
   },
   "rolezinho": {
     "meses": [
@@ -13549,7 +13549,7 @@
       624,
       676
     ],
-    "atualizado_em": "2026-09-24"
+    "atualizado_em": "2026-09-28"
   },
   "esforco_furto": {
     "meses": [
@@ -14390,7 +14390,8 @@
       97,
       97,
       97
-    ]
+    ],
+    "atualizado_em": "2026-09-28"
   },
   "cvpe_detalhado": {
     "periodo": "Acumulado - Janeiro a Agosto",
@@ -15653,7 +15654,7 @@
       1100,
       1200
     ],
-    "atualizado_em": "2026-09-24"
+    "atualizado_em": "2026-09-28"
   },
   "analise_preditiva": {
     "meses": [
@@ -37249,7 +37250,8 @@
           ]
         }
       ]
-    }
+    },
+    "atualizado_em": "2026-09-28"
   },
   "cavaloaco_eficacia": {
     "fonte": "entrada/TODOS OS RAT/relatorio_estatisticas_rat_1787745211237.csv",
@@ -39748,7 +39750,8 @@
         "descricao": "DESOBEDIENCIA",
         "qtd": 1
       }
-    ]
+    ],
+    "atualizado_em": "2026-09-28"
   },
   "violencia_domestica": {
     "meses": [
@@ -54434,7 +54437,8 @@
         }
       ],
       "COMERCINHO": []
-    }
+    },
+    "atualizado_em": "2026-09-28"
   },
   "crimes_violentos": {
     "meses": [
@@ -55710,7 +55714,8 @@
           "g": "alta"
         }
       ]
-    }
+    },
+    "atualizado_em": "2026-09-28"
   },
   "reincidencia": {
     "meses": [
@@ -60013,7 +60018,8 @@
           "dias_desde_ultimo": 45
         }
       ]
-    }
+    },
+    "atualizado_em": "2026-09-28"
   },
   "boemia_meta": {
     "meses": [
