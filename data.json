@@ -839,7 +839,7 @@
       25,
       27
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "cvpe": {
     "meses": [
@@ -1681,7 +1681,7 @@
       30,
       33
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "cvpa": {
     "meses": [
@@ -1828,7 +1828,7 @@
           0,
           0,
           2,
-          0,
+          1,
           0,
           0,
           0
@@ -1856,10 +1856,10 @@
           4,
           4,
           6,
-          6,
-          6,
-          6,
-          6
+          7,
+          7,
+          7,
+          7
         ],
         "meta_acum": [
           2,
@@ -2476,7 +2476,7 @@
       3,
       7,
       3,
-      0,
+      1,
       0,
       0,
       0
@@ -2504,10 +2504,10 @@
       28,
       35,
       38,
-      38,
-      38,
-      38,
-      38
+      39,
+      39,
+      39,
+      39
     ],
     "total_meta_acum": [
       6,
@@ -2523,7 +2523,7 @@
       61,
       66
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "mv_local": [
     [
@@ -2916,7 +2916,7 @@
           0,
           0,
           0,
-          0,
+          2,
           0,
           0,
           0
@@ -2944,10 +2944,10 @@
           2,
           2,
           2,
-          2,
-          2,
-          2,
-          2
+          4,
+          4,
+          4,
+          4
         ],
         "meta_acum": [
           1,
@@ -3446,7 +3446,7 @@
       10,
       21,
       14,
-      17,
+      19,
       0,
       0,
       0
@@ -3474,10 +3474,10 @@
       91,
       112,
       126,
-      143,
-      143,
-      143,
-      143
+      145,
+      145,
+      145,
+      145
     ],
     "total_meta_acum": [
       19,
@@ -3493,7 +3493,7 @@
       215,
       235
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "furto": {
     "meses": [
@@ -4335,7 +4335,7 @@
       151,
       165
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "furto_causa": [
     [
@@ -4442,7 +4442,7 @@
           31,
           30,
           30,
-          30,
+          31,
           0,
           0,
           0
@@ -4470,10 +4470,10 @@
           160,
           190,
           220,
-          250,
-          250,
-          250,
-          250
+          251,
+          251,
+          251,
+          251
         ],
         "meta_acum": [
           20,
@@ -4501,7 +4501,7 @@
           49,
           49,
           48,
-          45,
+          46,
           0,
           0,
           0
@@ -4529,10 +4529,10 @@
           570,
           619,
           667,
-          712,
-          712,
-          712,
-          712
+          713,
+          713,
+          713,
+          713
         ],
         "meta_acum": [
           151,
@@ -4678,7 +4678,7 @@
           29,
           31,
           30,
-          31,
+          30,
           0,
           0,
           0
@@ -4706,10 +4706,10 @@
           153,
           184,
           214,
-          245,
-          245,
-          245,
-          245
+          244,
+          244,
+          244,
+          244
         ],
         "meta_acum": [
           17,
@@ -4737,7 +4737,7 @@
           30,
           34,
           31,
-          30,
+          31,
           0,
           0,
           0
@@ -4765,10 +4765,10 @@
           177,
           211,
           242,
-          272,
-          272,
-          272,
-          272
+          273,
+          273,
+          273,
+          273
         ],
         "meta_acum": [
           25,
@@ -4796,7 +4796,7 @@
           39,
           41,
           44,
-          38,
+          39,
           0,
           0,
           0
@@ -4824,10 +4824,10 @@
           277,
           318,
           362,
-          400,
-          400,
-          400,
-          400
+          401,
+          401,
+          401,
+          401
         ],
         "meta_acum": [
           50,
@@ -5032,7 +5032,7 @@
           41,
           40,
           37,
-          35,
+          36,
           0,
           0,
           0
@@ -5060,10 +5060,10 @@
           286,
           326,
           363,
-          398,
-          398,
-          398,
-          398
+          399,
+          399,
+          399,
+          399
         ],
         "meta_acum": [
           52,
@@ -5091,7 +5091,7 @@
           29,
           30,
           27,
-          32,
+          31,
           0,
           0,
           0
@@ -5119,10 +5119,10 @@
           156,
           186,
           213,
-          245,
-          245,
-          245,
-          245
+          244,
+          244,
+          244,
+          244
         ],
         "meta_acum": [
           17,
@@ -5208,7 +5208,7 @@
       434,
       441,
       433,
-      425,
+      428,
       0,
       0,
       0
@@ -5236,10 +5236,10 @@
       2821,
       3262,
       3695,
-      4120,
-      4120,
-      4120,
-      4120
+      4123,
+      4123,
+      4123,
+      4123
     ],
     "total_meta_acum": [
       478,
@@ -5255,7 +5255,7 @@
       4966,
       5399
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "pog_bairros": [
     [
@@ -5428,7 +5428,7 @@
             6,
             5,
             5,
-            6,
+            5,
             0,
             0,
             0
@@ -5456,10 +5456,10 @@
             34,
             39,
             44,
-            50,
-            50,
-            50,
-            50
+            49,
+            49,
+            49,
+            49
           ],
           "meta_acum": [
             2,
@@ -5487,7 +5487,7 @@
             1,
             2,
             2,
-            1,
+            2,
             0,
             0,
             0
@@ -5515,10 +5515,10 @@
             12,
             14,
             16,
-            17,
-            17,
-            17,
-            17
+            18,
+            18,
+            18,
+            18
           ],
           "meta_acum": [
             2,
@@ -5664,7 +5664,7 @@
             3,
             3,
             3,
-            0,
+            2,
             0,
             0,
             0
@@ -5692,10 +5692,10 @@
             18,
             21,
             24,
-            24,
-            24,
-            24,
-            24
+            26,
+            26,
+            26,
+            26
           ],
           "meta_acum": [
             3,
@@ -6135,7 +6135,7 @@
         38,
         37,
         38,
-        35,
+        37,
         0,
         0,
         0
@@ -6163,10 +6163,10 @@
         240,
         277,
         315,
-        350,
-        350,
-        350,
-        350
+        352,
+        352,
+        352,
+        352
       ],
       "total_meta_acum": [
         19,
@@ -6182,7 +6182,7 @@
         435,
         474
       ],
-      "atualizado_em": "2026-09-29"
+      "atualizado_em": "2026-09-30"
     },
     "y07012": {
       "meses": [
@@ -7024,7 +7024,7 @@
         129,
         140
       ],
-      "atualizado_em": "2026-09-29"
+      "atualizado_em": "2026-09-30"
     },
     "y07014": {
       "meses": [
@@ -7643,7 +7643,7 @@
             2,
             4,
             5,
-            5,
+            7,
             0,
             0,
             0
@@ -7671,10 +7671,10 @@
             4,
             8,
             13,
-            18,
-            18,
-            18,
-            18
+            20,
+            20,
+            20,
+            20
           ],
           "meta_acum": [
             7,
@@ -7819,7 +7819,7 @@
         21,
         25,
         31,
-        29,
+        31,
         0,
         0,
         0
@@ -7847,10 +7847,10 @@
         67,
         92,
         123,
-        152,
-        152,
-        152,
-        152
+        154,
+        154,
+        154,
+        154
       ],
       "total_meta_acum": [
         35,
@@ -7866,7 +7866,7 @@
         322,
         349
       ],
-      "atualizado_em": "2026-09-29"
+      "atualizado_em": "2026-09-30"
     }
   },
   "idob": {
@@ -8011,7 +8011,7 @@
           13,
           78,
           93,
-          64,
+          65,
           0,
           0,
           0
@@ -8067,10 +8067,10 @@
           144,
           222,
           315,
-          379,
-          379,
-          379,
-          379
+          380,
+          380,
+          380,
+          380
         ],
         "mv_acum": [
           0,
@@ -8586,7 +8586,7 @@
           49,
           56,
           89,
-          47,
+          48,
           0,
           0,
           0
@@ -8642,10 +8642,10 @@
           201,
           257,
           346,
-          393,
-          393,
-          393,
-          393
+          394,
+          394,
+          394,
+          394
         ],
         "mv_acum": [
           0,
@@ -8816,7 +8816,7 @@
           5,
           22,
           19,
-          0,
+          4,
           0,
           0,
           0
@@ -8872,10 +8872,10 @@
           152,
           174,
           193,
-          193,
-          193,
-          193,
-          193
+          197,
+          197,
+          197,
+          197
         ],
         "mv_acum": [
           0,
@@ -9161,7 +9161,7 @@
           9,
           15,
           11,
-          9,
+          10,
           0,
           0,
           0
@@ -9217,10 +9217,10 @@
           75,
           90,
           101,
-          110,
-          110,
-          110,
-          110
+          111,
+          111,
+          111,
+          111
         ],
         "mv_acum": [
           0,
@@ -9390,7 +9390,7 @@
       150,
       267,
       307,
-      214,
+      221,
       0,
       0,
       0
@@ -9404,10 +9404,10 @@
       1190,
       1457,
       1764,
-      1978,
-      1978,
-      1978,
-      1978
+      1985,
+      1985,
+      1985,
+      1985
     ],
     "total_mv_acum": [
       0,
@@ -9493,7 +9493,7 @@
       0,
       0
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "padesc": {
     "meses": [
@@ -10335,7 +10335,7 @@
       3488,
       3924
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "itvd": {
     "meses": [
@@ -10718,7 +10718,7 @@
           5,
           10,
           10,
-          4,
+          5,
           0,
           0,
           0
@@ -10746,10 +10746,10 @@
           33,
           43,
           53,
-          57,
-          57,
-          57,
-          57
+          58,
+          58,
+          58,
+          58
         ],
         "vit_acum": [
           0,
@@ -11130,7 +11130,7 @@
       13,
       37,
       29,
-      22,
+      23,
       0,
       0,
       0
@@ -11144,10 +11144,10 @@
       153,
       190,
       219,
-      241,
-      241,
-      241,
-      241
+      242,
+      242,
+      242,
+      242
     ],
     "total_vit_mes": [
       1,
@@ -11177,7 +11177,7 @@
       6,
       6
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "vd": {
     "meses": [
@@ -11807,7 +11807,7 @@
           33,
           69,
           96,
-          70,
+          71,
           0,
           0,
           0
@@ -11835,10 +11835,10 @@
           126,
           195,
           291,
-          361,
-          361,
-          361,
-          361
+          362,
+          362,
+          362,
+          362
         ],
         "meta_acum": [
           15,
@@ -11984,7 +11984,7 @@
           14,
           18,
           21,
-          19,
+          20,
           0,
           0,
           0
@@ -12012,10 +12012,10 @@
           93,
           111,
           132,
-          151,
-          151,
-          151,
-          151
+          152,
+          152,
+          152,
+          152
         ],
         "meta_acum": [
           4,
@@ -12102,7 +12102,7 @@
           63,
           50,
           65,
-          38,
+          39,
           0,
           0,
           0
@@ -12130,10 +12130,10 @@
           142,
           192,
           257,
-          295,
-          295,
-          295,
-          295
+          296,
+          296,
+          296,
+          296
         ],
         "meta_acum": [
           15,
@@ -12161,7 +12161,7 @@
           28,
           25,
           24,
-          25,
+          26,
           0,
           0,
           0
@@ -12189,10 +12189,10 @@
           113,
           138,
           162,
-          187,
-          187,
-          187,
-          187
+          188,
+          188,
+          188,
+          188
         ],
         "meta_acum": [
           8,
@@ -12397,7 +12397,7 @@
           11,
           18,
           11,
-          14,
+          16,
           0,
           0,
           0
@@ -12425,10 +12425,10 @@
           57,
           75,
           86,
-          100,
-          100,
-          100,
-          100
+          102,
+          102,
+          102,
+          102
         ],
         "meta_acum": [
           4,
@@ -12514,7 +12514,7 @@
       226,
       284,
       331,
-      268,
+      274,
       0,
       0,
       0
@@ -12542,10 +12542,10 @@
       1121,
       1405,
       1736,
-      2004,
-      2004,
-      2004,
-      2004
+      2010,
+      2010,
+      2010,
+      2010
     ],
     "total_meta_acum": [
       101,
@@ -12707,7 +12707,7 @@
       9,
       9
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "rolezinho": {
     "meses": [
@@ -13549,7 +13549,7 @@
       624,
       676
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "esforco_furto": {
     "meses": [
@@ -13932,7 +13932,7 @@
           4,
           3,
           7,
-          5,
+          6,
           0,
           0,
           0
@@ -13960,10 +13960,10 @@
           44,
           47,
           54,
-          59,
-          59,
-          59,
-          59
+          60,
+          60,
+          60,
+          60
         ],
         "prisoes_acum": [
           0,
@@ -14344,7 +14344,7 @@
       30,
       52,
       41,
-      35,
+      36,
       0,
       0,
       0
@@ -14372,10 +14372,10 @@
       261,
       313,
       354,
-      389,
-      389,
-      389,
-      389
+      390,
+      390,
+      390,
+      390
     ],
     "total_prisoes_acum": [
       5,
@@ -14391,7 +14391,7 @@
       97,
       97
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "cvpe_detalhado": {
     "periodo": "Acumulado - Janeiro a Agosto",
@@ -15654,7 +15654,7 @@
       1100,
       1200
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "analise_preditiva": {
     "meses": [
@@ -15688,8 +15688,8 @@
         1190,
         1036,
         1268,
-        1336,
-        999,
+        1337,
+        1049,
         0,
         0,
         0
@@ -15703,7 +15703,7 @@
         175,
         187,
         202,
-        192,
+        199,
         0,
         0,
         0
@@ -15745,7 +15745,7 @@
         118,
         185,
         201,
-        156,
+        167,
         0,
         0,
         0
@@ -15759,7 +15759,7 @@
         71,
         62,
         72,
-        71,
+        72,
         0,
         0,
         0
@@ -15805,7 +15805,7 @@
           43,
           63,
           53,
-          39,
+          43,
           0,
           0,
           0
@@ -15819,7 +15819,7 @@
           9,
           10,
           12,
-          7,
+          8,
           0,
           0,
           0
@@ -15861,7 +15861,7 @@
           1,
           11,
           9,
-          5,
+          7,
           0,
           0,
           0
@@ -15920,7 +15920,7 @@
           275,
           312,
           331,
-          225,
+          232,
           0,
           0,
           0
@@ -15976,7 +15976,7 @@
           29,
           38,
           41,
-          26,
+          28,
           0,
           0,
           0
@@ -16265,7 +16265,7 @@
           41,
           48,
           53,
-          32,
+          35,
           0,
           0,
           0
@@ -16279,7 +16279,7 @@
           9,
           7,
           9,
-          7,
+          8,
           0,
           0,
           0
@@ -16380,7 +16380,7 @@
           36,
           45,
           48,
-          34,
+          36,
           0,
           0,
           0
@@ -16495,7 +16495,7 @@
           138,
           173,
           149,
-          144,
+          155,
           0,
           0,
           0
@@ -16509,7 +16509,7 @@
           15,
           31,
           22,
-          35,
+          36,
           0,
           0,
           0
@@ -16551,7 +16551,7 @@
           21,
           32,
           29,
-          21,
+          27,
           0,
           0,
           0
@@ -16609,8 +16609,8 @@
           78,
           74,
           89,
-          112,
-          70,
+          113,
+          73,
           0,
           0,
           0
@@ -16624,7 +16624,7 @@
           23,
           20,
           25,
-          13,
+          14,
           0,
           0,
           0
@@ -16680,7 +16680,7 @@
           8,
           11,
           11,
-          4,
+          5,
           0,
           0,
           0
@@ -16725,7 +16725,7 @@
           127,
           131,
           145,
-          86,
+          88,
           0,
           0,
           0
@@ -16840,7 +16840,7 @@
           77,
           97,
           114,
-          85,
+          91,
           0,
           0,
           0
@@ -16854,7 +16854,7 @@
           8,
           13,
           17,
-          10,
+          11,
           0,
           0,
           0
@@ -16955,7 +16955,7 @@
           123,
           166,
           135,
-          121,
+          128,
           0,
           0,
           0
@@ -16969,7 +16969,7 @@
           25,
           29,
           22,
-          24,
+          25,
           0,
           0,
           0
@@ -17011,7 +17011,7 @@
           12,
           27,
           28,
-          31,
+          32,
           0,
           0,
           0
@@ -17070,7 +17070,7 @@
           26,
           41,
           47,
-          41,
+          42,
           0,
           0,
           0
@@ -17185,7 +17185,7 @@
           38,
           41,
           81,
-          54,
+          58,
           0,
           0,
           0
@@ -17199,7 +17199,7 @@
           2,
           1,
           4,
-          10,
+          11,
           0,
           0,
           0
@@ -37251,7 +37251,7 @@
         }
       ]
     },
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "cavaloaco_eficacia": {
     "fonte": "entrada/TODOS OS RAT/relatorio_estatisticas_rat_1787745211237.csv",
@@ -37281,7 +37281,7 @@
           30,
           74,
           88,
-          64,
+          65,
           0,
           0,
           0
@@ -37295,7 +37295,7 @@
           77,
           179,
           226,
-          154,
+          156,
           0,
           0,
           0
@@ -37309,7 +37309,7 @@
           32,
           93,
           120,
-          89,
+          90,
           0,
           0,
           0
@@ -37337,7 +37337,7 @@
           347,
           712,
           909,
-          615,
+          625,
           0,
           0,
           0
@@ -37452,7 +37452,7 @@
           52,
           52,
           67,
-          40,
+          41,
           0,
           0,
           0
@@ -37466,7 +37466,7 @@
           102,
           104,
           142,
-          82,
+          84,
           0,
           0,
           0
@@ -37480,7 +37480,7 @@
           51,
           52,
           72,
-          41,
+          42,
           0,
           0,
           0
@@ -37508,7 +37508,7 @@
           540,
           553,
           718,
-          423,
+          443,
           0,
           0,
           0
@@ -37522,7 +37522,7 @@
           332,
           334,
           501,
-          219,
+          229,
           0,
           0,
           0
@@ -38478,7 +38478,7 @@
           11,
           14,
           7,
-          8,
+          9,
           0,
           0,
           0
@@ -38492,7 +38492,7 @@
           23,
           29,
           21,
-          19,
+          21,
           0,
           0,
           0
@@ -38506,7 +38506,7 @@
           11,
           14,
           7,
-          8,
+          9,
           0,
           0,
           0
@@ -38534,7 +38534,7 @@
           112,
           142,
           71,
-          94,
+          104,
           0,
           0,
           0
@@ -38548,7 +38548,7 @@
           63,
           103,
           65,
-          110,
+          120,
           0,
           0,
           0
@@ -39504,7 +39504,7 @@
         193,
         257,
         267,
-        207,
+        210,
         0,
         0,
         0
@@ -39518,7 +39518,7 @@
         423,
         582,
         627,
-        473,
+        479,
         0,
         0,
         0
@@ -39532,7 +39532,7 @@
         194,
         277,
         305,
-        234,
+        237,
         0,
         0,
         0
@@ -39560,7 +39560,7 @@
         2027,
         2620,
         2810,
-        2092,
+        2132,
         0,
         0,
         0
@@ -39574,7 +39574,7 @@
         1440,
         1825,
         1878,
-        1428,
+        1448,
         0,
         0,
         0
@@ -39751,7 +39751,7 @@
         "qtd": 1
       }
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "violencia_domestica": {
     "meses": [
@@ -39779,7 +39779,7 @@
         86,
         82,
         103,
-        88,
+        91,
         0,
         0,
         0
@@ -39826,7 +39826,7 @@
           12,
           15,
           15,
-          25,
+          26,
           0,
           0,
           0
@@ -39840,14 +39840,14 @@
           84,
           99,
           114,
-          139,
-          139,
-          139,
-          139
+          140,
+          140,
+          140,
+          140
         ],
-        "total_periodo": 139,
-        "taxa_100k": 718.197788570838,
-        "enderecos_reincidentes": 19
+        "total_periodo": 140,
+        "taxa_100k": 723.3646791360959,
+        "enderecos_reincidentes": 20
       },
       {
         "nome": "MEDINA",
@@ -40106,7 +40106,7 @@
           10,
           8,
           10,
-          12,
+          13,
           0,
           0,
           0
@@ -40120,13 +40120,13 @@
           50,
           58,
           68,
-          80,
-          80,
-          80,
-          80
+          81,
+          81,
+          81,
+          81
         ],
-        "total_periodo": 80,
-        "taxa_100k": 320.0128005120205,
+        "total_periodo": 81,
+        "taxa_100k": 324.01296051842075,
         "enderecos_reincidentes": 3
       },
       {
@@ -40141,7 +40141,7 @@
           9,
           13,
           15,
-          5,
+          6,
           0,
           0,
           0
@@ -40155,13 +40155,13 @@
           66,
           79,
           94,
-          99,
-          99,
-          99,
-          99
+          100,
+          100,
+          100,
+          100
         ],
-        "total_periodo": 99,
-        "taxa_100k": 708.053211271635,
+        "total_periodo": 100,
+        "taxa_100k": 715.2052639107424,
         "enderecos_reincidentes": 14
       },
       {
@@ -42448,6 +42448,22 @@
           "vd_homic": false
         },
         {
+          "r": "2026-044623529-001",
+          "d": "25/09/2026",
+          "m": 9,
+          "n": "Lesao Corporal",
+          "b": "ALVORADA",
+          "l": "PRIMEIRO DE MAIO",
+          "nu": "18",
+          "c": "PASSIONAL",
+          "a": false,
+          "p": true,
+          "g": "alta",
+          "vd": true,
+          "ri": false,
+          "vd_homic": false
+        },
+        {
           "r": "2026-044507965-001",
           "d": "24/09/2026",
           "m": 9,
@@ -42455,6 +42471,22 @@
           "b": "GUADALUPE",
           "l": "SIDNEY CANDIDO NASCIMENTO",
           "nu": "464",
+          "c": "PASSIONAL",
+          "a": false,
+          "p": false,
+          "g": "media",
+          "vd": true,
+          "ri": true,
+          "vd_homic": false
+        },
+        {
+          "r": "2026-044482593-001",
+          "d": "24/09/2026",
+          "m": 9,
+          "n": "Vias De Fato / Agressao",
+          "b": "CENTRO",
+          "l": "RIO BAHIA",
+          "nu": "1018",
           "c": "PASSIONAL",
           "a": false,
           "p": false,
@@ -42480,35 +42512,19 @@
           "vd_homic": false
         },
         {
-          "r": "2026-044623529-001",
-          "d": "25/09/2026",
+          "r": "2026-045013416-001",
+          "d": "28/09/2026",
           "m": 9,
-          "n": "Lesao Corporal",
-          "b": "ALVORADA",
-          "l": "PRIMEIRO DE MAIO",
-          "nu": "18",
-          "c": "PASSIONAL",
-          "a": false,
-          "p": true,
-          "g": "alta",
-          "vd": true,
-          "ri": false,
-          "vd_homic": false
-        },
-        {
-          "r": "2026-044482593-001",
-          "d": "24/09/2026",
-          "m": 9,
-          "n": "Vias De Fato / Agressao",
-          "b": "CENTRO",
-          "l": "RIO BAHIA",
-          "nu": "1018",
+          "n": "Violacao De Domicilio",
+          "b": "GUADALUPE",
+          "l": "SIDNEY CANDIDO NASCIMENTO",
+          "nu": "464",
           "c": "PASSIONAL",
           "a": false,
           "p": false,
           "g": "media",
           "vd": true,
-          "ri": false,
+          "ri": true,
           "vd_homic": false
         }
       ],
@@ -47350,22 +47366,6 @@
           "vd_homic": false
         },
         {
-          "r": "2026-044754896-001",
-          "d": "26/09/2026",
-          "m": 9,
-          "n": "Vias De Fato / Agressao",
-          "b": "RENASCENCA",
-          "l": "IRMA RITA LAJES",
-          "nu": "272",
-          "c": "ATRITO FAMILIAR",
-          "a": false,
-          "p": true,
-          "g": "media",
-          "vd": true,
-          "ri": false,
-          "vd_homic": false
-        },
-        {
           "r": "2026-044444430-001",
           "d": "24/09/2026",
           "m": 9,
@@ -47382,16 +47382,16 @@
           "vd_homic": false
         },
         {
-          "r": "2026-044128050-001",
-          "d": "22/09/2026",
+          "r": "2026-044754896-001",
+          "d": "26/09/2026",
           "m": 9,
-          "n": "Ameaca",
-          "b": "CENTRO",
-          "l": "CORONEL INACIO MURTA",
-          "nu": "196",
-          "c": "OUTRAS MOTIVACOES/CAUSAS",
+          "n": "Vias De Fato / Agressao",
+          "b": "RENASCENCA",
+          "l": "IRMA RITA LAJES",
+          "nu": "272",
+          "c": "ATRITO FAMILIAR",
           "a": false,
-          "p": false,
+          "p": true,
           "g": "media",
           "vd": true,
           "ri": false,
@@ -47406,6 +47406,22 @@
           "l": "ACI0178 - FAZENDA CONDONGA - ARACUAI",
           "nu": "0",
           "c": "PASSIONAL",
+          "a": false,
+          "p": false,
+          "g": "media",
+          "vd": true,
+          "ri": false,
+          "vd_homic": false
+        },
+        {
+          "r": "2026-044128050-001",
+          "d": "22/09/2026",
+          "m": 9,
+          "n": "Ameaca",
+          "b": "CENTRO",
+          "l": "CORONEL INACIO MURTA",
+          "nu": "196",
+          "c": "OUTRAS MOTIVACOES/CAUSAS",
           "a": false,
           "p": false,
           "g": "media",
@@ -50624,6 +50640,22 @@
           "vd_homic": false
         },
         {
+          "r": "2026-044976453-001",
+          "d": "23/09/2026",
+          "m": 9,
+          "n": "Atend. Denuncia Infracoes Contra Mulher(Violencia Domestica)",
+          "b": "ARACAJI DE MINAS",
+          "l": "GRAFITE",
+          "nu": "170",
+          "c": "ATRITO FAMILIAR",
+          "a": false,
+          "p": false,
+          "g": "media",
+          "vd": true,
+          "ri": false,
+          "vd_homic": false
+        },
+        {
           "r": "2026-044831621-001",
           "d": "27/09/2026",
           "m": 9,
@@ -52220,6 +52252,22 @@
           "c": "IGNORADO",
           "a": false,
           "p": true,
+          "g": "media",
+          "vd": true,
+          "ri": false,
+          "vd_homic": false
+        },
+        {
+          "r": "2026-045110330-001",
+          "d": "28/09/2026",
+          "m": 9,
+          "n": "Ameaca",
+          "b": "PORTO ALEGRE",
+          "l": "DAS FLORES",
+          "nu": "102",
+          "c": "ATRITO FAMILIAR",
+          "a": false,
+          "p": false,
           "g": "media",
           "vd": true,
           "ri": false,
@@ -53828,6 +53876,15 @@
           "meses": [
             9
           ]
+        },
+        {
+          "b": "GUADALUPE",
+          "l": "SIDNEY CANDIDO NASCIMENTO",
+          "nu": "464",
+          "q": 2,
+          "meses": [
+            9
+          ]
         }
       ],
       "MEDINA": [
@@ -54438,7 +54495,7 @@
       ],
       "COMERCINHO": []
     },
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "crimes_violentos": {
     "meses": [
@@ -54466,7 +54523,7 @@
         7,
         9,
         3,
-        3,
+        4,
         0,
         0,
         0
@@ -54791,7 +54848,7 @@
           0,
           0,
           0,
-          0,
+          1,
           0,
           0,
           0
@@ -54805,13 +54862,13 @@
           2,
           2,
           2,
-          2,
-          2,
-          2,
-          2
+          3,
+          3,
+          3,
+          3
         ],
-        "total_periodo": 2,
-        "taxa_100k": 11.404459143525118
+        "total_periodo": 3,
+        "taxa_100k": 17.106688715287678
       },
       {
         "nome": "CORONEL MURTA",
@@ -54891,9 +54948,9 @@
       "VIRGEM DA LAPA",
       "ITINGA",
       "PEDRA AZUL",
+      "PADRE PARAISO",
       "DIVISA ALEGRE",
       "CORONEL MURTA",
-      "PADRE PARAISO",
       "PONTO DOS VOLANTES"
     ],
     "ocorrencias": {
@@ -55682,6 +55739,19 @@
           "a": true,
           "p": true,
           "g": "critica"
+        },
+        {
+          "r": "2026-044971632-001",
+          "d": "26/09/2026",
+          "m": 9,
+          "n": "Roubo",
+          "b": "INVÃLIDO",
+          "l": "PPR0075 - CORREGO DOS MACACOS",
+          "nu": "0",
+          "c": "VANTAGEM ECONOMICA",
+          "a": false,
+          "p": false,
+          "g": "alta"
         }
       ],
       "CORONEL MURTA": [
@@ -55715,7 +55785,7 @@
         }
       ]
     },
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "reincidencia": {
     "meses": [
@@ -55734,13 +55804,13 @@
     ],
     "periodo_dados": "jan-ago/2026",
     "panorama": {
-      "total_enderecos": 190
+      "total_enderecos": 191
     },
     "municipios": [
       {
         "nome": "ITAOBIM",
         "pop": 19354,
-        "enderecos_reincidentes": 27
+        "enderecos_reincidentes": 28
       },
       {
         "nome": "PEDRA AZUL",
@@ -55838,7 +55908,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 255
+          "dias_desde_ultimo": 256
         },
         {
           "b": "INVÃLIDO",
@@ -55864,7 +55934,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 144
+          "dias_desde_ultimo": 145
         },
         {
           "b": "ALTA VISTA I",
@@ -55901,7 +55971,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 6
+          "dias_desde_ultimo": 7
         },
         {
           "b": "CENTRO",
@@ -55920,7 +55990,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 9,
-          "dias_desde_ultimo": 76
+          "dias_desde_ultimo": 77
         },
         {
           "b": "ESTACAO DA LUZ",
@@ -55940,7 +56010,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 50,
-          "dias_desde_ultimo": 79
+          "dias_desde_ultimo": 80
         },
         {
           "b": "SAO CRISTOVAO",
@@ -55963,7 +56033,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 78
+          "dias_desde_ultimo": 79
         },
         {
           "b": "VILA RICA",
@@ -55986,7 +56056,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 78
+          "dias_desde_ultimo": 79
         },
         {
           "b": "SANTO ANTONIO",
@@ -56013,7 +56083,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 20
+          "dias_desde_ultimo": 21
         },
         {
           "b": "SAO ROQUE / COMERCIO VELHO",
@@ -56037,7 +56107,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 57,
-          "dias_desde_ultimo": 133
+          "dias_desde_ultimo": 134
         },
         {
           "b": "SAO CRISTOVAO",
@@ -56060,7 +56130,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 36,
-          "dias_desde_ultimo": 67
+          "dias_desde_ultimo": 68
         },
         {
           "b": "INVÃLIDO",
@@ -56081,7 +56151,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 28,
-          "dias_desde_ultimo": 193
+          "dias_desde_ultimo": 194
         },
         {
           "b": "VILA NOVA",
@@ -56104,7 +56174,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 105
+          "dias_desde_ultimo": 106
         },
         {
           "b": "VILA NOVA",
@@ -56124,7 +56194,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 7,
-          "dias_desde_ultimo": 232
+          "dias_desde_ultimo": 233
         },
         {
           "b": "INVÃLIDO",
@@ -56143,7 +56213,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 236
+          "dias_desde_ultimo": 237
         },
         {
           "b": "INVÃLIDO",
@@ -56163,7 +56233,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 41,
-          "dias_desde_ultimo": 217
+          "dias_desde_ultimo": 218
         },
         {
           "b": "CENTRO",
@@ -56186,7 +56256,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 38,
-          "dias_desde_ultimo": 63
+          "dias_desde_ultimo": 64
         },
         {
           "b": "ALVORADA",
@@ -56207,7 +56277,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 14,
-          "dias_desde_ultimo": 231
+          "dias_desde_ultimo": 232
         },
         {
           "b": "ESPERANCA",
@@ -56231,7 +56301,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 16,
-          "dias_desde_ultimo": 151
+          "dias_desde_ultimo": 152
         },
         {
           "b": "GUADALUPE",
@@ -56255,7 +56325,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 21,
-          "dias_desde_ultimo": 23
+          "dias_desde_ultimo": 24
         },
         {
           "b": "SAO JORGE",
@@ -56279,7 +56349,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 7,
-          "dias_desde_ultimo": 18
+          "dias_desde_ultimo": 19
         },
         {
           "b": "SANTO ANTONIO",
@@ -56298,7 +56368,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 12,
-          "dias_desde_ultimo": 258
+          "dias_desde_ultimo": 259
         },
         {
           "b": "ESTACAO DA LUZ",
@@ -56318,7 +56388,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 12,
-          "dias_desde_ultimo": 50
+          "dias_desde_ultimo": 51
         },
         {
           "b": "VILA NOVA",
@@ -56338,7 +56408,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 40,
-          "dias_desde_ultimo": 7
+          "dias_desde_ultimo": 8
         },
         {
           "b": "ESPERANCA",
@@ -56358,7 +56428,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 42
+          "dias_desde_ultimo": 43
         },
         {
           "b": "ESPERANCA",
@@ -56377,7 +56447,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 11
+          "dias_desde_ultimo": 12
         },
         {
           "b": "VILA RICA",
@@ -56400,7 +56470,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 12
+          "dias_desde_ultimo": 13
         },
         {
           "b": "INVÃLIDO",
@@ -56420,7 +56490,27 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 10,
-          "dias_desde_ultimo": 10
+          "dias_desde_ultimo": 11
+        },
+        {
+          "b": "GUADALUPE",
+          "l": "SIDNEY CANDIDO NASCIMENTO",
+          "nu": "464",
+          "q": 2,
+          "meses": [
+            9
+          ],
+          "reds": [
+            "2026-044507965-001",
+            "2026-045013416-001"
+          ],
+          "naturezas": [
+            "Vias De Fato / Agressao",
+            "Violacao De Domicilio"
+          ],
+          "arma_fogo": false,
+          "intervalo_min_dias": 4,
+          "dias_desde_ultimo": 2
         }
       ],
       "PEDRA AZUL": [
@@ -56450,7 +56540,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 110
+          "dias_desde_ultimo": 111
         },
         {
           "b": "CENTRO",
@@ -56475,7 +56565,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 20
+          "dias_desde_ultimo": 21
         },
         {
           "b": "PLANALTO",
@@ -56496,7 +56586,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 11,
-          "dias_desde_ultimo": 174
+          "dias_desde_ultimo": 175
         },
         {
           "b": "JOAO PESSOA",
@@ -56516,7 +56606,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 52,
-          "dias_desde_ultimo": 191
+          "dias_desde_ultimo": 192
         },
         {
           "b": "PAINEIRAS",
@@ -56539,7 +56629,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 3,
-          "dias_desde_ultimo": 98
+          "dias_desde_ultimo": 99
         },
         {
           "b": "CENTRO",
@@ -56562,7 +56652,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 5,
-          "dias_desde_ultimo": 15
+          "dias_desde_ultimo": 16
         },
         {
           "b": "PAINEIRAS",
@@ -56582,7 +56672,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 20,
-          "dias_desde_ultimo": 65
+          "dias_desde_ultimo": 66
         },
         {
           "b": "CENTRO",
@@ -56602,7 +56692,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 28,
-          "dias_desde_ultimo": 87
+          "dias_desde_ultimo": 88
         },
         {
           "b": "INVÃLIDO",
@@ -56622,7 +56712,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 3,
-          "dias_desde_ultimo": 118
+          "dias_desde_ultimo": 119
         },
         {
           "b": "BONFIM",
@@ -56642,7 +56732,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 121
+          "dias_desde_ultimo": 122
         },
         {
           "b": "INCONFIDENTES",
@@ -56662,7 +56752,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 31,
-          "dias_desde_ultimo": 107
+          "dias_desde_ultimo": 108
         },
         {
           "b": "PAINEIRAS",
@@ -56683,7 +56773,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 29,
-          "dias_desde_ultimo": 193
+          "dias_desde_ultimo": 194
         },
         {
           "b": "CRUZEIRO",
@@ -56707,7 +56797,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 6,
-          "dias_desde_ultimo": 229
+          "dias_desde_ultimo": 230
         },
         {
           "b": "PLATAFORMA",
@@ -56726,7 +56816,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 13,
-          "dias_desde_ultimo": 158
+          "dias_desde_ultimo": 159
         },
         {
           "b": "BELA VISTA",
@@ -56749,7 +56839,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 26,
-          "dias_desde_ultimo": 21
+          "dias_desde_ultimo": 22
         },
         {
           "b": "PLATAFORMA",
@@ -56770,7 +56860,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 40,
-          "dias_desde_ultimo": 21
+          "dias_desde_ultimo": 22
         },
         {
           "b": "CENTRO",
@@ -56790,7 +56880,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 56
+          "dias_desde_ultimo": 57
         },
         {
           "b": "CRUZEIRO",
@@ -56811,7 +56901,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 31,
-          "dias_desde_ultimo": 33
+          "dias_desde_ultimo": 34
         },
         {
           "b": "BONFIM",
@@ -56831,7 +56921,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 35,
-          "dias_desde_ultimo": 20
+          "dias_desde_ultimo": 21
         }
       ],
       "ARACUAI": [
@@ -56853,7 +56943,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 13,
-          "dias_desde_ultimo": 256
+          "dias_desde_ultimo": 257
         },
         {
           "b": "INVÃLIDO",
@@ -56874,7 +56964,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 267
+          "dias_desde_ultimo": 268
         },
         {
           "b": "INVÃLIDO",
@@ -56893,7 +56983,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 254
+          "dias_desde_ultimo": 255
         },
         {
           "b": "ALTO SANTUARIO",
@@ -56915,7 +57005,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 135
+          "dias_desde_ultimo": 136
         },
         {
           "b": "INVÃLIDO",
@@ -56941,7 +57031,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 35,
-          "dias_desde_ultimo": 29
+          "dias_desde_ultimo": 30
         },
         {
           "b": "INVÃLIDO",
@@ -56964,7 +57054,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 18,
-          "dias_desde_ultimo": 93
+          "dias_desde_ultimo": 94
         },
         {
           "b": "NOVA TERRA",
@@ -56990,7 +57080,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 20,
-          "dias_desde_ultimo": 77
+          "dias_desde_ultimo": 78
         },
         {
           "b": "CENTRO",
@@ -57013,7 +57103,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 3,
-          "dias_desde_ultimo": 92
+          "dias_desde_ultimo": 93
         },
         {
           "b": "ALTO MERCADO",
@@ -57043,7 +57133,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 5,
-          "dias_desde_ultimo": 58
+          "dias_desde_ultimo": 59
         },
         {
           "b": "SAO GERALDO",
@@ -57062,7 +57152,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 113
+          "dias_desde_ultimo": 114
         },
         {
           "b": "INVÃLIDO",
@@ -57084,7 +57174,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 45,
-          "dias_desde_ultimo": 73
+          "dias_desde_ultimo": 74
         },
         {
           "b": "SAO FRANCISCO",
@@ -57109,7 +57199,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 48,
-          "dias_desde_ultimo": 3
+          "dias_desde_ultimo": 4
         },
         {
           "b": "ZONA RURAL",
@@ -57129,7 +57219,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 59,
-          "dias_desde_ultimo": 47
+          "dias_desde_ultimo": 48
         },
         {
           "b": "CENTRO",
@@ -57150,7 +57240,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 29,
-          "dias_desde_ultimo": 140
+          "dias_desde_ultimo": 141
         },
         {
           "b": "INVÃLIDO",
@@ -57176,7 +57266,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 32,
-          "dias_desde_ultimo": 134
+          "dias_desde_ultimo": 135
         },
         {
           "b": "INVÃLIDO",
@@ -57201,7 +57291,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 66
+          "dias_desde_ultimo": 67
         },
         {
           "b": "NOVA ESPERANCA",
@@ -57222,7 +57312,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 57,
-          "dias_desde_ultimo": 134
+          "dias_desde_ultimo": 135
         },
         {
           "b": "INVÃLIDO",
@@ -57242,7 +57332,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 10,
-          "dias_desde_ultimo": 132
+          "dias_desde_ultimo": 133
         },
         {
           "b": "RENASCENCA",
@@ -57264,7 +57354,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 3,
-          "dias_desde_ultimo": 142
+          "dias_desde_ultimo": 143
         },
         {
           "b": "CANOEIRO JOSE ALVES DE CARVALHO",
@@ -57284,7 +57374,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 15,
-          "dias_desde_ultimo": 184
+          "dias_desde_ultimo": 185
         },
         {
           "b": "SANTA TEREZA",
@@ -57307,7 +57397,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 17,
-          "dias_desde_ultimo": 153
+          "dias_desde_ultimo": 154
         },
         {
           "b": "ITATIAIA",
@@ -57336,7 +57426,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 5
+          "dias_desde_ultimo": 6
         },
         {
           "b": "SAO GERALDO",
@@ -57359,7 +57449,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 193
+          "dias_desde_ultimo": 194
         },
         {
           "b": "ARRAIAL",
@@ -57380,7 +57470,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 240
+          "dias_desde_ultimo": 241
         },
         {
           "b": "ALTO SANTUARIO",
@@ -57399,7 +57489,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 7,
-          "dias_desde_ultimo": 244
+          "dias_desde_ultimo": 245
         },
         {
           "b": "SANTA TEREZA",
@@ -57418,7 +57508,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 243
+          "dias_desde_ultimo": 244
         },
         {
           "b": "INVÃLIDO",
@@ -57438,7 +57528,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 240
+          "dias_desde_ultimo": 241
         },
         {
           "b": "ESPLANADA",
@@ -57457,7 +57547,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 24,
-          "dias_desde_ultimo": 241
+          "dias_desde_ultimo": 242
         },
         {
           "b": "INVÃLIDO",
@@ -57477,7 +57567,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 15,
-          "dias_desde_ultimo": 200
+          "dias_desde_ultimo": 201
         },
         {
           "b": "ESPLANADA",
@@ -57497,7 +57587,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 214
+          "dias_desde_ultimo": 215
         },
         {
           "b": "INVÃLIDO",
@@ -57521,7 +57611,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 27,
-          "dias_desde_ultimo": 61
+          "dias_desde_ultimo": 62
         },
         {
           "b": "ALTO MERCADO",
@@ -57543,7 +57633,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 50
+          "dias_desde_ultimo": 51
         },
         {
           "b": "ALTO MERCADO",
@@ -57569,7 +57659,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 12
+          "dias_desde_ultimo": 13
         },
         {
           "b": "INVÃLIDO",
@@ -57592,7 +57682,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 26,
-          "dias_desde_ultimo": 6
+          "dias_desde_ultimo": 7
         },
         {
           "b": "INVÃLIDO",
@@ -57612,7 +57702,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 110
+          "dias_desde_ultimo": 111
         },
         {
           "b": "JUPARANA",
@@ -57632,7 +57722,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 103
+          "dias_desde_ultimo": 104
         },
         {
           "b": "SAO FRANCISCO",
@@ -57652,7 +57742,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 16,
-          "dias_desde_ultimo": 108
+          "dias_desde_ultimo": 109
         },
         {
           "b": "INVÃLIDO",
@@ -57672,7 +57762,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 32,
-          "dias_desde_ultimo": 37
+          "dias_desde_ultimo": 38
         },
         {
           "b": "CANOEIRO JOSE ALVES DE CARVALHO",
@@ -57692,7 +57782,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 41
+          "dias_desde_ultimo": 42
         },
         {
           "b": "ARRAIAL",
@@ -57711,7 +57801,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 107
+          "dias_desde_ultimo": 108
         },
         {
           "b": "JUSCELINO KUBITSCHEK",
@@ -57731,7 +57821,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 15
+          "dias_desde_ultimo": 16
         }
       ],
       "CACHOEIRA DE PAJEU": [
@@ -57755,7 +57845,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 3,
-          "dias_desde_ultimo": 168
+          "dias_desde_ultimo": 169
         },
         {
           "b": "INVÃLIDO",
@@ -57778,7 +57868,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 46,
-          "dias_desde_ultimo": 34
+          "dias_desde_ultimo": 35
         },
         {
           "b": "CENTRO",
@@ -57798,7 +57888,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 6,
-          "dias_desde_ultimo": 155
+          "dias_desde_ultimo": 156
         },
         {
           "b": "POVOADO TANCREDO NEVES",
@@ -57817,7 +57907,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 160
+          "dias_desde_ultimo": 161
         },
         {
           "b": "DERALDO DANTAS",
@@ -57840,7 +57930,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 28,
-          "dias_desde_ultimo": 25
+          "dias_desde_ultimo": 26
         },
         {
           "b": "INVÃLIDO",
@@ -57861,7 +57951,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 24,
-          "dias_desde_ultimo": 38
+          "dias_desde_ultimo": 39
         },
         {
           "b": "POVOADO AGUAS ALTAS",
@@ -57881,7 +57971,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 5,
-          "dias_desde_ultimo": 67
+          "dias_desde_ultimo": 68
         }
       ],
       "VIRGEM DA LAPA": [
@@ -57903,7 +57993,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 3,
-          "dias_desde_ultimo": 251
+          "dias_desde_ultimo": 252
         },
         {
           "b": "ALTO SAO VICENTE",
@@ -57925,7 +58015,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 9,
-          "dias_desde_ultimo": 92
+          "dias_desde_ultimo": 93
         },
         {
           "b": "PONTE",
@@ -57945,7 +58035,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 13,
-          "dias_desde_ultimo": 245
+          "dias_desde_ultimo": 246
         },
         {
           "b": "CENTRO",
@@ -57965,7 +58055,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 11,
-          "dias_desde_ultimo": 10
+          "dias_desde_ultimo": 11
         }
       ],
       "PADRE PARAISO": [
@@ -57990,7 +58080,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 8,
-          "dias_desde_ultimo": 72
+          "dias_desde_ultimo": 73
         },
         {
           "b": "INVÃLIDO",
@@ -58019,7 +58109,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 30,
-          "dias_desde_ultimo": 31
+          "dias_desde_ultimo": 32
         },
         {
           "b": "INVÃLIDO",
@@ -58041,7 +58131,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 80
+          "dias_desde_ultimo": 81
         },
         {
           "b": "INVÃLIDO",
@@ -58063,7 +58153,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 27,
-          "dias_desde_ultimo": 143
+          "dias_desde_ultimo": 144
         },
         {
           "b": "INVÃLIDO",
@@ -58084,7 +58174,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 20,
-          "dias_desde_ultimo": 108
+          "dias_desde_ultimo": 109
         },
         {
           "b": "INVÃLIDO",
@@ -58108,7 +58198,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 7
+          "dias_desde_ultimo": 8
         },
         {
           "b": "BELA VISTA",
@@ -58128,7 +58218,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 3,
-          "dias_desde_ultimo": 195
+          "dias_desde_ultimo": 196
         },
         {
           "b": "CENTRO",
@@ -58149,7 +58239,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 24,
-          "dias_desde_ultimo": 176
+          "dias_desde_ultimo": 177
         },
         {
           "b": "INVÃLIDO",
@@ -58172,7 +58262,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 8,
-          "dias_desde_ultimo": 33
+          "dias_desde_ultimo": 34
         },
         {
           "b": "INVÃLIDO",
@@ -58193,7 +58283,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 39,
-          "dias_desde_ultimo": 224
+          "dias_desde_ultimo": 225
         },
         {
           "b": "CORONEL OLINTO VIEIRA",
@@ -58214,7 +58304,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 51,
-          "dias_desde_ultimo": 209
+          "dias_desde_ultimo": 210
         },
         {
           "b": "JOAO DE LINO",
@@ -58235,7 +58325,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 48,
-          "dias_desde_ultimo": 189
+          "dias_desde_ultimo": 190
         },
         {
           "b": "INVÃLIDO",
@@ -58254,7 +58344,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 13,
-          "dias_desde_ultimo": 31
+          "dias_desde_ultimo": 32
         },
         {
           "b": "INVÃLIDO",
@@ -58275,7 +58365,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 31,
-          "dias_desde_ultimo": 18
+          "dias_desde_ultimo": 19
         },
         {
           "b": "JOAO DE LINO",
@@ -58295,7 +58385,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 11,
-          "dias_desde_ultimo": 29
+          "dias_desde_ultimo": 30
         }
       ],
       "MEDINA": [
@@ -58318,7 +58408,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 44,
-          "dias_desde_ultimo": 173
+          "dias_desde_ultimo": 174
         },
         {
           "b": "BONFIM",
@@ -58339,7 +58429,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 49,
-          "dias_desde_ultimo": 185
+          "dias_desde_ultimo": 186
         },
         {
           "b": "INVÃLIDO",
@@ -58360,7 +58450,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 52,
-          "dias_desde_ultimo": 133
+          "dias_desde_ultimo": 134
         },
         {
           "b": "INVÃLIDO",
@@ -58381,7 +58471,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 8,
-          "dias_desde_ultimo": 87
+          "dias_desde_ultimo": 88
         },
         {
           "b": "ZONA RURAL",
@@ -58404,7 +58494,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 88
+          "dias_desde_ultimo": 89
         },
         {
           "b": "INVÃLIDO",
@@ -58425,7 +58515,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 32,
-          "dias_desde_ultimo": 87
+          "dias_desde_ultimo": 88
         },
         {
           "b": "SAO GERALDO",
@@ -58446,7 +58536,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 35,
-          "dias_desde_ultimo": 42
+          "dias_desde_ultimo": 43
         },
         {
           "b": "CENTRO",
@@ -58467,7 +58557,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 58,
-          "dias_desde_ultimo": 24
+          "dias_desde_ultimo": 25
         },
         {
           "b": "BONFIM",
@@ -58490,7 +58580,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 6,
-          "dias_desde_ultimo": 29
+          "dias_desde_ultimo": 30
         },
         {
           "b": "SANTO ANTONIO",
@@ -58512,7 +58602,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 146
+          "dias_desde_ultimo": 147
         },
         {
           "b": "SAO GERALDO",
@@ -58533,7 +58623,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 43,
-          "dias_desde_ultimo": 129
+          "dias_desde_ultimo": 130
         },
         {
           "b": "SERRA AZUL",
@@ -58556,7 +58646,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 21,
-          "dias_desde_ultimo": 140
+          "dias_desde_ultimo": 141
         },
         {
           "b": "CENTRO",
@@ -58584,7 +58674,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 11,
-          "dias_desde_ultimo": 23
+          "dias_desde_ultimo": 24
         },
         {
           "b": "SAO GERALDO",
@@ -58604,7 +58694,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 13,
-          "dias_desde_ultimo": 160
+          "dias_desde_ultimo": 161
         },
         {
           "b": "VARZEA GRANDE",
@@ -58626,7 +58716,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 19,
-          "dias_desde_ultimo": 149
+          "dias_desde_ultimo": 150
         },
         {
           "b": "BEIRA RIO",
@@ -58645,7 +58735,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 255
+          "dias_desde_ultimo": 256
         },
         {
           "b": "SAUDADE",
@@ -58667,7 +58757,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 61
+          "dias_desde_ultimo": 62
         },
         {
           "b": "SANTA MAURA",
@@ -58686,7 +58776,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 52
+          "dias_desde_ultimo": 53
         },
         {
           "b": "VARZEA GRANDE",
@@ -58705,7 +58795,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 3,
-          "dias_desde_ultimo": 39
+          "dias_desde_ultimo": 40
         }
       ],
       "ITINGA": [
@@ -58730,7 +58820,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 16,
-          "dias_desde_ultimo": 199
+          "dias_desde_ultimo": 200
         },
         {
           "b": "INVÃLIDO",
@@ -58775,7 +58865,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 12
+          "dias_desde_ultimo": 13
         },
         {
           "b": "CENTRO",
@@ -58795,7 +58885,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 46,
-          "dias_desde_ultimo": 108
+          "dias_desde_ultimo": 109
         },
         {
           "b": "VIDA NOVA",
@@ -58816,7 +58906,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 27,
-          "dias_desde_ultimo": 114
+          "dias_desde_ultimo": 115
         },
         {
           "b": "CENTRO",
@@ -58840,7 +58930,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 78
+          "dias_desde_ultimo": 79
         },
         {
           "b": "CENTRO",
@@ -58860,7 +58950,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 9,
-          "dias_desde_ultimo": 70
+          "dias_desde_ultimo": 71
         },
         {
           "b": "PORTO ALEGRE",
@@ -58885,7 +58975,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 35
+          "dias_desde_ultimo": 36
         },
         {
           "b": "CENTRO",
@@ -58917,7 +59007,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 95
+          "dias_desde_ultimo": 96
         },
         {
           "b": "INVÃLIDO",
@@ -58937,7 +59027,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 7,
-          "dias_desde_ultimo": 155
+          "dias_desde_ultimo": 156
         },
         {
           "b": "CENTRO",
@@ -58963,7 +59053,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 156
+          "dias_desde_ultimo": 157
         },
         {
           "b": "PLANALTO",
@@ -58984,7 +59074,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 45,
-          "dias_desde_ultimo": 146
+          "dias_desde_ultimo": 147
         },
         {
           "b": "PLANALTO",
@@ -59006,7 +59096,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 163
+          "dias_desde_ultimo": 164
         },
         {
           "b": "PLANALTO",
@@ -59027,7 +59117,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 162
+          "dias_desde_ultimo": 163
         },
         {
           "b": "CIDADE NOVA",
@@ -59056,7 +59146,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 46
+          "dias_desde_ultimo": 47
         },
         {
           "b": "INVÃLIDO",
@@ -59077,7 +59167,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 50,
-          "dias_desde_ultimo": 183
+          "dias_desde_ultimo": 184
         },
         {
           "b": "PLANALTO",
@@ -59098,7 +59188,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 166
+          "dias_desde_ultimo": 167
         },
         {
           "b": "VIDA NOVA",
@@ -59121,7 +59211,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 190
+          "dias_desde_ultimo": 191
         },
         {
           "b": "VIDA NOVA",
@@ -59141,7 +59231,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 10,
-          "dias_desde_ultimo": 202
+          "dias_desde_ultimo": 203
         },
         {
           "b": "PORTO ALEGRE",
@@ -59163,7 +59253,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 190
+          "dias_desde_ultimo": 191
         },
         {
           "b": "CIDADE NOVA",
@@ -59184,7 +59274,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 7,
-          "dias_desde_ultimo": 55
+          "dias_desde_ultimo": 56
         },
         {
           "b": "CIDADE NOVA",
@@ -59204,7 +59294,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 17,
-          "dias_desde_ultimo": 49
+          "dias_desde_ultimo": 50
         },
         {
           "b": "CENTRO",
@@ -59224,7 +59314,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 6,
-          "dias_desde_ultimo": 31
+          "dias_desde_ultimo": 32
         },
         {
           "b": "PLANALTO",
@@ -59244,7 +59334,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 14,
-          "dias_desde_ultimo": 2
+          "dias_desde_ultimo": 3
         }
       ],
       "DIVISA ALEGRE": [
@@ -59272,7 +59362,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 13,
-          "dias_desde_ultimo": 2
+          "dias_desde_ultimo": 3
         },
         {
           "b": "JARDIM MARINOPOLIS",
@@ -59294,7 +59384,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 22,
-          "dias_desde_ultimo": 27
+          "dias_desde_ultimo": 28
         },
         {
           "b": "JARDIM MARINOPOLIS",
@@ -59316,7 +59406,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 48,
-          "dias_desde_ultimo": 30
+          "dias_desde_ultimo": 31
         },
         {
           "b": "CENTRO",
@@ -59336,7 +59426,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 26,
-          "dias_desde_ultimo": 133
+          "dias_desde_ultimo": 134
         },
         {
           "b": "ALTO DO CEMITERIO",
@@ -59357,7 +59447,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 27,
-          "dias_desde_ultimo": 166
+          "dias_desde_ultimo": 167
         },
         {
           "b": "ALTO DO CEMITERIO",
@@ -59377,7 +59467,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 248
+          "dias_desde_ultimo": 249
         },
         {
           "b": "CENTRO",
@@ -59400,7 +59490,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 11
+          "dias_desde_ultimo": 12
         }
       ],
       "CORONEL MURTA": [
@@ -59425,7 +59515,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 18,
-          "dias_desde_ultimo": 91
+          "dias_desde_ultimo": 92
         },
         {
           "b": "CENTRO",
@@ -59447,7 +59537,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 32,
-          "dias_desde_ultimo": 71
+          "dias_desde_ultimo": 72
         },
         {
           "b": "ACARI",
@@ -59466,7 +59556,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 18,
-          "dias_desde_ultimo": 163
+          "dias_desde_ultimo": 164
         },
         {
           "b": "CENTRO",
@@ -59485,7 +59575,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 5,
-          "dias_desde_ultimo": 169
+          "dias_desde_ultimo": 170
         },
         {
           "b": "ACARI",
@@ -59505,7 +59595,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 19,
-          "dias_desde_ultimo": 188
+          "dias_desde_ultimo": 189
         },
         {
           "b": "CENTRO",
@@ -59524,7 +59614,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 6,
-          "dias_desde_ultimo": 233
+          "dias_desde_ultimo": 234
         },
         {
           "b": "MARIA DA GLORIA",
@@ -59545,7 +59635,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 49,
-          "dias_desde_ultimo": 175
+          "dias_desde_ultimo": 176
         },
         {
           "b": "CENTRO",
@@ -59565,7 +59655,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 173
+          "dias_desde_ultimo": 174
         },
         {
           "b": "CENTRO",
@@ -59586,7 +59676,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 49,
-          "dias_desde_ultimo": 71
+          "dias_desde_ultimo": 72
         },
         {
           "b": "VILA PALMEIRAS",
@@ -59609,7 +59699,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 1,
-          "dias_desde_ultimo": 43
+          "dias_desde_ultimo": 44
         },
         {
           "b": "INVÃLIDO",
@@ -59631,7 +59721,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 13,
-          "dias_desde_ultimo": 16
+          "dias_desde_ultimo": 17
         }
       ],
       "AGUAS VERMELHAS": [
@@ -59655,7 +59745,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 35,
-          "dias_desde_ultimo": 42
+          "dias_desde_ultimo": 43
         },
         {
           "b": "RECREIO DA VISTA",
@@ -59681,7 +59771,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 22,
-          "dias_desde_ultimo": 82
+          "dias_desde_ultimo": 83
         },
         {
           "b": "CENTRO",
@@ -59702,7 +59792,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 29,
-          "dias_desde_ultimo": 149
+          "dias_desde_ultimo": 150
         },
         {
           "b": "INVÃLIDO",
@@ -59721,7 +59811,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 6,
-          "dias_desde_ultimo": 153
+          "dias_desde_ultimo": 154
         },
         {
           "b": "RECREIO DA VISTA",
@@ -59741,7 +59831,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 15,
-          "dias_desde_ultimo": 216
+          "dias_desde_ultimo": 217
         },
         {
           "b": "ALVORADA",
@@ -59762,7 +59852,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 209
+          "dias_desde_ultimo": 210
         },
         {
           "b": "ALVORADA",
@@ -59786,7 +59876,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 0,
-          "dias_desde_ultimo": 50
+          "dias_desde_ultimo": 51
         },
         {
           "b": "ALVORADA",
@@ -59806,7 +59896,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 256
+          "dias_desde_ultimo": 257
         },
         {
           "b": "POVOADO DO MOCO",
@@ -59826,7 +59916,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 258
+          "dias_desde_ultimo": 259
         },
         {
           "b": "IBRA",
@@ -59846,7 +59936,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 26,
-          "dias_desde_ultimo": 35
+          "dias_desde_ultimo": 36
         },
         {
           "b": "RECREIO DA VISTA",
@@ -59870,7 +59960,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 9
+          "dias_desde_ultimo": 10
         }
       ],
       "COMERCINHO": [
@@ -59895,7 +59985,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 22,
-          "dias_desde_ultimo": 14
+          "dias_desde_ultimo": 15
         },
         {
           "b": "INVÃLIDO",
@@ -59918,7 +60008,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 38,
-          "dias_desde_ultimo": 102
+          "dias_desde_ultimo": 103
         },
         {
           "b": "INVÃLIDO",
@@ -59940,7 +60030,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 25
+          "dias_desde_ultimo": 26
         }
       ],
       "PONTO DOS VOLANTES": [
@@ -59975,7 +60065,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 2,
-          "dias_desde_ultimo": 56
+          "dias_desde_ultimo": 57
         },
         {
           "b": "CENTRO",
@@ -59995,7 +60085,7 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 4,
-          "dias_desde_ultimo": 246
+          "dias_desde_ultimo": 247
         },
         {
           "b": "INVÃLIDO",
@@ -60015,11 +60105,11 @@
           ],
           "arma_fogo": false,
           "intervalo_min_dias": 6,
-          "dias_desde_ultimo": 46
+          "dias_desde_ultimo": 47
         }
       ]
     },
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   },
   "boemia_meta": {
     "meses": [
@@ -60109,7 +60199,7 @@
           13,
           78,
           93,
-          64,
+          65,
           0,
           0,
           0
@@ -60137,10 +60227,10 @@
           144,
           222,
           315,
-          379,
-          379,
-          379,
-          379
+          380,
+          380,
+          380,
+          380
         ],
         "meta_acum": [
           3,
@@ -60409,7 +60499,7 @@
           49,
           56,
           89,
-          47,
+          48,
           0,
           0,
           0
@@ -60437,10 +60527,10 @@
           201,
           257,
           346,
-          393,
-          393,
-          393,
-          393
+          394,
+          394,
+          394,
+          394
         ],
         "meta_acum": [
           3,
@@ -60529,7 +60619,7 @@
           5,
           22,
           19,
-          0,
+          4,
           0,
           0,
           0
@@ -60557,10 +60647,10 @@
           152,
           174,
           193,
-          193,
-          193,
-          193,
-          193
+          197,
+          197,
+          197,
+          197
         ],
         "meta_acum": [
           2,
@@ -60709,7 +60799,7 @@
           9,
           15,
           11,
-          9,
+          10,
           0,
           0,
           0
@@ -60737,10 +60827,10 @@
           75,
           90,
           101,
-          110,
-          110,
-          110,
-          110
+          111,
+          111,
+          111,
+          111
         ],
         "meta_acum": [
           1,
@@ -60827,7 +60917,7 @@
       150,
       267,
       307,
-      214,
+      221,
       0,
       0,
       0
@@ -60855,10 +60945,10 @@
       1190,
       1457,
       1764,
-      1978,
-      1978,
-      1978,
-      1978
+      1985,
+      1985,
+      1985,
+      1985
     ],
     "total_meta_acum": [
       23,
@@ -60874,6 +60964,6 @@
       253,
       276
     ],
-    "atualizado_em": "2026-09-29"
+    "atualizado_em": "2026-09-30"
   }
 }

@@ -1070,8 +1070,12 @@ function renderPPAGPage() {
         const meta = m.meta_mes[mi], res = m.realizado_mes[mi];
         const desemp = meta ? (res/meta*100) : 100; // meta 0 e resultado 0 = meta cumprida
         const cls = desemp>=100?'neg':'pos';
+        const metaAc = m.meta_acum[mi], resAc = m.realizado_acum[mi];
+        const desempAc = metaAc ? (resAc/metaAc*100) : 100;
+        const clsAc = desempAc>=100?'neg':'pos';
         const dc = si>0 ? ' class="col-divider"' : '';
         html += `<td${dc}>${meta}</td><td>${res}</td><td><span class="${cls}">${desemp.toFixed(0)}%</span></td>`;
+        html += `<td class="col-divider">${metaAc}</td><td>${resAc}</td><td><span class="${clsAc}">${desempAc.toFixed(0)}%</span></td>`;
       });
       html += `</tr>`;
     });
@@ -1080,8 +1084,11 @@ function renderPPAGPage() {
       const d = DATA.ppag[s.key];
       const meta = d.total_meta_mes[mi], res = d.total_mes[mi];
       const desemp = meta ? (res/meta*100) : 100;
+      const metaAc = d.total_meta_acum[mi], resAc = d.total_acum[mi];
+      const desempAc = metaAc ? (resAc/metaAc*100) : 100;
       const dc = si>0 ? ' class="col-divider"' : '';
       html += `<td${dc}>${meta}</td><td>${res}</td><td><span class="${desemp>=100?'neg':'pos'}">${desemp.toFixed(0)}%</span></td>`;
+      html += `<td class="col-divider">${metaAc}</td><td>${resAc}</td><td><span class="${desempAc>=100?'neg':'pos'}">${desempAc.toFixed(0)}%</span></td>`;
     });
     html += `</tr>`;
     return html;
@@ -1125,12 +1132,14 @@ function renderPPAGPage() {
   html += `<select class="month-select" id="ppagMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
   html += `</select>`;
-  html += `<table class="data-table" id="ppagTable"><thead><tr>
-    <th style="text-align:left">Município</th>
-    <th>Meta Y15001</th><th>Res.</th><th>Des.</th>
-    <th>Meta Y07012</th><th>Res.</th><th>Des.</th>
-    <th>Meta Y07014</th><th>Res.</th><th>Des.</th>
-  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
+  html += `<div style="overflow-x:auto"><table class="data-table" id="ppagTable"><thead><tr>
+    <th style="text-align:left" rowspan="2">Município</th>
+    <th colspan="6">Y15001</th><th colspan="6">Y07012</th><th colspan="6">Y07014</th>
+  </tr><tr>
+    <th>Meta Mês</th><th>Res.</th><th>Des.</th><th class="col-divider">Meta Acum</th><th>Res.</th><th>Des.</th>
+    <th>Meta Mês</th><th>Res.</th><th>Des.</th><th class="col-divider">Meta Acum</th><th>Res.</th><th>Des.</th>
+    <th>Meta Mês</th><th>Res.</th><th>Des.</th><th class="col-divider">Meta Acum</th><th>Res.</th><th>Des.</th>
+  </tr></thead><tbody>${rows(mi)}</tbody></table></div>`;
   html += `<div class="updated">Y15001 - Patrulha Escolar/Patrulha de Prevenção às Drogas; Y07012 - Operação de Prevenção a Violência Doméstica; Y07014 - Ação/Operação em Zonal Rural (meta herdada da coluna legada Meta_Y15010 na planilha).</div>`;
   html += `<div class="page-title" style="margin-top:28px;font-size:1.1em">PPAG VD — Detalhamento (Y07012, Prevenção à Violência Doméstica)</div>`;
   html += `<table class="data-table" id="ppagVdTable"><thead><tr>
