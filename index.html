@@ -2996,8 +2996,12 @@ let currentPageKey = 'home';
 function goToPage(key) {
   currentPageKey = key;
   try {
-    sessionStorage.setItem('paginaAtualPPVD', key);
-    sessionStorage.removeItem('ppvdCasoAbertoReds'); // navegar pelo menu = saída deliberada de um caso aberto
+    // localStorage (não sessionStorage) desde 2026-10-01: Eduardo relatou que o problema de
+    // perder a página ao trocar de aba continuava mesmo depois da correção de 09/2026 — em
+    // mobile (principalmente Safari/iOS), o sistema pode descartar a aba em segundo plano e
+    // limpar o sessionStorage junto, não só recarregar a página. localStorage sobrevive a isso.
+    localStorage.setItem('paginaAtualPPVD', key);
+    localStorage.removeItem('ppvdCasoAbertoReds'); // navegar pelo menu = saída deliberada de um caso aberto
   } catch (e) {}
   try {
     pages[key]();
@@ -3372,7 +3376,7 @@ async function ppvdTentarRestaurarCaso() {
   if (ppvdCaseRestoreTentado) return false;
   ppvdCaseRestoreTentado = true;
   let redsAberto = null;
-  try { redsAberto = sessionStorage.getItem('ppvdCasoAbertoReds'); } catch (e) {}
+  try { redsAberto = localStorage.getItem('ppvdCasoAbertoReds'); } catch (e) {}
   if (redsAberto && ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) {
     await ppvdAbrirCaso(redsAberto);
     return true;
@@ -3577,10 +3581,11 @@ async function ppvdAbrirCaso(redsNumero) {
 
   const dadosBase = (window.ppvdOcorrenciaLookup || {})[redsNumero] || {};
   document.getElementById('main').innerHTML = `<div class="page-title">Carregando caso…</div>`;
-  // Lembra qual caso está aberto — se a aba recarregar (Chrome descartando em segundo plano,
-  // por memória) enquanto o comandante estava com o caso aberto, reabre sozinho em vez de
-  // devolver a lista/Home. Achado por Eduardo em 2026-09-08.
-  try { sessionStorage.setItem('ppvdCasoAbertoReds', redsNumero); } catch (e) {}
+  // Lembra qual caso está aberto — se a aba recarregar (navegador descartando em segundo
+  // plano, por memória) enquanto o comandante estava com o caso aberto, reabre sozinho em vez
+  // de devolver a lista/Home. Achado por Eduardo em 2026-09-08. localStorage (não
+  // sessionStorage) desde 2026-10-01 — ver comentário em goToPage().
+  try { localStorage.setItem('ppvdCasoAbertoReds', redsNumero); } catch (e) {}
 
   let { data: caso, error } = await ppvdSupa.from('ppvd_casos').select('*').eq('reds_numero', redsNumero).maybeSingle();
   if (error) { document.getElementById('main').innerHTML = `<div class="def-box">Erro ao consultar caso: ${error.message}</div>`; return; }
@@ -4087,12 +4092,17 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   });
 });
 
-// Se o Chrome descartou a aba em segundo plano e recarregou, volta pra onde
-// o usuário estava (sessionStorage sobrevive a esse reload, some só quando
-// a aba/janela fecha de verdade) em vez de reiniciar sempre na Home.
+// Se o navegador descartou a aba em segundo plano e recarregou, volta pra onde o usuário
+// estava em vez de reiniciar sempre na Home. localStorage (não sessionStorage) desde
+// 2026-10-01 — Eduardo relatou que isso continuava acontecendo mesmo depois da correção de
+// 09/2026; em mobile (principalmente Safari/iOS) o sistema às vezes limpa o sessionStorage
+// junto quando descarta a aba por memória, não só recarrega — localStorage é bem mais
+// resistente a isso. Único efeito colateral: se o usuário fechar a aba de propósito e abrir
+// o site de novo bem mais tarde, volta pra última página em vez da Home — aceitável, é
+// exatamente o comportamento que foi pedido ("não quero perder a continuidade").
 let paginaRestaurada = 'home';
 try {
-  const salva = sessionStorage.getItem('paginaAtualPPVD');
+  const salva = localStorage.getItem('paginaAtualPPVD');
   if (salva && pages[salva]) paginaRestaurada = salva;
 } catch (e) {}
 if (!(location.hash || '').startsWith('#visita=')) {
