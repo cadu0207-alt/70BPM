@@ -3368,15 +3368,20 @@ async function ppvdInit() {
   });
 }
 
-// Se a aba recarregou de verdade (Chrome descartou em segundo plano por memória, ou F5) enquanto
-// um caso estava aberto, reabre ele sozinho em vez de devolver a lista/Home — só tenta uma vez,
-// na primeira resolução de sessão da aba (achado por Eduardo em 2026-09-08).
+// Se a aba recarregou de verdade (navegador descartou em segundo plano por memória, ou F5)
+// enquanto um caso estava aberto, reabre ele sozinho em vez de devolver a lista/Home — só
+// tenta uma vez, na primeira resolução de sessão da aba (achado por Eduardo em 2026-09-08).
+// ppvdCasoAbertoRedsNaCarga é lido no fim do script, ANTES do goToPage() de restauração —
+// porque o próprio goToPage() apaga 'ppvdCasoAbertoReds' do localStorage a cada chamada (é
+// assim que ele detecta "navegação deliberada = saiu do caso"). Sem isso, a restauração
+// apagava a própria pista que ia usar um instante depois — bug achado por Eduardo em
+// 2026-10-01 (o caso nunca reabria sozinho, sempre caía na lista/Home).
 let ppvdCaseRestoreTentado = false;
+let ppvdCasoAbertoRedsNaCarga = null;
 async function ppvdTentarRestaurarCaso() {
   if (ppvdCaseRestoreTentado) return false;
   ppvdCaseRestoreTentado = true;
-  let redsAberto = null;
-  try { redsAberto = localStorage.getItem('ppvdCasoAbertoReds'); } catch (e) {}
+  const redsAberto = ppvdCasoAbertoRedsNaCarga;
   if (redsAberto && ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) {
     await ppvdAbrirCaso(redsAberto);
     return true;
@@ -4104,6 +4109,10 @@ let paginaRestaurada = 'home';
 try {
   const salva = localStorage.getItem('paginaAtualPPVD');
   if (salva && pages[salva]) paginaRestaurada = salva;
+  // Lido ANTES do goToPage() logo abaixo — ele apaga 'ppvdCasoAbertoReds' do localStorage a
+  // cada chamada, então precisa capturar o valor aqui pra ppvdTentarRestaurarCaso() usar
+  // depois (ver comentário ali). Achado por Eduardo em 2026-10-01.
+  ppvdCasoAbertoRedsNaCarga = localStorage.getItem('ppvdCasoAbertoReds');
 } catch (e) {}
 if (!(location.hash || '').startsWith('#visita=')) {
   goToPage(paginaRestaurada);
