@@ -599,14 +599,15 @@ function normKey(s) {
 const MUNICIPIOS_CANON = ['Águas Vermelhas','Araçuaí','Cachoeira de Pajeú','Comercinho','Coronel Murta',
   'Divisa Alegre','Itaobim','Itinga','Medina','Padre Paraíso','Pedra Azul','Ponto dos Volantes','Virgem da Lapa'];
 
-function semaforoCell(cor, texto) {
+function semaforoCell(cor, texto, titulo) {
   const map = {
     verde: {bg:'rgba(33,201,138,0.25)', fg:'#21c98a'},
     amarelo: {bg:'rgba(212,194,42,0.25)', fg:'#d4c22a'},
     vermelho: {bg:'rgba(230,72,79,0.25)', fg:'#e6484f'},
   };
   const c = map[cor];
-  return `<td style="background:${c.bg};color:${c.fg};font-weight:600;text-align:center">${texto}</td>`;
+  const tt = titulo ? ` title="${titulo}"` : '';
+  return `<td${tt} style="background:${c.bg};color:${c.fg};font-weight:600;text-align:center">${texto}</td>`;
 }
 
 // Indicadores "teto" (quanto menor o realizado, melhor) — tolerância de 20% acima da meta = amarelo
@@ -625,6 +626,41 @@ function statusPiso(realizado, meta) {
   if (v >= 80) return 'amarelo';
   return 'vermelho';
 }
+// Mês em andamento: o quadro da Home comparava o realizado de poucos dias com a meta do MÊS
+// CHEIO (ex.: dia 6, Padrinhos 5/72 = vermelho) — achado por Eduardo em 2026-10-06. Passa a
+// proporcionalizar a meta de indicadores de PISO pelos dias já fechados do próprio indicador
+// (mesma regra da Auditoria: diasCorridosAteOntem + data de atualização de cada um, meta
+// arredondada pra baixo). Mês fechado = fator 1 (meta cheia). Indicadores de TETO
+// (IMV/CVPe/CVPa/Furto) seguem comparando com o teto do mês cheio: estourar o teto mensal
+// é sempre ruim, então não gera falso vermelho.
+function fatorMesEmAndamento(dataObj, mi) {
+  if (mi !== MES_ATUAL_IDX) return 1;
+  const r = diasCorridosAteOntem(dataAtualizacaoIndicador(dataObj));
+  return r.diasNoMes ? (r.diasDecorridos / r.diasNoMes) : 1;
+}
+function metaPisoEfetiva(m, sufixo, mi, fator, arredondar = true) {
+  const meta = m['meta' + sufixo][mi] - m.meta_mes[mi] * (1 - fator);
+  return arredondar ? Math.floor(meta + 1e-9) : meta;
+}
+function statusPisoEf(m, dataObj, sufixo, mi) {
+  const f = fatorMesEmAndamento(dataObj, mi);
+  return statusPiso(m['realizado' + sufixo][mi], metaPisoEfetiva(m, sufixo, mi, f));
+}
+function celulaPisoEf(m, dataObj, sufixo, mi) {
+  const f = fatorMesEmAndamento(dataObj, mi);
+  const real = m['realizado' + sufixo][mi], meta = m['meta' + sufixo][mi];
+  const mEf = metaPisoEfetiva(m, sufixo, mi, f);
+  const tip = f < 1 ? `Cor calculada com a meta proporcional aos dias já fechados: ${mEf} (de ${meta} no período)` : '';
+  return semaforoCell(statusPiso(real, mEf), real + '/' + meta, tip);
+}
+// IDOB sem nenhuma operação Boemia e sem vítima = nada a avaliar (100%, igual ao ITVD sem
+// ocorrência) em vez de 0% vermelho — achado por Eduardo em 2026-10-06. Com vítima e sem
+// operação segue 0%.
+function calcIdobIndice(qop, vit) {
+  if (!qop) return vit ? 0 : 100;
+  return ((qop - vit * 10) / qop) * 100;
+}
+
 // POG usa banda específica (meta = 100%, 95-105 verde, 90-95/105-110 amarelo, resto vermelho)
 function statusPog(v) {
   if (v >= 95 && v <= 105) return 'verde';
@@ -667,7 +703,7 @@ function renderRankingTable(modo) {
   const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios), idxRolez = idxOf(DATA.rolezinho.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
   const idxSaque = idxOf(DATA.saque_seguro.municipios);
-  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
+  function calcIdobLocal(qop, vit) { return calcIdobIndice(qop, vit); }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 100; }
 
   const ranking = MUNICIPIOS_CANON.map(nomeBonito => {
@@ -680,24 +716,24 @@ function renderRankingTable(modo) {
     const pCvpa = scoreTeto(cvpa['realizado'+sufixo][miCvpa], cvpa['meta'+sufixo][miCvpa]);
 
     const pog = DATA.pog.municipios[idxPog[key]];
-    const pogM = pog['meta'+sufixo][miPog], pogR = pog['realizado'+sufixo][miPog];
+    const pogM = metaPisoEfetiva(pog, sufixo, miPog, fatorMesEmAndamento(DATA.pog, miPog), false), pogR = pog['realizado'+sufixo][miPog];
     const pPog = statusToPoints(statusPog(pogM ? (pogR/pogM*100) : 100));
 
     const y1 = DATA.ppag.y15001.municipios[idxY15001[key]];
-    const pY1 = statusToPoints(statusPiso(y1['realizado'+sufixo][miY1], y1['meta'+sufixo][miY1]));
+    const pY1 = statusToPoints(statusPisoEf(y1, DATA.ppag.y15001, sufixo, miY1));
     const y2 = DATA.ppag.y07012.municipios[idxY07012[key]];
-    const pY2 = statusToPoints(statusPiso(y2['realizado'+sufixo][miY2], y2['meta'+sufixo][miY2]));
+    const pY2 = statusToPoints(statusPisoEf(y2, DATA.ppag.y07012, sufixo, miY2));
     const y3 = DATA.ppag.y07014.municipios[idxY07014[key]];
-    const pY3 = statusToPoints(statusPiso(y3['realizado'+sufixo][miY3], y3['meta'+sufixo][miY3]));
+    const pY3 = statusToPoints(statusPisoEf(y3, DATA.ppag.y07014, sufixo, miY3));
 
     const cav = DATA.cavaloaco.municipios[idxCav[key]];
-    const pCav = statusToPoints(statusPiso(cav['realizado'+sufixo][miCav], cav['meta'+sufixo][miCav]));
+    const pCav = statusToPoints(statusPisoEf(cav, DATA.cavaloaco, sufixo, miCav));
     const rolez = DATA.rolezinho.municipios[idxRolez[key]];
-    const pRolez = statusToPoints(statusPiso(rolez['realizado'+sufixo][miRolez], rolez['meta'+sufixo][miRolez]));
+    const pRolez = statusToPoints(statusPisoEf(rolez, DATA.rolezinho, sufixo, miRolez));
     const armas = DATA.armas.municipios[idxArmas[key]];
-    const pArmas = statusToPoints(statusPiso(armas['realizado'+sufixo][miArmas], armas['meta'+sufixo][miArmas]));
+    const pArmas = statusToPoints(statusPisoEf(armas, DATA.armas, sufixo, miArmas));
     const pad = DATA.padesc.municipios[idxPadesc[key]];
-    const pPad = statusToPoints(statusPiso(pad['realizado'+sufixo][miPadesc], pad['meta'+sufixo][miPadesc]));
+    const pPad = statusToPoints(statusPisoEf(pad, DATA.padesc, sufixo, miPadesc));
 
     const idobM = DATA.idob.municipios[idxIdob[key]];
     const vit = idobM['mv'+sufixo][miIdob]+idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
@@ -707,7 +743,7 @@ function renderRankingTable(modo) {
     const pItvd = statusToPoints(statusQualidade(calcItvdLocal(itvdM['trafico'+sufixo][miItvd], itvdM['vit'+sufixo][miItvd])));
 
     const saque = DATA.saque_seguro.municipios[idxSaque[key]];
-    const pSaque = statusToPoints(statusPiso(saque['realizado'+sufixo][miSaque], saque['meta'+sufixo][miSaque]));
+    const pSaque = statusToPoints(statusPisoEf(saque, DATA.saque_seguro, sufixo, miSaque));
 
     const total = pMv+pCvpe+pCvpa+pPog+pY1+pY2+pY3+pCav+pRolez+pArmas+pPad+pIdob+pItvd+pSaque;
     return { nome: nomeBonito, pMv, pCvpe, pCvpa, pPog, pY1, pY2, pY3, pCav, pRolez, pArmas, pPad, pIdob, pItvd, pSaque, total };
@@ -775,7 +811,7 @@ function renderCumprimentoMatrix(modo) {
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
   const idxSaque = idxOf(DATA.saque_seguro.municipios);
 
-  function calcIdobLocal(qop, vit) { return qop ? ((qop - vit*10) / qop) * 100 : 0; }
+  function calcIdobLocal(qop, vit) { return calcIdobIndice(qop, vit); }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 100; }
 
   let rows = '';
@@ -796,27 +832,28 @@ function renderCumprimentoMatrix(modo) {
     rows += semaforoCell(statusTeto(furto['realizado'+sufixo][miFurto], furto['meta'+sufixo][miFurto]), furto['realizado'+sufixo][miFurto]);
 
     const pog = DATA.pog.municipios[idxPog[key]];
-    const pogR = pog['realizado'+sufixo][miPog], pogM = pog['meta'+sufixo][miPog];
+    const pogR = pog['realizado'+sufixo][miPog], pogM = metaPisoEfetiva(pog, sufixo, miPog, fatorMesEmAndamento(DATA.pog, miPog), false);
     const pogPctV = pogM ? (pogR/pogM*100) : 100;
-    rows += semaforoCell(statusPog(pogPctV), pogPctV.toFixed(0)+'%');
+    const pogTip = fatorMesEmAndamento(DATA.pog, miPog) < 1 ? `Percentual sobre a meta proporcional aos dias já fechados: ${pogM.toFixed(1)} (de ${pog['meta'+sufixo][miPog]} no período)` : '';
+    rows += semaforoCell(statusPog(pogPctV), pogPctV.toFixed(0)+'%', pogTip);
 
     const y1 = DATA.ppag.y15001.municipios[idxY15001[key]];
-    rows += semaforoCell(statusPiso(y1['realizado'+sufixo][miY1], y1['meta'+sufixo][miY1]), y1['realizado'+sufixo][miY1]+'/'+y1['meta'+sufixo][miY1]);
+    rows += celulaPisoEf(y1, DATA.ppag.y15001, sufixo, miY1);
 
     const y2 = DATA.ppag.y07012.municipios[idxY07012[key]];
-    rows += semaforoCell(statusPiso(y2['realizado'+sufixo][miY2], y2['meta'+sufixo][miY2]), y2['realizado'+sufixo][miY2]+'/'+y2['meta'+sufixo][miY2]);
+    rows += celulaPisoEf(y2, DATA.ppag.y07012, sufixo, miY2);
 
     const y3 = DATA.ppag.y07014.municipios[idxY07014[key]];
-    rows += semaforoCell(statusPiso(y3['realizado'+sufixo][miY3], y3['meta'+sufixo][miY3]), y3['realizado'+sufixo][miY3]+'/'+y3['meta'+sufixo][miY3]);
+    rows += celulaPisoEf(y3, DATA.ppag.y07014, sufixo, miY3);
 
     const cav = DATA.cavaloaco.municipios[idxCav[key]];
-    rows += semaforoCell(statusPiso(cav['realizado'+sufixo][miCav], cav['meta'+sufixo][miCav]), cav['realizado'+sufixo][miCav]+'/'+cav['meta'+sufixo][miCav]);
+    rows += celulaPisoEf(cav, DATA.cavaloaco, sufixo, miCav);
 
     const pad = DATA.padesc.municipios[idxPadesc[key]];
-    rows += semaforoCell(statusPiso(pad['realizado'+sufixo][miPadesc], pad['meta'+sufixo][miPadesc]), pad['realizado'+sufixo][miPadesc]+'/'+pad['meta'+sufixo][miPadesc]);
+    rows += celulaPisoEf(pad, DATA.padesc, sufixo, miPadesc);
 
     const saque = DATA.saque_seguro.municipios[idxSaque[key]];
-    rows += semaforoCell(statusPiso(saque['realizado'+sufixo][miSaque], saque['meta'+sufixo][miSaque]), saque['realizado'+sufixo][miSaque]+'/'+saque['meta'+sufixo][miSaque]);
+    rows += celulaPisoEf(saque, DATA.saque_seguro, sufixo, miSaque);
 
     const idobM = DATA.idob.municipios[idxIdob[key]];
     const vit = idobM['mv'+sufixo][miIdob]+idobM['cvpe'+sufixo][miIdob]+idobM['cvpa'+sufixo][miIdob];
@@ -840,7 +877,7 @@ function renderCumprimentoMatrix(modo) {
       <th>Pad.Escolar</th><th>Saque Seguro</th><th>IDOB</th><th>ITVD</th>
     </tr></thead><tbody>${rows}</tbody></table>
     </div>
-    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Verde = cumpriu a meta &middot; Amarelo = próximo (tolerância) &middot; Vermelho = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Cavalo de Aço/Pad.Escolar: quanto maior, melhor. IDOB/ITVD: índice de qualidade (não é meta numérica).</div>
+    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Verde = cumpriu a meta &middot; Amarelo = próximo (tolerância) &middot; Vermelho = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Cavalo de Aço/Pad.Escolar/Saque Seguro: quanto maior, melhor — no mês em andamento a cor usa a meta proporcional aos dias já fechados de cada indicador (passe o mouse na célula pra ver); meses fechados usam a meta cheia. IDOB/ITVD: índice de qualidade (não é meta numérica); sem operação/ocorrência = 100%.</div>
   </div>`;
   return html;
 }
@@ -1171,8 +1208,7 @@ function renderIDOBPage() {
   let mi = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
 
   function calcIdob(qop, vit) {
-    if (!qop) return 0;
-    return ((qop - vit*10) / qop) * 100;
+    return calcIdobIndice(qop, vit);
   }
 
   function rows(mi) {
