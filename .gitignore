@@ -3,3 +3,9 @@
 data.json.bak_*
 data.json.candidate
 data.json.check
+
+# Backups de trabalho do HTML — nunca devem ir pro repositório (limpeza de 2026-10-09)
+index.html.bak*
+*.bak
+*.bak_*
+__pycache__/
