@@ -87,6 +87,11 @@
   .topbar-title b { color:var(--text); font-weight:600; }
   .topbar-status { display:flex; align-items:center; gap:16px; font-family:var(--mono); font-size:10.5px; color:var(--muted); letter-spacing:0.06em; }
   .topbar-status .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--signal); box-shadow:0 0 8px var(--signal); margin-right:6px; }
+  .status-dados { cursor:help; }
+  .status-dados.dados-aviso { color:var(--caution); }
+  .status-dados.dados-aviso .dot { background:var(--caution); box-shadow:0 0 8px var(--caution); }
+  .status-dados.dados-velho { color:var(--alert); font-weight:600; }
+  .status-dados.dados-velho .dot { background:var(--alert); box-shadow:0 0 8px var(--alert); }
   .mun-filtro-wrap { display:flex; align-items:center; gap:5px; color:var(--amber); }
   .mun-filtro-select {
     background: var(--bg-2); color:var(--text); border:1px solid var(--panel-border); border-radius:3px;
@@ -271,7 +276,6 @@
     .topbar { flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:8px 12px; padding:10px 14px; }
     .topbar-title { flex:1; min-width:0; font-size:10px; line-height:1.4; }
     .topbar-status { flex-wrap:wrap; gap:6px 10px; width:100%; font-size:10px; }
-    .topbar-status > span:nth-child(3) { display:none; }
     .mun-filtro-wrap { flex:1; min-width:0; }
     .mun-filtro-select { flex:1; min-width:0; max-width:100%; }
     #dadosAtualizadosEm { flex-basis:100%; }
@@ -361,7 +365,7 @@
     <div class="topbar-status">
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
       <span id="ppvdAuthWidget"></span>
-      <span><span class="dot"></span>Base local sincronizada</span>
+      <span id="statusDados" class="status-dados" title="Verificando a data dos dados…"><span class="dot"></span><span id="statusDadosTxt">Verificando dados…</span></span>
       <span id="dadosAtualizadosEm">Dados atualizados em —</span>
     </div>
   </div>
@@ -387,6 +391,51 @@ const DATA = JSON.parse(__dataXhr.responseText);
   const d = new Date(lm);
   const pad = n => String(n).padStart(2, '0');
   el.textContent = `Dados atualizados em ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+})();
+// Indicador real de atualização (substitui o texto fixo "Base local sincronizada", que dizia
+// "sincronizado" mesmo com dado parado — achado na análise geral de 2026-10-09). Conta DIAS
+// ÚTEIS desde a última gravação do data.json (header Last-Modified; se o servidor não informar,
+// usa a maior data `atualizado_em` dos indicadores): até 1 dia útil = verde, 2 = amarelo,
+// 3 ou mais = vermelho. Fim de semana não conta (a rotina roda em dia útil). O tooltip mostra
+// o indicador com `atualizado_em` mais antigo.
+(() => {
+  const box = document.getElementById('statusDados'), txt = document.getElementById('statusDadosTxt');
+  if (!box || !txt) return;
+  const NOMES = { mv:'MV', cvpe:'CVPe', cvpa:'CVPa', furto:'Furto Rural', armas:'Armas', pog:'POG', cavaloaco:'Cavalo de Aço', rolezinho:'Rolezinho', padesc:'Padrinhos da Escola', saque_seguro:'Saque Seguro', idob:'IDOB', itvd:'ITVD', esforco_furto:'Prisões de Furto', violencia_domestica:'Violência Doméstica', crimes_violentos:'Crimes Violentos', reincidencia:'Reincidência', cavaloaco_eficacia:'Cavalo de Aço (eficácia)', analise_preditiva:'Análise Preditiva', boemia_meta:'Meta Boemia' };
+  const datas = [];
+  Object.keys(DATA).forEach(k => {
+    const v = DATA[k];
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      if (typeof v.atualizado_em === 'string') datas.push([NOMES[k] || k, v.atualizado_em]);
+      if (k === 'ppag') Object.keys(v).forEach(s => { if (v[s] && typeof v[s].atualizado_em === 'string') datas.push(['PPAG ' + s.toUpperCase(), v[s].atualizado_em]); });
+    }
+  });
+  const paraDia = (s) => { const [a, m, d] = s.split('-').map(Number); return new Date(a, m - 1, d); };
+  const lm = __dataXhr.getResponseHeader('Last-Modified');
+  let ultima = lm ? new Date(lm) : null;
+  if (!ultima || isNaN(ultima.getTime())) {
+    ultima = datas.length ? new Date(Math.max(...datas.map(x => paraDia(x[1]).getTime()))) : null;
+  }
+  if (!ultima) { txt.textContent = 'Data dos dados indisponível'; box.className = 'status-dados dados-aviso'; return; }
+  const diaUltima = new Date(ultima.getFullYear(), ultima.getMonth(), ultima.getDate());
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  let uteis = 0;
+  for (let d = new Date(diaUltima.getTime() + 86400000); d <= hoje; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+    if (d.getDay() !== 0 && d.getDay() !== 6) uteis++;
+  }
+  const fmt = (dt) => String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0');
+  let classe = '', rotulo;
+  if (uteis <= 1) { rotulo = 'Dados em dia'; }
+  else if (uteis === 2) { classe = ' dados-aviso'; rotulo = 'Dados há 2 dias úteis'; }
+  else { classe = ' dados-velho'; rotulo = 'Dados desatualizados · ' + uteis + ' dias úteis'; }
+  txt.textContent = rotulo;
+  box.className = 'status-dados' + classe;
+  let dica = 'Arquivo de dados gravado em ' + fmt(ultima) + ' (' + uteis + ' dia(s) útil(eis) atrás). Verde: até 1 dia útil · Amarelo: 2 · Vermelho: 3 ou mais.';
+  if (datas.length) {
+    const velho = datas.slice().sort((a, b) => a[1].localeCompare(b[1]))[0];
+    dica += '\nIndicador com data mais antiga: ' + velho[0] + ' (' + fmt(paraDia(velho[1])) + ').';
+  }
+  box.title = dica;
 })();
 const MESES = DATA.mv.meses;
 // Mês "atual" real (0-based, Jan=0). Calculado a partir da data do navegador — antes era um
