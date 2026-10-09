@@ -3731,7 +3731,7 @@ initMunFiltroGlobal();
 // ============ PPVD (Patrulha de Prevenção à Violência Doméstica) ============
 const PPVD_SUPABASE_URL = 'https://qzhhuxzdilwdsulttdhq.supabase.co';
 const PPVD_SUPABASE_ANON_KEY = 'sb_publishable_rfrKp8UGRPMhOWI2-2jpbg_IS5ToAOK';
-const ppvdSupa = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(PPVD_SUPABASE_URL, PPVD_SUPABASE_ANON_KEY) : null;
+let ppvdSupa = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(PPVD_SUPABASE_URL, PPVD_SUPABASE_ANON_KEY) : null;
 
 let ppvdUser = null;
 let ppvdPerfil = null;
@@ -4134,14 +4134,23 @@ async function ppvdOnSession(session, event) {
   // Doméstica/Auditoria do zero, derrubando quem estava com um caso aberto no meio do
   // preenchimento do GUT. Achado por Eduardo em 2026-09-08. Só re-renderiza quando algo
   // realmente mudou: login, logout, troca de usuário, ou aprovação de cadastro.
+  // 2026-10-09 (Eduardo: "abro outra aba, volto e a página dá refresh e perde o lugar", mesmo depois da
+  // correção de 09/09): o supabase-js v2 dispara SIGNED_IN (não só TOKEN_REFRESHED) quando a aba volta a
+  // ficar visível, e o filtro só cobria TOKEN_REFRESHED — então a tela era refeita (caso aberto virava lista).
+  // Além disso, sem rede por um instante ao voltar, a consulta do perfil falhava, o perfil virava null e o
+  // painel mostrava o formulário de cadastro. Agora: qualquer evento com a MESMA sessão não refaz a tela, e
+  // falha de rede ao buscar o perfil mantém o estado anterior.
   const userIdAntes = ppvdUser ? ppvdUser.id : null;
   const aprovadoAntes = ppvdPerfil ? ppvdPerfil.aprovado : null;
-  ppvdUser = session ? session.user : null;
-  ppvdPerfil = null;
-  if (ppvdUser) {
-    const { data } = await ppvdSupa.from('perfis').select('*').eq('user_id', ppvdUser.id).maybeSingle();
-    ppvdPerfil = data || null;
+  const novoUser = session ? session.user : null;
+  let novoPerfil = null;
+  if (novoUser) {
+    const { data, error } = await ppvdSupa.from('perfis').select('*').eq('user_id', novoUser.id).maybeSingle();
+    if (error && ppvdPerfil && userIdAntes === novoUser.id) return; // sem rede ao voltar pra aba: mantém tudo como está
+    novoPerfil = data || null;
   }
+  ppvdUser = novoUser;
+  ppvdPerfil = novoPerfil;
   ppvdRenderAuthWidget();
   const restritoAntes = ppvdRestritoCarregado;
   if (ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) await ppvdCarregarDadosRestritos();
@@ -4150,7 +4159,7 @@ async function ppvdOnSession(session, event) {
   const casoRestaurado = await ppvdTentarRestaurarCaso();
   const identidadeIgual = userIdAntes === (ppvdUser ? ppvdUser.id : null);
   const aprovacaoIgual = aprovadoAntes === (ppvdPerfil ? ppvdPerfil.aprovado : null);
-  if (event === 'TOKEN_REFRESHED' && identidadeIgual && aprovacaoIgual && !restritoMudou) return;
+  if (event && event !== 'SIGNED_OUT' && identidadeIgual && aprovacaoIgual && !restritoMudou) return; // SIGNED_IN/TOKEN_REFRESHED/INITIAL_SESSION ao voltar pra aba
   // Se acabou de restaurar um caso aberto (aba descartada/recarregada), não sobrescreve com a
   // lista de novo — achado por Eduardo em 2026-09-09, o caso restaurado acima estava sendo
   // apagado na mesma passada por este mesmo bloco de re-render.
