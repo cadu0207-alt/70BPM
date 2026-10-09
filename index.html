@@ -193,6 +193,13 @@
   .btn-sigop:hover { background:#f4bb54; box-shadow: 0 0 0 1px rgba(232,168,60,0.7), 0 6px 18px rgba(232,168,60,0.4); transform: translateY(-1px); }
   .btn-sigop .arrow { font-size:14px; }
 
+  /* Pop-up do 1º acesso do dia — obriga acessar o SiGOp antes de liberar o painel */
+  #sigopGate { position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(5,10,16,0.92); backdrop-filter:blur(4px); }
+  #sigopGate .sg-box { max-width:480px; width:100%; background:var(--panel, #101a26); border:1px solid rgba(232,168,60,0.55); border-radius:12px; padding:26px 24px; box-shadow:0 20px 60px rgba(0,0,0,0.6); text-align:center; }
+  #sigopGate h2 { margin:0 0 10px; font-size:18px; color:#e8a83c; }
+  #sigopGate p { margin:0 0 18px; font-size:14px; line-height:1.55; color:var(--text, #eaf1f8); }
+  #sigopGate .sg-note { margin:14px 0 0; font-size:11.5px; color:var(--muted, #7891a8); }
+
   .pending-box {
     background:var(--panel); border:1px dashed var(--panel-border); border-radius:4px; padding:44px; text-align:center; color:var(--muted);
     font-size:14px; margin-top:30px; font-family:var(--mono); letter-spacing:0.02em;
@@ -4156,6 +4163,38 @@ if (!(location.hash || '').startsWith('#visita=')) {
     b.classList.toggle('active', b.dataset.page === paginaRestaurada);
   });
 } // se for link publico de visita (#visita=...), ppvdCheckVisitaPublica ja assumiu o #main — nao sobrescreve
+
+// Regra de acesso diário ao SiGOp (pedido de Eduardo em 2026-10-09): todo comandante de
+// pelotão/destacamento/companhia precisa acessar o SiGOp pelo menos uma vez por dia. No 1º
+// acesso do dia ao painel (por navegador) aparece este pop-up bloqueando a tela; clicar no
+// link do SiGOp registra o dia no localStorage e libera o site. É um lembrete por clique —
+// o painel não tem como confirmar que a pessoa de fato abriu/usou o SiGOp (site externo).
+(function sigopGateDiario() {
+  if ((location.hash || '').startsWith('#visita=')) return; // link público de visita não é bloqueado
+  const hoje = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+  const CHAVE = 'sigopAcessoDia';
+  try { if (localStorage.getItem(CHAVE) === hoje) return; } catch (e) {}
+  const url = SIGOP_LINKS.mv;
+  const overlay = document.createElement('div');
+  overlay.id = 'sigopGate';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.innerHTML = `<div class="sg-box">
+    <h2>Acesso diário ao SiGOp</h2>
+    <p>Todo comandante de Pelotão, Destacamento e Companhia deve acessar o SiGOp <b>pelo menos uma vez por dia</b>. Para liberar o painel, clique no botão abaixo e acesse o SiGOp.</p>
+    <a class="btn-sigop" id="sigopGateLink" href="${url}" target="_blank" rel="noopener noreferrer"><span>Acessar o SiGOp agora</span><span class="arrow">&#8599;</span></a>
+    <p class="sg-note">Ao clicar, o aviso fecha e o painel fica liberado até o fim do dia.</p>
+  </div>`;
+  document.body.appendChild(overlay);
+  const liberar = () => {
+    try { localStorage.setItem(CHAVE, hoje); } catch (e) {}
+    overlay.remove();
+  };
+  const link = document.getElementById('sigopGateLink');
+  link.addEventListener('click', liberar);
+  link.addEventListener('auxclick', liberar);
+  link.focus();
+})();
 </script>
 </body>
 </html>
