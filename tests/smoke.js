@@ -224,7 +224,9 @@ function auditar() {
   const casos = [
     ['sem caso (novo)', null, 'vermelho'],
     ['aberto', { status: 'aberto' }, 'vermelho'],
-    ['1ª visita despachada', { status: 'em_visita', qtd_retornos: 0 }, 'vermelho'],
+    ['1ª visita despachada (sem data conhecida)', { status: 'em_visita', qtd_retornos: 0 }, 'amarelo'],
+    ['1ª visita despachada há 10h', { status: 'em_visita', qtd_retornos: 0, _pendenteDesde: horas(10) }, 'amarelo'],
+    ['1ª visita despachada há 100h sem resposta (atrasada)', { status: 'em_visita', qtd_retornos: 0, _pendenteDesde: horas(100) }, 'vermelho'],
     ['atendimento iniciado (decisão do comandante)', { status: 'decisao_cmd', qtd_retornos: 0 }, 'amarelo'],
     ['comandante decidiu mais visitas, retorno feito', { status: 'decisao_cmd', qtd_retornos: 1 }, 'azul'],
     ['retorno despachado há 10h (dentro do prazo)', { status: 'em_visita', qtd_retornos: 1, _pendenteDesde: horas(10) }, 'azul'],
@@ -234,6 +236,37 @@ function auditar() {
   ];
   const obtido = await page.evaluate((lista) => lista.map(([, c]) => ppvdSemaforoVD(c)), casos);
   casos.forEach(([nome, , esperado], i) => checa(obtido[i] === esperado, `${nome} → ${esperado}`, `${nome}: esperava ${esperado}, deu ${obtido[i]}`));
+  await ctx.close();
+
+  // ---------- 9) Recarregar a aba mantém filtro e rolagem da página ----------
+  console.log('\n[9] Recarregar a aba mantém o seletor (mês/período) e a rolagem');
+  ctx = await novoContexto(browser, { viewport: { width: 1280, height: 800 } });
+  page = await ctx.newPage();
+  await page.goto(base);
+  await page.waitForFunction(() => typeof goToPage === 'function' && typeof pages === 'object');
+  await page.evaluate(() => goToPage('rolezinho'));
+  await page.waitForTimeout(300);
+  const antes = await page.evaluate(() => {
+    const sel = document.querySelector('#main select.month-select');
+    if (!sel || sel.options.length < 2) return null;
+    sel.value = sel.options[1].value; sel.dispatchEvent(new Event('change', { bubbles: true }));
+    return { id: sel.id, valor: sel.value };
+  });
+  checa(!!antes, 'página com seletor de mês encontrada', 'não achei seletor de mês na página de teste');
+  if (antes) {
+    await page.hover('#main'); await page.mouse.wheel(0, 250); await page.waitForTimeout(400);
+    const rolouAntes = await page.evaluate(() => Math.round(document.getElementById('main').scrollTop));
+    await page.reload();
+    await page.waitForFunction(() => typeof goToPage === 'function');
+    await page.waitForTimeout(800);
+    const depois = await page.evaluate((id) => ({ valor: (document.getElementById(id) || {}).value, rolagem: Math.round(document.getElementById('main').scrollTop) }), antes.id);
+    checa(depois.valor === antes.valor, 'seletor continua no mesmo mês depois do reload', `seletor voltou para "${depois.valor}" (era "${antes.valor}")`);
+    checa(rolouAntes === 0 || Math.abs(depois.rolagem - rolouAntes) <= 3, `rolagem restaurada (${rolouAntes}px → ${depois.rolagem}px)`, `rolagem não voltou: era ${rolouAntes}px, ficou ${depois.rolagem}px`);
+    // navegar pelo menu começa limpo
+    await page.evaluate(() => goToPage('home')); await page.evaluate(() => goToPage('rolezinho')); await page.waitForTimeout(300);
+    const limpo = await page.evaluate((id) => (document.getElementById(id) || {}).selectedIndex, antes.id);
+    checa(limpo !== undefined, 'navegar pelo menu abre a página normalmente', 'página não abriu depois de navegar pelo menu');
+  }
   await ctx.close();
 
   await browser.close();

@@ -362,6 +362,7 @@
     </div>
     <div class="nav-group">
       <div class="nav-group-label">Guias e Documentos</div>
+      <button class="nav-btn" data-page="mensagens" title="Dúvidas, sugestões e solicitações ao administrador — exige login PPVD">Mensagens ao Admin</button>
       <button class="nav-btn" data-page="guia_comandantes">Guia de Comandantes</button>
       <button class="nav-btn" data-page="apresentacao_gdo">Apresentação GDO</button>
       <button class="nav-btn" data-page="ementario">Ementário 70º BPM</button>
@@ -3139,6 +3140,7 @@ const pages = {
   rolezinho: renderRolezinhoPage,
   esforco_furto: renderEsforcoFurtoPage,
   guia_comandantes: renderGuiaComandantesPage,
+  mensagens: renderMensagensPage,
   apresentacao_gdo: renderApresentacaoGdoPage,
   ementario: renderEmentarioPage,
   itvd: renderITVDPage,
@@ -3171,9 +3173,104 @@ function highlightMunRows() {
     if (firstCell && normMun(firstCell.textContent) === alvoNorm) tr.classList.add('mun-highlight-row');
   });
 }
+// Estado da tela que sobrevive ao navegador descartar/recarregar a aba (Eduardo, 2026-10-09: ao voltar de
+// outra aba — WhatsApp, SiGOp, BOS — a página reiniciava e saía do lugar). A página e o caso aberto já eram
+// lembrados; faltava o resto: filtros/seletores (mês, período), o que foi digitado e ainda não salvo no caso,
+// e a posição da rolagem. Guarda por "contexto" (página ou caso) no localStorage e reaplica quando o conteúdo
+// reaparece. Só restaura (a) na carga da página e (b) ao voltar de um caso para a lista de onde ele saiu;
+// navegar pelo menu sempre começa limpo. Rascunho vale por 24h e é apagado ao salvar o caso.
+const estadoUI = (function () {
+  const CHAVE = 'estadoUI70bpm', VALIDADE_MS = 24 * 3600 * 1000, MAX_CTX = 8;
+  const main = () => document.getElementById('main');
+  let ctx = null, primeira = true, voltarPara = null, observer = null, parar = null;
+  let ultimaInteracao = 0;
+  const ler = () => { try { return JSON.parse(localStorage.getItem(CHAVE) || '{}') || {}; } catch (e) { return {}; } };
+  const gravar = (todos) => {
+    try {
+      const chaves = Object.keys(todos).sort((a, b) => (todos[b].ts || 0) - (todos[a].ts || 0));
+      chaves.slice(MAX_CTX).forEach(k => delete todos[k]);
+      localStorage.setItem(CHAVE, JSON.stringify(todos));
+    } catch (e) {}
+  };
+  const atual = (todos) => { if (!todos[ctx]) todos[ctx] = { sel: {}, scroll: 0, ts: 0 }; return todos[ctx]; };
+  const guardavel = (el) => el && el.id && (el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' ||
+    (el.tagName === 'INPUT' && !['password', 'file', 'hidden', 'button', 'submit'].includes(el.type)));
+  const valorDe = (el) => (el.type === 'checkbox' || el.type === 'radio') ? String(el.checked) : el.value;
+
+  function aoMexer(e) {
+    if (!ctx || !guardavel(e.target) || !main().contains(e.target)) return;
+    const todos = ler(), est = atual(todos);
+    est.sel[e.target.id] = valorDe(e.target); est.ts = Date.now(); gravar(todos);
+  }
+  function aoRolar() {
+    if (!ctx || Date.now() - ultimaInteracao > 3000) return; // só rolagem feita pela pessoa (render troca o conteúdo e zera a rolagem)
+    const todos = ler(), est = atual(todos);
+    est.scroll = Math.round(main().scrollTop); est.ts = Date.now(); gravar(todos);
+  }
+  function marcarInteracao() { ultimaInteracao = Date.now(); if (parar) parar(); }
+  function iniciarEscutas() {
+    const m = main(); if (!m) return;
+    m.addEventListener('input', aoMexer, true); m.addEventListener('change', aoMexer, true);
+    m.addEventListener('scroll', aoRolar, { passive: true });
+    ['wheel', 'touchstart', 'touchmove', 'keydown', 'mousedown'].forEach(ev => m.addEventListener(ev, () => { ultimaInteracao = Date.now(); }, { passive: true, capture: true }));
+    ['wheel', 'touchmove', 'keydown'].forEach(ev => m.addEventListener(ev, () => { if (parar) parar(); }, { passive: true, capture: true }));
+  }
+
+  function restaurar(alvo) {
+    const est = ler()[alvo];
+    if (!est || Date.now() - (est.ts || 0) > VALIDADE_MS) return;
+    const aplicados = new WeakSet(); // por elemento: se a página for re-renderizada (ex.: dados restritos chegaram), reaplica
+    const tentar = () => {
+      if (ctx !== alvo) return;
+      const m = main();
+      Object.keys(est.sel || {}).forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || !m.contains(el) || aplicados.has(el)) return;
+        aplicados.add(el);
+        const v = est.sel[id];
+        if (el.type === 'checkbox' || el.type === 'radio') { if (String(el.checked) !== v) { el.checked = v === 'true'; el.dispatchEvent(new Event('change', { bubbles: true })); } return; }
+        if (el.value !== v) {
+          el.value = v;
+          if (el.tagName === 'SELECT' && el.value !== v) return; // opção não existe mais
+          el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+        }
+      });
+      if (est.scroll > 0 && m.scrollTop < est.scroll - 2 && m.scrollHeight - m.clientHeight >= est.scroll - 2) m.scrollTop = est.scroll;
+    };
+    if (observer) observer.disconnect();
+    observer = new MutationObserver(tentar);
+    observer.observe(main(), { childList: true, subtree: true });
+    const timer = setTimeout(() => parar && parar(), 20000);
+    parar = () => { clearTimeout(timer); if (observer) observer.disconnect(); observer = null; parar = null; };
+    tentar();
+  }
+
+  return {
+    iniciar: iniciarEscutas,
+    set voltarPara(p) { voltarPara = p; },
+    // contexto = página ('pag:<chave>') ou caso ('caso:<REDS>'); restaurar=true reaplica o que foi salvo
+    entrar(novo, restaurarAgora) {
+      if (parar) parar();
+      ctx = novo;
+      const todos = ler();
+      if (!restaurarAgora) { delete todos[ctx]; gravar(todos); } else restaurar(ctx);
+    },
+    // true na carga da página e quando se volta (Voltar) pra página de onde um caso foi aberto
+    deveRestaurarPagina(chave) {
+      const r = primeira || chave === voltarPara;
+      primeira = false; voltarPara = null;
+      return r;
+    },
+    // caso salvo/re-renderizado: o que estava digitado já foi gravado, descarta o rascunho
+    limparCampos() { if (!ctx) return; const todos = ler(); if (todos[ctx]) { todos[ctx].sel = {}; gravar(todos); } },
+  };
+})();
+estadoUI.iniciar();
+
 let currentPageKey = 'home';
 function goToPage(key) {
   currentPageKey = key;
+  estadoUI.entrar('pag:' + key, estadoUI.deveRestaurarPagina(key));
   try {
     // localStorage (não sessionStorage) desde 2026-10-01: Eduardo relatou que o problema de
     // perder a página ao trocar de aba continuava mesmo depois da correção de 09/2026 — em
@@ -3566,7 +3663,7 @@ function ppvdLimparDadosRestritos() {
   window.ppvdOcorrenciaLookup = {}; window.ppvdCVLookup = {}; window.ppvdReincLookup = {};
   ppvdRestritoCarregado = false;
 }
-const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia'];
+const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens'];
 
 async function ppvdInit() {
   if (!ppvdSupa) return;
@@ -3596,7 +3693,8 @@ async function ppvdTentarRestaurarCaso() {
   ppvdCaseRestoreTentado = true;
   const redsAberto = ppvdCasoAbertoRedsNaCarga;
   if (redsAberto && ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) {
-    await ppvdAbrirCaso(redsAberto);
+    window.ppvdRestaurando = true; // reaplica rascunho e rolagem do caso (estadoUI)
+    try { await ppvdAbrirCaso(redsAberto); } finally { window.ppvdRestaurando = false; }
     return true;
   }
   return false;
@@ -3651,7 +3749,9 @@ function ppvdRenderAuthWidget() {
     el.innerHTML = `<span style="color:var(--text)">${ppvdPerfil.nome} (${ppvdPerfil.cargo})</span> ` +
       (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> ` : '') +
       `<button class="ppvd-btn" onclick="ppvdOpenMilitares()">Militares Responsáveis</button> ` +
+      `<button class="ppvd-btn" onclick="goToPage('mensagens')">✉ Mensagens<span id="msgBadge"></span></button> ` +
       `<button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
+    ppvdAtualizarBadgeMensagens();
   }
 }
 
@@ -3706,24 +3806,26 @@ function ppvdRenderAguardando() {
 
 // Semáforo dos casos de Violência Doméstica (azul incluído a pedido de Eduardo em 2026-10-09):
 //   vermelho = caso novo (sem caso/aberto) ou em atraso
-//   amarelo  = atendimento iniciado (visita despachada ou feita, ainda sem retorno)
+//   amarelo  = atendimento iniciado (1ª visita despachada ou já feita, aguardando decisão do comandante)
 //   azul     = não estabilizado, mas o comandante decidiu continuar com visitas de retorno: dentro do prazo e
-//              sendo acompanhado. Vira vermelho se a visita de retorno despachada ficar sem resposta > 72h
-//              (prazo máximo da mensagem de despacho); `_pendenteDesde` vem de ppvdBuscarCasosVD.
+//              sendo acompanhado.
 //   verde    = estabilizado
+// Atraso: visita despachada (1ª ou retorno) sem resposta há mais de 72h (prazo máximo da mensagem de
+// despacho) volta a vermelho; `_pendenteDesde` vem de ppvdBuscarCasosVD.
 const PPVD_PRAZO_RETORNO_HORAS = 72;
 function ppvdEmAcompanhamentoVD(caso) {
   return !!caso && caso.status !== 'estabilizada' && ((caso.qtd_retornos || 0) >= 1 || caso.status === 'retorno' || caso.status === 'em_acompanhamento');
 }
+function ppvdVisitaAtrasadaVD(caso) {
+  return !!(caso && caso._pendenteDesde && (Date.now() - new Date(caso._pendenteDesde).getTime()) / 3600000 > PPVD_PRAZO_RETORNO_HORAS);
+}
 function ppvdSemaforoVD(caso) {
   if (!caso) return 'vermelho';
   if (caso.status === 'estabilizada') return 'verde';
-  if (ppvdEmAcompanhamentoVD(caso)) {
-    if (caso._pendenteDesde && (Date.now() - new Date(caso._pendenteDesde).getTime()) / 3600000 > PPVD_PRAZO_RETORNO_HORAS) return 'vermelho';
-    return 'azul';
-  }
+  if (ppvdEmAcompanhamentoVD(caso)) return ppvdVisitaAtrasadaVD(caso) ? 'vermelho' : 'azul';
+  if (caso.status === 'em_visita') return ppvdVisitaAtrasadaVD(caso) ? 'vermelho' : 'amarelo';
   if (caso.status === 'decisao_cmd') return 'amarelo';
-  return 'vermelho'; // sem caso, aberto, em_visita (1ª visita despachada), outros
+  return 'vermelho'; // sem caso, aberto/novo, outros
 }
 function ppvdStatusLabelVD(status) {
   const map = { aberto: 'Aberto', novo: 'Novo', em_visita: 'Em Visita', decisao_cmd: 'Decisão Cmd', retorno: 'Retorno', em_acompanhamento: 'Em acompanhamento', estabilizada: 'Estabilizada', encerrado: 'Encerrado' };
@@ -3734,9 +3836,9 @@ async function ppvdBuscarCasosVD(redsList) {
   const { data, error } = await ppvdSupa.from('ppvd_casos').select('*').eq('modalidade', 'violencia_domestica').in('reds_numero', redsList);
   const map = {};
   if (!error && data) data.forEach(c => { if (c.reds_numero) map[c.reds_numero] = c; });
-  // Retorno despachado e ainda sem resposta: precisa da data do despacho pra saber se estourou o prazo (semáforo azul -> vermelho)
+  // Visita despachada e ainda sem resposta: precisa da data do despacho pra saber se estourou o prazo (vira vermelho)
   const porId = {};
-  Object.values(map).forEach(c => { if (c.status === 'em_visita' && (c.qtd_retornos || 0) >= 1) porId[c.id] = c; });
+  Object.values(map).forEach(c => { if (c.status === 'em_visita') porId[c.id] = c; });
   if (Object.keys(porId).length) {
     const { data: pend } = await ppvdSupa.from('ppvd_visitas').select('caso_id, despachado_em').in('caso_id', Object.keys(porId)).is('visita_realizada_em', null);
     (pend || []).forEach(v => {
@@ -3825,6 +3927,8 @@ async function ppvdAbrirCaso(redsNumero) {
   if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador PPVD.'); return; }
 
   const dadosBase = (window.ppvdOcorrenciaLookup || {})[redsNumero] || {};
+  estadoUI.voltarPara = currentPageKey; // Voltar devolve a lista como estava (período, rolagem)
+  estadoUI.entrar('caso:' + redsNumero, window.ppvdRestaurando === true);
   document.getElementById('main').innerHTML = `<div class="page-title">Carregando caso…</div>`;
   // Lembra qual caso está aberto — se a aba recarregar (navegador descartando em segundo
   // plano, por memória) enquanto o comandante estava com o caso aberto, reabre sozinho em vez
@@ -3855,6 +3959,7 @@ async function ppvdAbrirCaso(redsNumero) {
 }
 
 async function ppvdRenderCaso(caso) {
+  if (!window.ppvdRestaurando) estadoUI.limparCampos(); // re-render depois de salvar: rascunho já virou dado
   window.ppvdCasoAtual = caso;
   const { data: visitas } = await ppvdSupa.from('ppvd_visitas').select('*').eq('caso_id', caso.id).order('created_at', { ascending: false });
   const ehVD = (caso.modalidade || 'violencia_domestica') === 'violencia_domestica';
@@ -3891,7 +3996,9 @@ async function ppvdRenderCaso(caso) {
   }
   html += `<button class="ppvd-btn" onclick="ppvdSalvarStatus('${caso.id}')">Salvar status</button>`;
   if (podeGerenciar) {
-    html += ` <button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdReiniciarCaso('${caso.id}')">⟲ Reiniciar Caso</button>`;
+    html += ppvdPerfil.is_admin
+      ? ` <button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdReiniciarCaso('${caso.id}')">⟲ Reiniciar Caso</button>`
+      : ` <button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdSolicitarAoAdmin('reiniciar_caso','${caso.id}',null)">⟲ Solicitar reinício ao admin</button>`;
   }
   html += `</div>`;
 
@@ -3974,7 +4081,9 @@ async function ppvdRenderCaso(caso) {
       ].filter(Boolean).join(' ') || '—';
       let acoes = '';
       if (podeGerenciar) {
-        acoes = `<button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdApagarVisita('${v.id}','${caso.id}')">🗑 Apagar</button>`;
+        acoes = ppvdPerfil.is_admin
+          ? `<button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdApagarVisita('${v.id}','${caso.id}')">🗑 Apagar</button>`
+          : `<button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdSolicitarAoAdmin('apagar_visita','${caso.id}','${v.id}')">🗑 Solicitar exclusão ao admin</button>`;
         if (v.visita_realizada_em) {
           acoes += ` <button class="ppvd-btn" onclick="ppvdSolicitarNovoPreenchimento('${v.id}','${caso.id}')">↺ Solicitar novo preenchimento</button>`;
         }
@@ -4003,10 +4112,192 @@ async function ppvdRecalcularStatusCaso(casoId) {
   await ppvdRenderCaso(casoAtualizado);
 }
 
+// ============ Mensagens ao admin (pedido de Eduardo em 2026-10-09) ============
+// Dúvidas, sugestões e solicitações dos usuários aprovados para o admin geral (tabela `mensagens`, RLS: o autor
+// vê as suas, o admin vê todas). Também é por aqui que os demais usuários pedem ao admin pra apagar uma visita ou
+// reiniciar um caso — só o admin geral tem permissão de apagar (policies "admin apaga visitas/casos").
+const MSG_TIPOS = { duvida: 'Dúvida', sugestao: 'Sugestão', solicitacao: 'Solicitação', apagar_visita: 'Pedido: apagar visita', reiniciar_caso: 'Pedido: reiniciar caso' };
+const MSG_STATUS = { aberta: 'Aberta', em_andamento: 'Em andamento', resolvida: 'Resolvida', recusada: 'Recusada' };
+window.msgCache = {};
+function msgEsc(t) {
+  return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+async function ppvdAtualizarBadgeMensagens() {
+  const el = document.getElementById('msgBadge');
+  if (!el || !ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) return;
+  let q = ppvdSupa.from('mensagens').select('id', { count: 'exact', head: true });
+  q = ppvdPerfil.is_admin ? q.eq('lida_admin', false) : q.eq('autor_id', ppvdUser.id).eq('resposta_lida', false);
+  const { count } = await q;
+  el.textContent = count > 0 ? ' ' + count : '';
+  el.style.cssText = count > 0 ? 'background:var(--alert);color:#fff;border-radius:9px;padding:0 6px;margin-left:4px;font-weight:700' : '';
+  el.title = count > 0 ? (ppvdPerfil.is_admin ? count + ' mensagem(ns) nova(s)' : count + ' resposta(s) nova(s)') : '';
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) ppvdAtualizarBadgeMensagens(); });
+
+function msgCartao(m, souAdmin) {
+  const statusCls = { aberta: 'ppvd-badge-critica', em_andamento: 'ppvd-badge-azul', resolvida: 'ppvd-badge-verde', recusada: 'ppvd-badge-semcaso' }[m.status] || 'ppvd-badge-semcaso';
+  const pedido = m.tipo === 'apagar_visita' || m.tipo === 'reiniciar_caso';
+  let h = `<div class="ppvd-card" style="margin-bottom:12px">`;
+  h += `<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px">`;
+  h += `<span class="ppvd-badge ppvd-badge-media">${MSG_TIPOS[m.tipo] || msgEsc(m.tipo)}</span>`;
+  h += `<span class="ppvd-badge ${statusCls}">${MSG_STATUS[m.status] || msgEsc(m.status)}</span>`;
+  h += `<span style="color:var(--muted);font-size:12px">${ppvdFmtDT(m.created_at)}`;
+  if (souAdmin) h += ` &middot; ${msgEsc(m.autor_nome)} (${msgEsc(m.autor_cargo)}, ${msgEsc(m.autor_cidade)})`;
+  h += `</span></div>`;
+  if (m.assunto) h += `<div style="font-weight:600;margin-bottom:4px">${msgEsc(m.assunto)}</div>`;
+  h += `<div style="white-space:pre-wrap">${msgEsc(m.texto)}</div>`;
+  if (m.reds_numero) h += `<div style="margin-top:6px;font-size:12px;color:var(--muted)">Caso: ${msgEsc(m.reds_numero)} <button class="ppvd-btn" onclick="ppvdAbrirCaso('${msgEsc(m.reds_numero)}')">Abrir caso ▸</button></div>`;
+  if (m.resposta) h += `<div class="def-box" style="margin:10px 0 0"><b>Resposta${m.respondido_por ? ' de ' + msgEsc(m.respondido_por) : ''}${m.respondido_em ? ' &middot; ' + ppvdFmtDT(m.respondido_em) : ''}</b><br><span style="white-space:pre-wrap">${msgEsc(m.resposta)}</span></div>`;
+  if (souAdmin) {
+    h += `<div style="margin-top:10px"><textarea id="msgResp-${m.id}" rows="2" style="width:100%" placeholder="Resposta ao autor (opcional)"></textarea>`;
+    h += `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">`;
+    if (pedido && m.status !== 'resolvida') h += `<button class="ppvd-btn ppvd-btn-primary" onclick="msgExecutar('${m.id}')">Executar pedido</button>`;
+    h += `<button class="ppvd-btn" onclick="msgResponder('${m.id}','resolvida')">Responder e resolver</button>`;
+    h += `<button class="ppvd-btn" onclick="msgResponder('${m.id}','em_andamento')">Em andamento</button>`;
+    h += `<button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="msgResponder('${m.id}','recusada')">Recusar</button>`;
+    h += `</div></div>`;
+  }
+  return h + `</div>`;
+}
+
+async function renderMensagensPage() {
+  let html = `<div class="page-title">Mensagens</div>`;
+  if (!ppvdSupa || !ppvdUser) {
+    html += `<div class="def-box">Entre com sua conta PPVD (botão "Entrar (PPVD)" no topo) pra enviar e ver mensagens.</div>`;
+    document.getElementById('main').innerHTML = html; return;
+  }
+  if (!ppvdPerfil || !ppvdPerfil.aprovado) {
+    html += `<div class="def-box">Seu acesso ainda não foi aprovado — assim que for, você poderá enviar dúvidas, sugestões e solicitações ao administrador por aqui.</div>`;
+    document.getElementById('main').innerHTML = html; return;
+  }
+  const souAdmin = !!ppvdPerfil.is_admin;
+  html += `<div class="def-box">${souAdmin ? '<b>Caixa de entrada do administrador.</b> Responda, marque o andamento ou execute os pedidos de exclusão.' : 'Envie <b>dúvidas, sugestões ou solicitações</b> ao administrador do painel. A resposta aparece aqui mesmo (e um número vermelho avisa no botão ✉ Mensagens).'}</div>`;
+  html += `<div class="ppvd-card"><b>Nova mensagem</b><br><br>
+    <div class="ppvd-field"><label>Tipo</label><select id="msgTipo"><option value="duvida">Dúvida</option><option value="sugestao">Sugestão</option><option value="solicitacao">Solicitação</option></select></div>
+    <div class="ppvd-field"><label>Assunto</label><input id="msgAssunto" maxlength="120"></div>
+    <div class="ppvd-field"><label>Mensagem</label><textarea id="msgTexto" rows="4" maxlength="4000"></textarea></div>
+    <button class="ppvd-btn ppvd-btn-primary" onclick="msgEnviar()">Enviar</button></div>`;
+  html += `<div class="page-title" style="margin-top:24px;font-size:16px">${souAdmin ? 'Mensagens recebidas' : 'Minhas mensagens'}</div>`;
+  if (souAdmin) html += `<div class="ppvd-field" style="max-width:260px"><label>Mostrar</label><select id="msgFiltro"><option value="pendentes">Pendentes (abertas e em andamento)</option><option value="todas">Todas</option></select></div>`;
+  html += `<div id="msgLista"><div class="def-box">Carregando…</div></div>`;
+  document.getElementById('main').innerHTML = html;
+
+  let q = ppvdSupa.from('mensagens').select('*').order('created_at', { ascending: false }).limit(200);
+  if (!souAdmin) q = q.eq('autor_id', ppvdUser.id);
+  const { data, error } = await q;
+  const box = document.getElementById('msgLista');
+  if (!box) return; // saiu da página enquanto carregava
+  if (error) { box.innerHTML = `<div class="def-box">Erro ao carregar mensagens: ${msgEsc(error.message)}</div>`; return; }
+  window.msgCache = {}; (data || []).forEach(m => { window.msgCache[m.id] = m; });
+  const pintar = () => {
+    const f = souAdmin ? document.getElementById('msgFiltro').value : 'todas';
+    const lista = (data || []).filter(m => f === 'todas' || m.status === 'aberta' || m.status === 'em_andamento');
+    box.innerHTML = lista.length ? lista.map(m => msgCartao(m, souAdmin)).join('') : `<div class="pending-box">Nenhuma mensagem${f === 'pendentes' ? ' pendente' : ''}.</div>`;
+  };
+  if (souAdmin) document.getElementById('msgFiltro').addEventListener('change', pintar);
+  pintar();
+  // abrir a caixa = ler: admin marca as novas como lidas; autor marca as respostas como lidas
+  const campo = souAdmin ? 'lida_admin' : 'resposta_lida';
+  if ((data || []).some(m => m[campo] === false)) {
+    await ppvdSupa.from('mensagens').update({ [campo]: true }).eq(campo, false);
+    ppvdAtualizarBadgeMensagens();
+  }
+}
+
+async function msgEnviar() {
+  const texto = document.getElementById('msgTexto').value.trim();
+  if (!texto) { alert('Escreva a mensagem.'); return; }
+  const { error } = await ppvdSupa.from('mensagens').insert({
+    tipo: document.getElementById('msgTipo').value, assunto: document.getElementById('msgAssunto').value.trim() || null, texto
+  });
+  if (error) { alert('Erro ao enviar: ' + error.message); return; }
+  estadoUI.limparCampos();
+  alert('Mensagem enviada ao administrador.');
+  renderMensagensPage();
+}
+
+// Usuário sem permissão de apagar pede ao admin (cria uma mensagem ligada ao caso/visita).
+async function ppvdSolicitarAoAdmin(tipo, casoId, visitaId) {
+  const motivo = prompt(tipo === 'apagar_visita' ? 'Por que essa visita deve ser apagada? (o admin vai receber o pedido)' : 'Por que esse caso deve ser reiniciado? (o admin vai receber o pedido)');
+  if (!motivo || !motivo.trim()) return;
+  const caso = window.ppvdCasoAtual && window.ppvdCasoAtual.id === casoId ? window.ppvdCasoAtual : null;
+  const { error } = await ppvdSupa.from('mensagens').insert({
+    tipo, assunto: tipo === 'apagar_visita' ? 'Apagar visita' : 'Reiniciar caso', texto: motivo.trim(),
+    caso_id: casoId, visita_id: visitaId || null, reds_numero: caso ? caso.reds_numero : null
+  });
+  if (error) { alert('Erro ao enviar o pedido: ' + error.message); return; }
+  alert('Pedido enviado ao administrador. A resposta aparece em ✉ Mensagens.');
+}
+
+async function msgResponder(id, novoStatus) {
+  const campo = document.getElementById('msgResp-' + id);
+  const txt = campo ? campo.value.trim() : '';
+  const upd = { status: novoStatus, resposta_lida: false, lida_admin: true, respondido_por: ppvdPerfil.nome, respondido_em: new Date().toISOString() };
+  if (txt) upd.resposta = txt;
+  const { data, error } = await ppvdSupa.from('mensagens').update(upd).eq('id', id).select();
+  if (error || !data || !data.length) { alert('Erro ao responder: ' + (error ? error.message : 'sem permissão')); return; }
+  renderMensagensPage();
+}
+
+// Admin executa o pedido de exclusão feito por outro usuário.
+async function msgExecutar(id) {
+  const m = window.msgCache[id];
+  if (!m || !ppvdPerfil || !ppvdPerfil.is_admin) return;
+  if (m.tipo === 'apagar_visita') {
+    if (!m.visita_id) { alert('O pedido não traz a visita.'); return; }
+    if (!confirm('Apagar a visita pedida por ' + (m.autor_nome || 'usuário') + '? Não pode ser desfeito.')) return;
+    const r = await ppvdExcluirVisita(m.visita_id, m.caso_id);
+    if (!r.ok) { alert(r.erro); return; }
+  } else if (m.tipo === 'reiniciar_caso') {
+    if (!m.caso_id) { alert('O pedido não traz o caso.'); return; }
+    if (!confirm('Reiniciar o caso pedido por ' + (m.autor_nome || 'usuário') + '? TODAS as visitas serão apagadas. Não pode ser desfeito.')) return;
+    const r = await ppvdReiniciarCasoExec(m.caso_id);
+    if (!r.ok) { alert(r.erro); return; }
+  } else return;
+  const campo = document.getElementById('msgResp-' + id);
+  const txt = campo ? campo.value.trim() : '';
+  await ppvdSupa.from('mensagens').update({
+    status: 'resolvida', resposta_lida: false, lida_admin: true, respondido_por: ppvdPerfil.nome, respondido_em: new Date().toISOString(),
+    resposta: txt || 'Pedido executado pelo administrador.'
+  }).eq('id', id);
+  renderMensagensPage();
+}
+
+// Apagar visita (só admin). O supabase-js NÃO dá erro quando a regra do banco impede e 0 linhas são apagadas,
+// então confere o que voltou em .select().
+async function ppvdExcluirVisita(visitaId, casoId) {
+  const { data, error } = await ppvdSupa.from('ppvd_visitas').delete().eq('id', visitaId).select('id');
+  if (error) return { ok: false, erro: 'Erro: ' + error.message };
+  if (!data || !data.length) return { ok: false, erro: 'Nada foi apagado: só o administrador geral pode apagar visitas (ou a visita já não existe).' };
+  if (casoId) {
+    const { data: visitas } = await ppvdSupa.from('ppvd_visitas').select('visita_realizada_em').eq('caso_id', casoId);
+    const status = !visitas || !visitas.length ? 'aberto' : (visitas.some(v => !v.visita_realizada_em) ? 'em_visita' : 'decisao_cmd');
+    await ppvdSupa.from('ppvd_casos').update({ status }).eq('id', casoId).neq('status', 'estabilizada');
+  }
+  return { ok: true };
+}
+
+async function ppvdReiniciarCasoExec(casoId) {
+  const { error: errDel } = await ppvdSupa.from('ppvd_visitas').delete().eq('caso_id', casoId).select('id');
+  if (errDel) return { ok: false, erro: 'Erro ao apagar visitas: ' + errDel.message };
+  const { count } = await ppvdSupa.from('ppvd_visitas').select('id', { count: 'exact', head: true }).eq('caso_id', casoId);
+  if (count > 0) return { ok: false, erro: 'As visitas não foram apagadas: só o administrador geral pode reiniciar um caso.' };
+  const upd = {
+    status: 'aberto', gravidade: null, urgencia: null, tendencia: null,
+    gut_final_gravidade: null, gut_final_urgencia: null, gut_final_tendencia: null,
+    qtd_retornos: 0, visita_autor_feita: false, visita_vitima_feita: false,
+    militar_responsavel: null, militar_responsavel_whatsapp: null, estabilizado_em: null, estabilizado_por: null,
+  };
+  const { data: caso, error } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', casoId).select().single();
+  if (error) return { ok: false, erro: 'Erro: ' + error.message };
+  return { ok: true, caso };
+}
+
 async function ppvdApagarVisita(visitaId, casoId) {
+  if (!ppvdPerfil || !ppvdPerfil.is_admin) { alert('Só o administrador geral apaga visitas. Use "Solicitar ao admin".'); return; }
   if (!confirm('Apagar este registro de visita? Essa ação não pode ser desfeita.')) return;
-  const { error } = await ppvdSupa.from('ppvd_visitas').delete().eq('id', visitaId);
-  if (error) { alert('Erro: ' + error.message); return; }
+  const r = await ppvdExcluirVisita(visitaId, casoId);
+  if (!r.ok) { alert(r.erro); return; }
   await ppvdRecalcularStatusCaso(casoId);
 }
 
@@ -4033,29 +4324,12 @@ async function ppvdSolicitarNovoPreenchimento(visitaId, casoId) {
 }
 
 async function ppvdReiniciarCaso(casoId) {
+  if (!ppvdPerfil || !ppvdPerfil.is_admin) { alert('Só o administrador geral reinicia casos. Use "Solicitar ao admin".'); return; }
   if (!confirm('Reiniciar este caso? TODAS as visitas registradas serão apagadas e o caso volta ao status inicial (aberto), mantendo REDS, endereço, identificação e FONAR. Essa ação não pode ser desfeita.')) return;
   if (!confirm('Tem certeza? Essa é uma ação destrutiva e definitiva.')) return;
-  const { error: errDel } = await ppvdSupa.from('ppvd_visitas').delete().eq('caso_id', casoId);
-  if (errDel) { alert('Erro ao apagar visitas: ' + errDel.message); return; }
-  const upd = {
-    status: 'aberto',
-    gravidade: null,
-    urgencia: null,
-    tendencia: null,
-    gut_final_gravidade: null,
-    gut_final_urgencia: null,
-    gut_final_tendencia: null,
-    qtd_retornos: 0,
-    visita_autor_feita: false,
-    visita_vitima_feita: false,
-    militar_responsavel: null,
-    militar_responsavel_whatsapp: null,
-    estabilizado_em: null,
-    estabilizado_por: null,
-  };
-  const { data: caso, error } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', casoId).select().single();
-  if (error) { alert('Erro: ' + error.message); return; }
-  await ppvdRenderCaso(caso);
+  const r = await ppvdReiniciarCasoExec(casoId);
+  if (!r.ok) { alert(r.erro); return; }
+  await ppvdRenderCaso(r.caso);
 }
 
 async function ppvdSalvarStatus(casoId) {
