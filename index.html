@@ -243,6 +243,8 @@
   .vd-row-vermelho td { background: rgba(230,72,79,0.08) !important; }
   .vd-row-amarelo td { background: rgba(232,168,60,0.10) !important; }
   .vd-row-verde td { background: rgba(33,201,138,0.07) !important; }
+  .vd-row-azul td { background: rgba(91,155,213,0.12) !important; }
+  .ppvd-badge-azul { background:rgba(91,155,213,0.18); color:#8ec5ff; border:1px solid rgba(91,155,213,0.5); }
   .vd-check-ok { color: var(--signal); font-weight:700; }
   .vd-check-no { color: var(--muted-dim); }
   .ppvd-card { background:var(--panel); border:1px solid var(--panel-border); border-radius:6px; padding:20px 22px; margin-bottom:18px; }
@@ -1936,6 +1938,11 @@ function renderViolenciaDomesticaPage() {
     if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); document.getElementById('vdMuniPanel').innerHTML = h; return; }
     const redsDaLista = lista.map(o => o.r).filter(Boolean);
     const casosMap = await ppvdBuscarCasosVD(redsDaLista);
+    h += `<div class="updated" style="border:none;margin:0 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center">Cor do caso:
+      <span><span class="ppvd-badge ppvd-badge-critica">Vermelho</span> novo ou em atraso</span>
+      <span><span class="ppvd-badge ppvd-badge-alta">Amarelo</span> atendimento iniciado</span>
+      <span><span class="ppvd-badge ppvd-badge-azul">Azul</span> em acompanhamento (retornos, dentro do prazo)</span>
+      <span><span class="ppvd-badge ppvd-badge-verde">Verde</span> estabilizado</span></div>`;
     h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th><th>FONAR</th><th style="text-align:left">Responsável</th><th>V. Autor</th><th>V. Vítima</th><th>GUT Inicial</th><th>GUT Final</th><th>Status</th><th>Retornos</th><th>Ação</th></tr></thead><tbody>`;
     if (lista.length === 0) {
       h += `<tr><td colspan="18" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
@@ -1958,7 +1965,7 @@ function renderViolenciaDomesticaPage() {
         const gutIni = caso && caso.gravidade ? `${caso.gravidade}×${caso.urgencia}×${caso.tendencia}=${caso.gut_score}` : '—';
         const gutFin = caso && caso.gut_final_gravidade ? `${caso.gut_final_gravidade}×${caso.gut_final_urgencia}×${caso.gut_final_tendencia}=${caso.gut_final_score}` : '—';
         const statusTxt = caso ? ppvdStatusLabelVD(caso.status) : 'Sem caso';
-        const statusBadgeClass = sem === 'verde' ? 'ppvd-badge-verde' : (sem === 'amarelo' ? 'ppvd-badge-alta' : 'ppvd-badge-critica');
+        const statusBadgeClass = sem === 'verde' ? 'ppvd-badge-verde' : (sem === 'azul' ? 'ppvd-badge-azul' : (sem === 'amarelo' ? 'ppvd-badge-alta' : 'ppvd-badge-critica'));
         const retornosTxt = caso && caso.qtd_retornos > 0 ? String(caso.qtd_retornos) : '—';
         const podeAbrir = ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_abrir_caso);
         let acaoBtn = '—';
@@ -2852,7 +2859,7 @@ async function renderAuditoriaPage() {
       const horas = auditoriaHorasDesde(o.d);
       const atrasado = horas !== null && horas > 72;
       return { o, caso, sem, horas, atrasado };
-    }).filter(x => x.sem !== 'verde' && x.atrasado);
+    }).filter(x => x.sem !== 'verde' && x.sem !== 'azul' && x.atrasado); // azul = acompanhado dentro do prazo, não é pendência
 
     const mMv = acharMunicipio(DATA.mv, nome);
     const mCvpe = acharMunicipio(DATA.cvpe, nome);
@@ -3697,14 +3704,29 @@ function ppvdRenderAguardando() {
   document.getElementById('main').innerHTML = html;
 }
 
+// Semáforo dos casos de Violência Doméstica (azul incluído a pedido de Eduardo em 2026-10-09):
+//   vermelho = caso novo (sem caso/aberto) ou em atraso
+//   amarelo  = atendimento iniciado (visita despachada ou feita, ainda sem retorno)
+//   azul     = não estabilizado, mas o comandante decidiu continuar com visitas de retorno: dentro do prazo e
+//              sendo acompanhado. Vira vermelho se a visita de retorno despachada ficar sem resposta > 72h
+//              (prazo máximo da mensagem de despacho); `_pendenteDesde` vem de ppvdBuscarCasosVD.
+//   verde    = estabilizado
+const PPVD_PRAZO_RETORNO_HORAS = 72;
+function ppvdEmAcompanhamentoVD(caso) {
+  return !!caso && caso.status !== 'estabilizada' && ((caso.qtd_retornos || 0) >= 1 || caso.status === 'retorno' || caso.status === 'em_acompanhamento');
+}
 function ppvdSemaforoVD(caso) {
   if (!caso) return 'vermelho';
   if (caso.status === 'estabilizada') return 'verde';
+  if (ppvdEmAcompanhamentoVD(caso)) {
+    if (caso._pendenteDesde && (Date.now() - new Date(caso._pendenteDesde).getTime()) / 3600000 > PPVD_PRAZO_RETORNO_HORAS) return 'vermelho';
+    return 'azul';
+  }
   if (caso.status === 'decisao_cmd') return 'amarelo';
-  return 'vermelho'; // aberto, em_visita, retorno
+  return 'vermelho'; // sem caso, aberto, em_visita (1ª visita despachada), outros
 }
 function ppvdStatusLabelVD(status) {
-  const map = { aberto: 'Aberto', em_visita: 'Em Visita', decisao_cmd: 'Decisão Cmd', retorno: 'Retorno', estabilizada: 'Estabilizada' };
+  const map = { aberto: 'Aberto', novo: 'Novo', em_visita: 'Em Visita', decisao_cmd: 'Decisão Cmd', retorno: 'Retorno', em_acompanhamento: 'Em acompanhamento', estabilizada: 'Estabilizada', encerrado: 'Encerrado' };
   return map[status] || status || 'Sem caso';
 }
 async function ppvdBuscarCasosVD(redsList) {
@@ -3712,6 +3734,16 @@ async function ppvdBuscarCasosVD(redsList) {
   const { data, error } = await ppvdSupa.from('ppvd_casos').select('*').eq('modalidade', 'violencia_domestica').in('reds_numero', redsList);
   const map = {};
   if (!error && data) data.forEach(c => { if (c.reds_numero) map[c.reds_numero] = c; });
+  // Retorno despachado e ainda sem resposta: precisa da data do despacho pra saber se estourou o prazo (semáforo azul -> vermelho)
+  const porId = {};
+  Object.values(map).forEach(c => { if (c.status === 'em_visita' && (c.qtd_retornos || 0) >= 1) porId[c.id] = c; });
+  if (Object.keys(porId).length) {
+    const { data: pend } = await ppvdSupa.from('ppvd_visitas').select('caso_id, despachado_em').in('caso_id', Object.keys(porId)).is('visita_realizada_em', null);
+    (pend || []).forEach(v => {
+      const c = porId[v.caso_id];
+      if (c && v.despachado_em && (!c._pendenteDesde || v.despachado_em < c._pendenteDesde)) c._pendenteDesde = v.despachado_em;
+    });
+  }
   return map;
 }
 let ppvdMilitaresCache = null;

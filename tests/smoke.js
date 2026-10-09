@@ -214,6 +214,28 @@ function auditar() {
   checa(problemasLeitura.length === 0, 'nenhum texto com contraste baixo ou fonte menor que 11px', 'legibilidade: ' + problemasLeitura.slice(0, 4).join(' | '));
   await ctx.close();
 
+  // ---------- 8) Semáforo dos casos de Violência Doméstica (vermelho / amarelo / azul / verde) ----------
+  console.log('\n[8] Semáforo dos casos de Violência Doméstica');
+  ctx = await novoContexto(browser, { viewport: { width: 1280, height: 800 } });
+  page = await ctx.newPage();
+  await page.goto(base);
+  await page.waitForFunction(() => typeof ppvdSemaforoVD === 'function');
+  const horas = (h) => new Date(Date.now() - h * 3600000).toISOString();
+  const casos = [
+    ['sem caso (novo)', null, 'vermelho'],
+    ['aberto', { status: 'aberto' }, 'vermelho'],
+    ['1ª visita despachada', { status: 'em_visita', qtd_retornos: 0 }, 'vermelho'],
+    ['atendimento iniciado (decisão do comandante)', { status: 'decisao_cmd', qtd_retornos: 0 }, 'amarelo'],
+    ['comandante decidiu mais visitas, retorno feito', { status: 'decisao_cmd', qtd_retornos: 1 }, 'azul'],
+    ['retorno despachado há 10h (dentro do prazo)', { status: 'em_visita', qtd_retornos: 1, _pendenteDesde: horas(10) }, 'azul'],
+    ['retorno despachado há 100h (atrasado)', { status: 'em_visita', qtd_retornos: 2, _pendenteDesde: horas(100) }, 'vermelho'],
+    ['status "em acompanhamento"', { status: 'em_acompanhamento' }, 'azul'],
+    ['estabilizado (mesmo com retornos)', { status: 'estabilizada', qtd_retornos: 3 }, 'verde'],
+  ];
+  const obtido = await page.evaluate((lista) => lista.map(([, c]) => ppvdSemaforoVD(c)), casos);
+  casos.forEach(([nome, , esperado], i) => checa(obtido[i] === esperado, `${nome} → ${esperado}`, `${nome}: esperava ${esperado}, deu ${obtido[i]}`));
+  await ctx.close();
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
