@@ -46,7 +46,7 @@
 
   /* ---------- SIDEBAR ---------- */
   .sidebar {
-    width: 216px; background: linear-gradient(180deg,#081019,#060b12);
+    width: 258px; background: linear-gradient(180deg,#081019,#060b12);
     border-right: 1px solid var(--panel-border);
     padding: 0; flex-shrink:0; display:flex; flex-direction:column;
     position: sticky; top:0; height:100vh; overflow-y:auto;
@@ -56,26 +56,73 @@
   }
   .brand .unit { font-family: var(--display); font-size:20px; font-weight:700; letter-spacing:0.06em; color:var(--text); line-height:1.1; }
   .brand .sub { font-family: var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--amber); text-transform:uppercase; margin-top:6px; }
-  .nav-scroll { padding: 14px 10px 20px; flex:1; }
-  .nav-group { margin-bottom: 18px; }
+  .menu-busca { margin:12px 12px 4px; position:relative; }
+  .menu-busca span { position:absolute; left:11px; top:8px; color:var(--muted); font-size:13px; }
+  .menu-busca input { width:100%; background:var(--bg-2); border:1px solid var(--panel-border); border-radius:8px; color:var(--text); padding:9px 12px 9px 33px; font-size:13px; font-family:var(--sans); }
+  .menu-busca input:focus-visible { outline:2px solid var(--amber); outline-offset:1px; }
+  .nav-scroll { padding: 6px 10px 20px; flex:1; }
+  .nav-group { margin-bottom: 4px; }
   .nav-group-label {
-    font-family: var(--mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase;
-    color: var(--muted-dim); padding: 0 8px 6px; display:flex; align-items:center; gap:6px;
+    width:100%; background:transparent; border:0; cursor:pointer; text-align:left; border-radius:8px;
+    font-family: var(--mono); font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color: var(--muted-dim); padding: 9px 8px; display:flex; align-items:center; gap:8px;
   }
-  .nav-group-label::before { content:''; width:5px; height:5px; background:var(--muted-dim); flex-shrink:0; }
+  .nav-group-label:hover { background: var(--bg-2); color: var(--muted); }
+  .nav-group-label .nt { flex:0 1 auto; }
+  .nav-group-label .chev { margin-left:auto; transition: transform .15s ease; font-size:15px; }
+  .nav-group.aberto .nav-group-label .chev { transform: rotate(90deg); }
+  .nav-group:not(.aberto) .nav-group-itens { display:none; }
+  body.menu-buscando .nav-group .nav-group-itens { display:block; }
+  body.menu-buscando .nav-group-label .chev { display:none; }
   .nav-btn {
-    display:flex; align-items:center; gap:9px; width:100%;
-    background: transparent; color: var(--muted); border:none; border-left:2px solid transparent;
-    padding: 8px 10px; font-weight:500; cursor:pointer; text-align:left;
-    font-size: 12.5px; font-family:var(--sans); letter-spacing:0.01em;
-    border-radius: 0 3px 3px 0; margin-bottom:1px; transition: all .12s ease;
+    display:flex; align-items:center; gap:10px; width:100%;
+    background: transparent; color: #b6c6d6; border:1px solid transparent;
+    padding: 9px 10px; font-weight:500; cursor:pointer; text-align:left;
+    font-size: 13.5px; font-family:var(--sans); letter-spacing:0.01em;
+    border-radius: 9px; margin:2px 0; transition: all .12s ease;
   }
   .nav-btn::before { content:''; width:6px; height:6px; border-radius:1px; background:var(--muted-dim); flex-shrink:0; transition: all .12s ease; }
-  .nav-btn:hover:not(.disabled) { background: rgba(232,168,60,0.06); color: var(--text); }
-  .nav-btn.active { background: rgba(232,168,60,0.1); color: var(--amber); border-left-color: var(--amber); font-weight:600; }
-  .nav-btn.active::before { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-  .nav-btn.disabled { opacity: 0.42; cursor: not-allowed; }
-  .nav-btn.disabled::before { background: var(--alert-dim); }
+  .nav-btn.com-ic::before { display:none; }
+  .nav-btn .ic, .nav-group-label .ic { width:22px; text-align:center; font-size:15px; flex-shrink:0; }
+  .nav-btn .nt { flex:1; min-width:0; }
+  .nav-btn:hover:not(.disabled) { background: var(--bg-2); color: var(--text); }
+  .nav-btn.active { background: rgba(232,168,60,0.12); color: var(--text); border-color: rgba(232,168,60,0.45); font-weight:600; }
+  .nav-btn.disabled { opacity: 0.45; cursor: not-allowed; }
+  .bd { margin-left:auto; min-width:22px; text-align:center; border-radius:11px; padding:1px 7px; font-size:12px; font-weight:700; font-family:var(--mono); flex-shrink:0; border:1px solid transparent; }
+  .bd[hidden], .nav-btn[hidden], .nav-group[hidden] { display:none; }
+  .bd.r { background:rgba(230,72,79,.2); color:var(--alert-text); border-color:rgba(230,72,79,.5); }
+  .bd.a { background:rgba(212,194,42,.18); color:var(--caution); border-color:rgba(212,194,42,.5); }
+  .bd.g { background:rgba(33,201,138,.15); color:var(--signal); border-color:rgba(33,201,138,.45); }
+  .bd.msg { background:var(--alert); color:#fff; }
+  .nav-group-label .gbd { margin-left:6px; }
+  .nav-group-label .chev { margin-left:auto; }
+  /* filtro por município em botões (o <select> original segue escondido: é ele que guarda o valor) */
+  .mun-strip { display:flex; gap:6px; padding:8px 18px; overflow-x:auto; border-bottom:1px solid var(--panel-border); background:rgba(7,12,20,0.5); flex-shrink:0; scrollbar-width:thin; -webkit-overflow-scrolling:touch; }
+  .pill-mun { flex:0 0 auto; background:var(--bg-2); border:1px solid var(--panel-border); color:#b6c6d6; border-radius:999px; padding:5px 13px; font-size:12px; cursor:pointer; font-family:var(--sans); }
+  .pill-mun:hover { border-color:var(--muted-dim); color:var(--text); }
+  .pill-mun.on { background:rgba(232,168,60,.15); border-color:var(--amber); color:var(--amber); font-weight:600; }
+  .pill-mun:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+  /* painel "Atenção agora" da Home */
+  .atencao { background:var(--panel); border:1px solid rgba(230,72,79,.4); border-left:4px solid var(--alert); border-radius:10px; padding:14px 16px; margin-bottom:20px; }
+  .atencao.ok { border-color:rgba(33,201,138,.4); border-left-color:var(--signal); }
+  .atencao .hd { display:flex; align-items:baseline; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .atencao .hd b { font-size:15px; }
+  .atencao .hd span { color:var(--muted); font-size:12px; }
+  .atencao .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .atencao .chip { display:flex; align-items:center; gap:8px; border-radius:9px; padding:8px 11px; cursor:pointer; border:1px solid; font-size:13px; background:var(--bg-2); color:var(--text); font-family:var(--sans); text-align:left; }
+  .atencao .chip.r { border-color:rgba(230,72,79,.55); }
+  .atencao .chip.a { border-color:rgba(212,194,42,.55); }
+  .atencao .chip:hover { background:#15283d; }
+  .atencao .chip .g { font-weight:800; font-size:12px; }
+  .atencao .chip.r .g { color:var(--alert-text); }
+  .atencao .chip.a .g { color:var(--caution); }
+  .atencao .chip small { color:var(--muted); font-size:11px; }
+  .atencao .mais { color:var(--muted); font-size:12px; margin-top:8px; }
+  /* barra de abas e folha de itens (só no celular) */
+  .tabbar, .folha { display:none; }
+  .folha-box .grupo-nome { color:var(--muted-dim); font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; margin:8px 4px 6px; }
+  .folha-box .grade { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin-bottom:10px; }
+  .folha-box .nav-btn { border:1px solid var(--panel-border); background:var(--bg-2); padding:12px 10px; margin:0; }
 
   /* ---------- TOPBAR + CONTENT ---------- */
   .app-col { flex:1; display:flex; flex-direction:column; min-width:0; height:100vh; }
@@ -93,7 +140,7 @@
   .status-dados.dados-aviso .dot { background:var(--caution); box-shadow:0 0 8px var(--caution); }
   .status-dados.dados-velho { color:var(--alert-text); font-weight:600; }
   .status-dados.dados-velho .dot { background:var(--alert); box-shadow:0 0 8px var(--alert); }
-  .mun-filtro-wrap { display:flex; align-items:center; gap:5px; color:var(--amber); }
+  .mun-filtro-wrap { display:none; } /* o <select> segue no DOM (guarda o valor); a escolha é feita pelos botões de .mun-strip */
   .mun-filtro-select {
     background: var(--bg-2); color:var(--text); border:1px solid var(--panel-border); border-radius:3px;
     font-family:var(--mono); font-size:11.5px; padding:4px 6px; letter-spacing:0.03em; cursor:pointer;
@@ -286,10 +333,17 @@
     .topbar { flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:8px 12px; padding:10px 14px; }
     .topbar-title { flex:1; min-width:0; font-size:11px; line-height:1.4; }
     .topbar-status { flex-wrap:wrap; gap:6px 10px; width:100%; font-size:11px; }
-    .mun-filtro-wrap { flex:1 1 100%; min-width:0; }
     .mun-filtro-select { flex:1; min-width:0; max-width:100%; }
     #dadosAtualizadosEm { flex-basis:100%; }
-    .main { padding:16px 14px 44px; }
+    .tabbar { display:flex; position:fixed; left:0; right:0; bottom:0; z-index:900; background:#0a1320; border-top:1px solid var(--panel-border); padding:6px 6px calc(10px + env(safe-area-inset-bottom)); }
+    .tab { flex:1; background:transparent; border:0; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 2px; font-size:11px; cursor:pointer; position:relative; border-radius:10px; font-family:var(--sans); }
+    .tab .i { font-size:20px; line-height:1.1; }
+    .tab.on { color:var(--amber); background:rgba(232,168,60,.1); }
+    .tab .bd { position:absolute; top:0; right:10px; margin:0; font-size:11px; padding:0 5px; min-width:17px; }
+    .folha.on { display:block; position:fixed; inset:0; z-index:950; background:rgba(0,0,0,.6); }
+    .folha-box { position:absolute; left:0; right:0; bottom:0; max-height:78%; overflow:auto; background:var(--bg-1); border-radius:18px 18px 0 0; padding:14px 12px calc(24px + env(safe-area-inset-bottom)); border-top:1px solid var(--panel-border); }
+    .mun-strip { padding:8px 14px; }
+    .main { padding:16px 14px 96px; }
     .page-title { font-size:21px; }
     .kpi-grid, .kpi-grid-home { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
     .kpi-grid-home > .kpi-card:last-child { grid-column:1 / -1; }
@@ -319,54 +373,64 @@
     <div class="unit">70&ordm; BPM</div>
     <div class="sub">Painel de Indicadores &middot; 15&ordm; RPM</div>
   </div>
-  <div class="nav-scroll">
-    <div class="nav-group">
-      <div class="nav-group-label">Visão Geral</div>
-      <button class="nav-btn active" data-page="home">Home</button>
+  <div class="menu-busca"><span aria-hidden="true">🔍</span><input id="menuBusca" type="search" placeholder="Buscar indicador ou página…" aria-label="Buscar no menu" autocomplete="off"></div>
+  <div class="nav-scroll" id="navScroll">
+    <div class="nav-group aberto" data-grupo="visao">
+      <button type="button" class="nav-group-label" aria-expanded="true"><span class="ic" aria-hidden="true">🏠</span><span class="nt">Visão geral</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
+      <div class="nav-group-itens">
+        <button class="nav-btn com-ic active" data-page="home"><span class="ic" aria-hidden="true">🏠</span><span class="nt">Home</span><span class="bd" data-bd="home" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="auditoria" title="Uso interno — exige login PPVD"><span class="ic" aria-hidden="true">🛡</span><span class="nt">Painel de Auditoria</span><span class="bd" data-bd="auditoria" hidden></span></button>
+      </div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Auditoria</div>
-      <button class="nav-btn" data-page="auditoria" title="Uso interno — exige login PPVD">Painel de Auditoria</button>
+    <div class="nav-group aberto" data-grupo="analise">
+      <button type="button" class="nav-group-label" aria-expanded="true"><span class="ic" aria-hidden="true">🧭</span><span class="nt">Análise preditiva</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
+      <div class="nav-group-itens">
+        <button class="nav-btn com-ic" data-page="analise_preditiva"><span class="ic" aria-hidden="true">📈</span><span class="nt">Análise Preditiva de Crimes</span><span class="bd" data-bd="analise_preditiva" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="violencia_domestica"><span class="ic" aria-hidden="true">🏘</span><span class="nt">Violência Doméstica</span><span class="bd" data-bd="violencia_domestica" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="crimes_violentos"><span class="ic" aria-hidden="true">⚠</span><span class="nt">Crimes Violentos</span><span class="bd" data-bd="crimes_violentos" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="reincidencia"><span class="ic" aria-hidden="true">🔁</span><span class="nt">Reincidência de Endereço</span><span class="bd" data-bd="reincidencia" hidden></span></button>
+      </div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Análise Preditiva</div>
-      <button class="nav-btn" data-page="analise_preditiva">Análise Preditiva de Crimes</button>
-      <button class="nav-btn" data-page="violencia_domestica">Violência Doméstica</button>
-      <button class="nav-btn" data-page="crimes_violentos">Crimes Violentos</button>
-      <button class="nav-btn" data-page="reincidencia">Reincidência de Endereço</button>
+    <div class="nav-group aberto" data-grupo="criminais">
+      <button type="button" class="nav-group-label" aria-expanded="true"><span class="ic" aria-hidden="true">🎯</span><span class="nt">Indicadores criminais</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
+      <div class="nav-group-itens">
+        <button class="nav-btn com-ic" data-page="imv"><span class="ic" aria-hidden="true">☠</span><span class="nt">MV (Mortes Violentas)</span><span class="bd" data-bd="imv" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="cvpe"><span class="ic" aria-hidden="true">🚨</span><span class="nt">CVPE</span><span class="bd" data-bd="cvpe" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="cvpa"><span class="ic" aria-hidden="true">🚗</span><span class="nt">CVPa</span><span class="bd" data-bd="cvpa" hidden></span></button>
+      </div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Indicadores Criminais</div>
-      <button class="nav-btn" data-page="imv">MV (Mortes Violentas)</button>
-      <button class="nav-btn" data-page="cvpe">CVPE</button>
-      <button class="nav-btn" data-page="cvpa">CVPa</button>
+    <div class="nav-group" data-grupo="outros">
+      <button type="button" class="nav-group-label" aria-expanded="false"><span class="ic" aria-hidden="true">📊</span><span class="nt">Outros indicadores</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
+      <div class="nav-group-itens">
+        <button class="nav-btn com-ic" data-page="furto"><span class="ic" aria-hidden="true">🌾</span><span class="nt">Furto Rural</span><span class="bd" data-bd="furto" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="esforco_furto"><span class="ic" aria-hidden="true">🔗</span><span class="nt">Prisões de Furto</span><span class="bd" data-bd="esforco_furto" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="armas"><span class="ic" aria-hidden="true">🔫</span><span class="nt">Apreensões de Arma de Fogo e Simulacros</span><span class="bd" data-bd="armas" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="itvd"><span class="ic" aria-hidden="true">💊</span><span class="nt">ITVD · Tráfico</span><span class="bd" data-bd="itvd" hidden></span></button>
+      </div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Outros Indicadores</div>
-      <button class="nav-btn" data-page="furto">Furto Rural</button>
-      <button class="nav-btn" data-page="esforco_furto">Prisões de Furto</button>
-      <button class="nav-btn" data-page="armas">Apreensões de Arma de Fogo e Simulacros</button>
-      <button class="nav-btn" data-page="itvd">ITVD &middot; Tráfico</button>
+    <div class="nav-group aberto" data-grupo="operacoes">
+      <button type="button" class="nav-group-label" aria-expanded="true"><span class="ic" aria-hidden="true">🚓</span><span class="nt">Operações</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
+      <div class="nav-group-itens">
+        <button class="nav-btn com-ic" data-page="pog"><span class="ic" aria-hidden="true">🧱</span><span class="nt">POG</span><span class="bd" data-bd="pog" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="ppag"><span class="ic" aria-hidden="true">🛡</span><span class="nt">PPAG</span><span class="bd" data-bd="ppag" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="idob"><span class="ic" aria-hidden="true">🌙</span><span class="nt">IDOB · Boemia</span><span class="bd" data-bd="idob" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="cavaloaco"><span class="ic" aria-hidden="true">🏍</span><span class="nt">Cavalo de Aço</span><span class="bd" data-bd="cavaloaco" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="rolezinho"><span class="ic" aria-hidden="true">🎒</span><span class="nt">Rolezinho</span><span class="bd" data-bd="rolezinho" hidden></span></button>
+        <button class="nav-btn com-ic disabled" title="IDOCA completo aguarda quantidade de motos abordadas por RAT (só temos nº de operações)" aria-disabled="true"><span class="ic" aria-hidden="true">⏳</span><span class="nt">IDOCA</span></button>
+        <button class="nav-btn com-ic" data-page="padesc"><span class="ic" aria-hidden="true">🏫</span><span class="nt">Padrinhos da Escola</span><span class="bd" data-bd="padesc" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="saque_seguro"><span class="ic" aria-hidden="true">🏧</span><span class="nt">Saque Seguro</span><span class="bd" data-bd="saque_seguro" hidden></span></button>
+        <button class="nav-btn com-ic disabled" title="Aguardando dados (Polícia Cidadã)" aria-disabled="true"><span class="ic" aria-hidden="true">⏳</span><span class="nt">Pol.Cid.Em</span></button>
+      </div>
     </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Operações</div>
-      <button class="nav-btn" data-page="pog">POG</button>
-      <button class="nav-btn" data-page="ppag">PPAG</button>
-      <button class="nav-btn" data-page="idob">IDOB &middot; Boemia</button>
-      <button class="nav-btn" data-page="cavaloaco">Cavalo de Aço</button>
-      <button class="nav-btn" data-page="rolezinho">Rolezinho</button>
-      <button class="nav-btn disabled" aria-disabled="true" title="IDOCA completo aguarda quantidade de motos abordadas por RAT (só temos nº de operações)">IDOCA</button>
-      <button class="nav-btn" data-page="padesc">Padrinhos da Escola</button>
-      <button class="nav-btn" data-page="saque_seguro">Saque Seguro</button>
-      <button class="nav-btn disabled" aria-disabled="true" title="Aguardando dados (Polícia Cidadã)">Pol.Cid.Em</button>
-    </div>
-    <div class="nav-group">
-      <div class="nav-group-label">Guias e Documentos</div>
-      <button class="nav-btn" data-page="mensagens" title="Dúvidas, sugestões e solicitações ao administrador — exige login PPVD">Mensagens ao Admin</button>
-      <button class="nav-btn" data-page="guia_comandantes">Guia de Comandantes</button>
-      <button class="nav-btn" data-page="apresentacao_gdo">Apresentação GDO</button>
-      <button class="nav-btn" data-page="ementario">Ementário 70º BPM</button>
-      <button class="nav-btn" data-page="checklist" title="Uso interno — P3 e comandantes autorizados">Checklist de Atualização</button>
+    <div class="nav-group" data-grupo="guias">
+      <button type="button" class="nav-group-label" aria-expanded="false"><span class="ic" aria-hidden="true">📚</span><span class="nt">Guias e contato</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
+      <div class="nav-group-itens">
+        <button class="nav-btn com-ic" data-page="mensagens" title="Dúvidas, sugestões e solicitações ao administrador — exige login PPVD"><span class="ic" aria-hidden="true">✉</span><span class="nt">Mensagens ao Admin</span><span class="bd msg msg-badge" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="guia_comandantes"><span class="ic" aria-hidden="true">📘</span><span class="nt">Guia de Comandantes</span><span class="bd" data-bd="guia_comandantes" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="apresentacao_gdo"><span class="ic" aria-hidden="true">🖥</span><span class="nt">Apresentação GDO</span><span class="bd" data-bd="apresentacao_gdo" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="ementario"><span class="ic" aria-hidden="true">📖</span><span class="nt">Ementário 70º BPM</span><span class="bd" data-bd="ementario" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="checklist" title="Uso interno — P3 e comandantes autorizados"><span class="ic" aria-hidden="true">✅</span><span class="nt">Checklist de Atualização</span><span class="bd" data-bd="checklist" hidden></span></button>
+      </div>
     </div>
   </div>
 </nav>
@@ -381,8 +445,12 @@
       <span id="dadosAtualizadosEm">Dados atualizados em —</span>
     </div>
   </div>
+  <div class="mun-strip" id="munStrip" role="group" aria-label="Filtrar por município"></div>
   <main class="main" id="main"></main>
 </div>
+
+<div class="tabbar" id="tabbar" role="navigation" aria-label="Atalhos"></div>
+<div class="folha" id="folha"><div class="folha-box" id="folhaBox"></div></div>
 
 <script>
 const __dataXhr = new XMLHttpRequest();
@@ -689,6 +757,7 @@ function renderHome() {
   const idobQop = DATA.idob.total_qtdeop_acum[miIdob];
   const idobVit = DATA.idob.total_mv_acum[miIdob]+DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
   const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
+  html += atencaoAgoraHtml();
   html += `<div class="kpi-grid kpi-grid-home">`;
   html += kpiCard('Mortes Violentas (Acum)', mvPct);
   html += kpiCard('CVpe Acum', cvpePct);
@@ -704,6 +773,7 @@ function renderHome() {
   html += renderCumprimentoMatrix('acum');
   html += renderRankingTable('acum');
   document.getElementById('main').innerHTML = html;
+  atencaoAgoraLigar();
   document.getElementById('apCtaHome').addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     const navBtn = document.querySelector('[data-page="analise_preditiva"]');
@@ -3516,6 +3586,7 @@ function setMunFiltro(nome) {
   else localStorage.removeItem('mun70bpm_filtro');
   const sel = document.getElementById('munFiltroGlobal');
   if (sel && sel.value !== (nome || '')) sel.value = nome || '';
+  if (typeof pintarPilulasMun === 'function') pintarPilulasMun();
 }
 function highlightMunRows() {
   const alvo = getMunFiltro();
@@ -3639,6 +3710,7 @@ function goToPage(key) {
   } catch (e) {
     console.error('Erro ao renderizar página "' + key + '":', e);
   } finally {
+    try { menuAtivo(key); pintarPilulasMun(); } catch (e) { console.error(e); }
     requestAnimationFrame(highlightMunRows);
   }
 }
@@ -4478,14 +4550,19 @@ function msgEsc(t) {
   return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 async function ppvdAtualizarBadgeMensagens() {
-  const el = document.getElementById('msgBadge');
-  if (!el || !ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) return;
+  const els = document.querySelectorAll('.msg-badge, #msgBadge');
+  if (!els.length || !ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) return;
   let q = ppvdSupa.from('mensagens').select('id', { count: 'exact', head: true });
   q = ppvdPerfil.is_admin ? q.eq('lida_admin', false) : q.eq('autor_id', ppvdUser.id).eq('resposta_lida', false);
   const { count } = await q;
-  el.textContent = count > 0 ? ' ' + count : '';
-  el.style.cssText = count > 0 ? 'background:var(--alert);color:#fff;border-radius:9px;padding:0 6px;margin-left:4px;font-weight:700' : '';
-  el.title = count > 0 ? (ppvdPerfil.is_admin ? count + ' mensagem(ns) nova(s)' : count + ' resposta(s) nova(s)') : '';
+  const dica = count > 0 ? (ppvdPerfil.is_admin ? count + ' mensagem(ns) nova(s)' : count + ' resposta(s) nova(s)') : '';
+  els.forEach(el => {
+    if (el.id === 'msgBadge') { // botão ✉ do topo
+      el.textContent = count > 0 ? ' ' + count : '';
+      el.style.cssText = count > 0 ? 'background:var(--alert);color:#fff;border-radius:9px;padding:0 6px;margin-left:4px;font-weight:700' : '';
+    } else { el.textContent = count > 0 ? String(count) : ''; el.hidden = !(count > 0); }
+    el.title = dica;
+  });
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) ppvdAtualizarBadgeMensagens(); });
 
@@ -4957,9 +5034,198 @@ async function ppvdAprovar(userId) {
 
 ppvdInit();
 
+// ============ Menu novo, filtro por município em botões e "Atenção agora" (protótipo aprovado por Eduardo em 2026-10-09) ============
+// Cada indicador do menu mostra quantas cidades estão fora da meta no acumulado (vermelho; amarelo se só há atenção;
+// verde 0). A Home ganha o painel "Atenção agora" com os itens mais graves (cidade × indicador), clicáveis.
+const MENU_IND = {
+  imv: { d: 'mv', tipo: 'teto', nome: 'MV' }, cvpe: { d: 'cvpe', tipo: 'teto', nome: 'CVPE' }, cvpa: { d: 'cvpa', tipo: 'teto', nome: 'CVPA' },
+  furto: { d: 'furto', tipo: 'teto', nome: 'Furto Rural' }, pog: { d: 'pog', tipo: 'pog', nome: 'POG' },
+  armas: { d: 'armas', tipo: 'piso', nome: 'Armas' }, cavaloaco: { d: 'cavaloaco', tipo: 'piso', nome: 'Cavalo de Aço' },
+  rolezinho: { d: 'rolezinho', tipo: 'piso', nome: 'Rolezinho' }, padesc: { d: 'padesc', tipo: 'piso', nome: 'Padrinhos da Escola' },
+  saque_seguro: { d: 'saque_seguro', tipo: 'piso', nome: 'Saque Seguro' },
+};
+const MENU_GRUPO_DE = { imv: 'criminais', cvpe: 'criminais', cvpa: 'criminais', furto: 'outros', esforco_furto: 'outros', armas: 'outros', itvd: 'outros',
+  pog: 'operacoes', ppag: 'operacoes', idob: 'operacoes', cavaloaco: 'operacoes', rolezinho: 'operacoes', padesc: 'operacoes', saque_seguro: 'operacoes' };
+function canonMun(nome) { const n = normMun(nome); return MUNICIPIOS_CANONICAL.find(m => normMun(m) === n) || nome; }
+let MENU_AVAL = null;
+function avaliarIndicadoresMenu() {
+  if (MENU_AVAL) return MENU_AVAL;
+  const itens = [], porPagina = {};
+  const add = (pagina, nomeInd, mun, status, detalhe, gravidade) => {
+    const p = porPagina[pagina] = porPagina[pagina] || { r: 0, a: 0 };
+    if (status === 'vermelho') p.r++; else if (status === 'amarelo') p.a++;
+    if (status !== 'verde') itens.push({ pagina, indicador: nomeInd, mun: canonMun(mun), status, detalhe, gravidade });
+  };
+  const idxStatus = (v) => (v >= 95 ? 'verde' : (v >= 85 ? 'amarelo' : 'vermelho'));
+  Object.keys(MENU_IND).forEach(pagina => {
+    const cfg = MENU_IND[pagina], d = DATA[cfg.d]; if (!d) return;
+    const mi = Math.min(MES_ATUAL_IDX, d.total_acum.length - 1);
+    porPagina[pagina] = porPagina[pagina] || { r: 0, a: 0 };
+    d.municipios.forEach(m => {
+      const real = m.realizado_acum[mi], meta = m.meta_acum[mi];
+      if (cfg.tipo === 'teto') add(pagina, cfg.nome, m.nome, statusTeto(real, meta), `${real} no ano (teto ${meta})`, (real - meta) / Math.max(meta, 1));
+      else if (cfg.tipo === 'pog') { const v = meta ? real / meta * 100 : 100; add(pagina, cfg.nome, m.nome, statusPog(v), `${Math.round(v)}% da meta`, Math.abs(100 - v) / 100); }
+      else add(pagina, cfg.nome, m.nome, statusPisoEf(m, d, '_acum', mi), `${real}/${meta} (${meta ? Math.round(real / meta * 100) : 100}%)`, (meta - real) / Math.max(meta, 1));
+    });
+  });
+  { // prisões de furto: >= 50% verde, >= 25% amarelo
+    const d = DATA.esforco_furto, mi = Math.min(MES_ATUAL_IDX, d.total_reds_acum.length - 1);
+    porPagina.esforco_furto = { r: 0, a: 0 };
+    d.municipios.forEach(m => { const r = m.reds_acum[mi], p = m.prisoes_acum[mi], v = r ? p / r * 100 : 100;
+      add('esforco_furto', 'Prisões de Furto', m.nome, v >= 50 ? 'verde' : (v >= 25 ? 'amarelo' : 'vermelho'), `${p} prisões / ${r} REDS (${Math.round(v)}%)`, (50 - v) / 100); });
+  }
+  { // ITVD e IDOB (índices de qualidade)
+    const d = DATA.itvd, mi = Math.min(MES_ATUAL_IDX, d.total_trafico_acum.length - 1);
+    porPagina.itvd = { r: 0, a: 0 };
+    d.municipios.forEach(m => { const t = m.trafico_acum[mi], v = t ? ((t - m.vit_acum[mi] * 2) / t) * 100 : 100; add('itvd', 'ITVD', m.nome, idxStatus(v), `ITVD ${v.toFixed(1)}`, (100 - v) / 100); });
+    const b = DATA.idob, mb = Math.min(MES_ATUAL_IDX, b.total_qtdeop_acum.length - 1);
+    porPagina.idob = { r: 0, a: 0 };
+    b.municipios.forEach(m => { const v = calcIdobIndice(m.qop_acum[mb], m.mv_acum[mb] + m.cvpe_acum[mb] + m.cvpa_acum[mb]); add('idob', 'IDOB', m.nome, idxStatus(v), `IDOB ${v.toFixed(1)}`, (100 - v) / 100); });
+  }
+  { // PPAG: pior das 3 metas (Y15001, Y07012, Y07014)
+    const ys = [['Y15001', DATA.ppag.y15001], ['Y07012', DATA.ppag.y07012], ['Y07014', DATA.ppag.y07014]];
+    const mi = Math.min(MES_ATUAL_IDX, ys[0][1].total_acum.length - 1);
+    porPagina.ppag = { r: 0, a: 0 };
+    ys[0][1].municipios.forEach(m1 => {
+      let pior = 'verde', falhas = [];
+      ys.forEach(([n, d]) => { const m = d.municipios.find(x => normKey(x.nome) === normKey(m1.nome)); if (!m) return;
+        const st = statusPisoEf(m, d, '_acum', mi); if (st !== 'verde') { falhas.push(`${n} ${m.meta_acum[mi] ? Math.round(m.realizado_acum[mi] / m.meta_acum[mi] * 100) : 100}%`); if (st === 'vermelho' || pior === 'verde') pior = st; } });
+      add('ppag', 'PPAG', m1.nome, pior, falhas.join(', '), falhas.length / 3);
+    });
+  }
+  itens.sort((a, b) => (a.status === b.status ? b.gravidade - a.gravidade : (a.status === 'vermelho' ? -1 : 1)));
+  return (MENU_AVAL = { itens, porPagina });
+}
+
+function pintarBadgesMenu() {
+  let aval; try { aval = avaliarIndicadoresMenu(); } catch (e) { console.error('Badges do menu:', e); return; }
+  document.querySelectorAll('[data-bd]').forEach(el => {
+    const p = aval.porPagina[el.dataset.bd]; if (!p) { el.hidden = true; return; }
+    const cls = p.r > 0 ? 'r' : (p.a > 0 ? 'a' : 'g'), n = p.r > 0 ? p.r : (p.a > 0 ? p.a : 0);
+    el.className = 'bd ' + cls; el.textContent = n; el.hidden = false;
+    el.title = p.r > 0 ? `${p.r} cidade(s) fora da meta no acumulado` : (p.a > 0 ? `${p.a} cidade(s) em atenção no acumulado` : 'Nenhuma cidade fora da meta no acumulado');
+  });
+  document.querySelectorAll('.nav-group').forEach(g => {
+    const gb = g.querySelector('.gbd'); if (!gb) return;
+    const total = [...g.querySelectorAll('[data-bd]')].reduce((s, el) => s + ((aval.porPagina[el.dataset.bd] || {}).r || 0), 0);
+    gb.textContent = total; gb.className = 'bd gbd r'; gb.hidden = !(total > 0) || g.classList.contains('aberto');
+  });
+  pintarTabbar();
+}
+
+function menuAtivo(key) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === key));
+  const btn = document.querySelector(`.sidebar .nav-btn[data-page="${key}"]`);
+  const g = btn && btn.closest('.nav-group');
+  if (g && !g.classList.contains('aberto')) definirGrupo(g, true);
+  pintarTabbar();
+}
+function definirGrupo(g, aberto, salvar = true) {
+  g.classList.toggle('aberto', aberto);
+  const lab = g.querySelector('.nav-group-label'); if (lab) lab.setAttribute('aria-expanded', String(aberto));
+  if (salvar) { try { const est = JSON.parse(localStorage.getItem('menuGrupos70bpm') || '{}'); est[g.dataset.grupo] = aberto; localStorage.setItem('menuGrupos70bpm', JSON.stringify(est)); } catch (e) {} }
+  const gb = g.querySelector('.gbd'); if (gb) { const t = parseInt(gb.textContent || '0', 10); gb.hidden = !(t > 0) || aberto; }
+}
+(function iniciarMenu() {
+  try { const est = JSON.parse(localStorage.getItem('menuGrupos70bpm') || '{}'); document.querySelectorAll('.nav-group').forEach(g => { if (g.dataset.grupo in est) definirGrupo(g, !!est[g.dataset.grupo], false); }); } catch (e) {}
+  document.querySelectorAll('.nav-group-label').forEach(l => l.addEventListener('click', () => definirGrupo(l.closest('.nav-group'), !l.closest('.nav-group').classList.contains('aberto'))));
+  const busca = document.getElementById('menuBusca');
+  if (busca) {
+    const limpa = (t) => normMun(t).toLowerCase();
+    busca.addEventListener('input', () => {
+      const q = limpa(busca.value.trim());
+      document.body.classList.toggle('menu-buscando', !!q);
+      document.querySelectorAll('.nav-btn').forEach(b => { if (b.closest('.sidebar')) b.hidden = !!q && !limpa(b.textContent).includes(q); });
+      document.querySelectorAll('.nav-group').forEach(g => { g.hidden = !!q && ![...g.querySelectorAll('.nav-btn')].some(b => !b.hidden); });
+    });
+    busca.addEventListener('keydown', (e) => { if (e.key === 'Escape') { busca.value = ''; busca.dispatchEvent(new Event('input')); } });
+  }
+})();
+
+// município em botões: espelha o <select id="munFiltroGlobal"> (escondido), que continua sendo a fonte do valor
+function pintarPilulasMun() {
+  const box = document.getElementById('munStrip'); if (!box) return;
+  const atual = getMunFiltro();
+  if (!box.dataset.pronto) {
+    box.innerHTML = ['', ...MUNICIPIOS_CANONICAL].map(m => `<button type="button" class="pill-mun" data-m="${m}">${m || 'Todos'}</button>`).join('');
+    box.dataset.pronto = '1';
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('.pill-mun'); if (!b) return;
+      const sel = document.getElementById('munFiltroGlobal');
+      sel.value = b.dataset.m; sel.dispatchEvent(new Event('change'));
+    });
+  }
+  box.querySelectorAll('.pill-mun').forEach(b => { const on = (b.dataset.m || '') === atual; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  const ativo = box.querySelector('.pill-mun.on'); if (ativo && ativo.scrollIntoView) { try { ativo.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {} }
+}
+
+// painel "Atenção agora" (Home)
+function atencaoAgoraHtml() {
+  let aval; try { aval = avaliarIndicadoresMenu(); } catch (e) { return ''; }
+  const filtro = getMunFiltro();
+  const itens = aval.itens.filter(i => !filtro || normMun(i.mun) === normMun(filtro));
+  const verm = itens.filter(i => i.status === 'vermelho'), amar = itens.filter(i => i.status === 'amarelo');
+  const escopo = filtro || `${MUNICIPIOS_CANONICAL.length} cidades`;
+  if (!itens.length) return `<div class="atencao ok"><div class="hd"><b>✓ Atenção agora</b><span>${escopo}: nenhum indicador fora da meta no acumulado.</span></div></div>`;
+  const chip = (i) => `<button type="button" class="chip ${i.status === 'vermelho' ? 'r' : 'a'}" data-pg="${i.pagina}" data-mun="${i.mun}" title="${i.status === 'vermelho' ? 'Fora da meta' : 'Atenção'} — abrir ${i.indicador} em ${i.mun}"><span class="g" aria-hidden="true">${i.status === 'vermelho' ? '✕' : '!'}</span><span>${i.mun} · ${i.indicador}</span><small>${i.detalhe}</small></button>`;
+  const mostraV = verm.slice(0, 10), mostraA = amar.slice(0, 6);
+  let h = `<div class="atencao"><div class="hd"><b>⚠ Atenção agora</b><span>${escopo} · acumulado até ${(DATA.mv.meses || MESES)[Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length - 1)]} · clique pra abrir já filtrado</span></div><div class="chips">`;
+  h += mostraV.map(chip).join('') + mostraA.map(chip).join('') + `</div>`;
+  const resto = (verm.length - mostraV.length) + (amar.length - mostraA.length);
+  if (resto > 0) h += `<div class="mais">+ ${resto} item(ns) a mais — veja a tabela de cumprimento abaixo.</div>`;
+  return h + `</div>`;
+}
+function atencaoAgoraLigar() {
+  document.querySelectorAll('#main .atencao .chip').forEach(c => c.addEventListener('click', () => {
+    setMunFiltro(c.dataset.mun);
+    goToPage(c.dataset.pg);
+  }));
+}
+
+// barra de abas do celular + folha de itens
+const TABS = [['home', '🏠', 'Home'], ['indicadores', '🎯', 'Indicadores'], ['operacoes', '🚓', 'Operações'], ['mensagens', '✉', 'Mensagens'], ['menu', '☰', 'Menu']];
+function pintarTabbar() {
+  const bar = document.getElementById('tabbar'); if (!bar) return;
+  let aval = null; try { aval = avaliarIndicadoresMenu(); } catch (e) {}
+  const soma = (grupos) => aval ? Object.keys(MENU_GRUPO_DE).filter(p => grupos.includes(MENU_GRUPO_DE[p])).reduce((s, p) => s + ((aval.porPagina[p] || {}).r || 0), 0) : 0;
+  const grupoAtual = MENU_GRUPO_DE[currentPageKey];
+  const on = (k) => (k === 'home' && currentPageKey === 'home') || (k === 'mensagens' && currentPageKey === 'mensagens') ||
+    (k === 'indicadores' && ['criminais', 'outros'].includes(grupoAtual)) || (k === 'operacoes' && grupoAtual === 'operacoes');
+  const bdVal = { indicadores: soma(['criminais', 'outros']), operacoes: soma(['operacoes']) };
+  bar.innerHTML = TABS.map(([k, ic, nome]) => `<button type="button" class="tab${on(k) ? ' on' : ''}" data-tab="${k}" ${on(k) ? 'aria-current="page"' : ''}><span class="i" aria-hidden="true">${ic}</span>${nome}${bdVal[k] > 0 ? `<span class="bd r">${bdVal[k]}</span>` : ''}${k === 'mensagens' ? '<span class="bd msg msg-badge" hidden></span>' : ''}</button>`).join('');
+  ppvdAtualizarBadgeMensagens();
+}
+function abrirFolha(tipo) {
+  const grupos = tipo === 'indicadores' ? ['criminais', 'outros'] : ['operacoes'];
+  const box = document.getElementById('folhaBox'); if (!box) return;
+  box.innerHTML = grupos.map(gid => { const g = document.querySelector(`.sidebar .nav-group[data-grupo="${gid}"]`); if (!g) return '';
+    const nome = g.querySelector('.nav-group-label .nt').textContent;
+    return `<div class="grupo-nome">${nome}</div><div class="grade">${[...g.querySelectorAll('.nav-btn')].map(b => b.outerHTML.replace(' active', '')).join('')}</div>`; }).join('');
+  box.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => {
+    if (b.classList.contains('disabled')) return;
+    document.getElementById('folha').classList.remove('on'); goToPage(b.dataset.page);
+  }));
+  document.getElementById('folha').classList.add('on');
+}
+(function iniciarTabbar() {
+  const bar = document.getElementById('tabbar'), folha = document.getElementById('folha');
+  if (!bar || !folha) return;
+  bar.addEventListener('click', (e) => {
+    const t = e.target.closest('.tab'); if (!t) return;
+    const k = t.dataset.tab;
+    if (k === 'home' || k === 'mensagens') { folha.classList.remove('on'); goToPage(k); }
+    else if (k === 'menu') { folha.classList.remove('on'); document.getElementById('menuToggle').click(); }
+    else abrirFolha(k);
+  });
+  folha.addEventListener('click', (e) => { if (e.target === folha) folha.classList.remove('on'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') folha.classList.remove('on'); });
+})();
+pintarPilulasMun();
+pintarBadgesMenu();
+
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    if (btn.classList.contains('disabled')) { renderPending(btn.textContent.trim()); return; }
+    if (btn.classList.contains('disabled')) { renderPending(((btn.querySelector('.nt') || btn).textContent || '').trim()); return; }
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     goToPage(btn.dataset.page);

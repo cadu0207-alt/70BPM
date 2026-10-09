@@ -299,6 +299,65 @@ function auditar() {
     await ctxG.close();
   }
 
+  // ---------- 11) Menu novo: grupos, busca, selos, município em botões, "Atenção agora" e abas do celular ----------
+  console.log('\n[11] Menu novo, município em botões e Atenção agora');
+  {
+    const ctxM = await novoContexto(browser, { viewport: { width: 1280, height: 800 } });
+    const pg = await ctxM.newPage();
+    const errosM = [];
+    pg.on('pageerror', (e) => errosM.push(e.message));
+    pg.on('console', (m) => { if (m.type() === 'error' && !ERRO_IGNORADO.test(m.text())) errosM.push(m.text()); });
+    await pg.goto(base);
+    await pg.waitForFunction(() => typeof goToPage === 'function' && document.querySelectorAll('.nav-group').length > 0);
+    await pg.evaluate(() => goToPage('home'));
+    await pg.waitForTimeout(300);
+    const m1 = await pg.evaluate(() => ({
+      grupos: document.querySelectorAll('.sidebar .nav-group').length,
+      selos: [...document.querySelectorAll('.sidebar [data-bd]')].filter(e => !e.hidden).length,
+      chips: document.querySelectorAll('#main .atencao .chip').length,
+      pilulas: document.querySelectorAll('#munStrip .pill-mun').length,
+    }));
+    checa(m1.grupos === 6, '6 grupos no menu', `grupos no menu: ${m1.grupos}`);
+    checa(m1.selos >= 12, `${m1.selos} indicadores com selo de cidades fora da meta`, `só ${m1.selos} selos no menu`);
+    checa(m1.pilulas === 14, 'município em 14 botões (Todos + 13)', `botões de município: ${m1.pilulas}`);
+    // grupo abre/fecha e a escolha é lembrada
+    const g = await pg.evaluate(() => { const l = document.querySelector('.nav-group[data-grupo="outros"] .nav-group-label'); const antes = l.parentElement.classList.contains('aberto'); l.click(); return { antes, depois: l.parentElement.classList.contains('aberto'), salvo: JSON.parse(localStorage.getItem('menuGrupos70bpm') || '{}').outros }; });
+    checa(g.antes !== g.depois && g.salvo === g.depois, 'grupo do menu abre/fecha e lembra a escolha', 'grupo não alternou ou não lembrou');
+    // busca
+    const b = await pg.evaluate(() => { const i = document.getElementById('menuBusca'); i.value = 'furto'; i.dispatchEvent(new Event('input')); return [...document.querySelectorAll('.sidebar .nav-btn')].filter(x => !x.hidden).map(x => x.dataset.page); });
+    checa(b.includes('furto') && b.includes('esforco_furto') && !b.includes('pog'), `busca "furto" mostra: ${b.join(', ')}`, `busca "furto" devolveu: ${b.join(', ')}`);
+    await pg.evaluate(() => { const i = document.getElementById('menuBusca'); i.value = ''; i.dispatchEvent(new Event('input')); });
+    // município em botão filtra e acompanha
+    const p1 = await pg.evaluate(() => { document.querySelector('#munStrip .pill-mun[data-m="Itaobim"]').click(); return { filtro: getMunFiltro(), on: document.querySelector('#munStrip .pill-mun.on').dataset.m, sel: document.getElementById('munFiltroGlobal').value }; });
+    checa(p1.filtro === 'Itaobim' && p1.on === 'Itaobim' && p1.sel === 'Itaobim', 'botão do município filtra e o seletor escondido acompanha', 'botão de município não sincronizou: ' + JSON.stringify(p1));
+    // chip da Atenção agora abre a página do indicador já filtrada
+    await pg.evaluate(() => { setMunFiltro(''); goToPage('home'); });
+    await pg.waitForTimeout(300);
+    const c = await pg.evaluate(() => { const ch = document.querySelector('#main .atencao .chip'); if (!ch) return null; const alvo = { pg: ch.dataset.pg, mun: ch.dataset.mun }; ch.click(); return Object.assign(alvo, { pagina: currentPageKey, filtro: getMunFiltro(), ativo: (document.querySelector('.sidebar .nav-btn.active') || {}).dataset && document.querySelector('.sidebar .nav-btn.active').dataset.page }); });
+    checa(!c || (c.pagina === c.pg && c.filtro === c.mun && c.ativo === c.pg), c ? `chip abre ${c.pg} filtrado em ${c.mun} e marca o item do menu` : 'sem itens em atenção (nada a clicar)', 'chip não levou à página certa: ' + JSON.stringify(c));
+    checa(errosM.length === 0, 'menu novo sem erro de JavaScript', 'erros: ' + errosM.slice(0, 3).join(' | '));
+    await ctxM.close();
+
+    // celular: barra de abas + folha
+    const ctxC = await novoContexto(browser, { viewport: { width: 375, height: 812 } });
+    const pc = await ctxC.newPage();
+    await pc.goto(base);
+    await pc.waitForFunction(() => typeof goToPage === 'function' && document.getElementById('tabbar'));
+    await pc.waitForTimeout(300);
+    const t = await pc.evaluate(() => { const bar = document.getElementById('tabbar'); return { visivel: getComputedStyle(bar).display !== 'none', abas: bar.querySelectorAll('.tab').length }; });
+    checa(t.visivel && t.abas === 5, 'celular: barra de 5 abas no rodapé', `barra de abas: ${JSON.stringify(t)}`);
+    await pc.click('#tabbar .tab[data-tab="operacoes"]');
+    const f = await pc.evaluate(() => ({ aberta: document.getElementById('folha').classList.contains('on'), itens: document.querySelectorAll('#folhaBox .nav-btn').length }));
+    checa(f.aberta && f.itens >= 7, `aba Operações abre a folha com ${f.itens} itens`, 'folha de itens não abriu: ' + JSON.stringify(f));
+    await pc.click('#folhaBox .nav-btn[data-page="pog"]');
+    await pc.waitForTimeout(200);
+    const nav = await pc.evaluate(() => ({ pagina: currentPageKey, fechada: !document.getElementById('folha').classList.contains('on') }));
+    checa(nav.pagina === 'pog' && nav.fechada, 'item da folha abre a página e fecha a folha', 'navegação pela folha falhou: ' + JSON.stringify(nav));
+    const estouro = await pc.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+    checa(!estouro, 'celular sem rolagem lateral com a faixa de municípios', 'a página estoura na lateral no celular');
+    await ctxC.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
