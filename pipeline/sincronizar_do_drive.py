@@ -7,7 +7,7 @@ import filecmp, os, shutil, sys
 
 DRIVE = r'C:\Users\cadu0\Claude\Projects\p3\DRIVE p3\11_ESTATISTICA_E_ANALISE_CRIMINAL\BASE_DADOS_70BPM'
 AQUI = os.path.dirname(os.path.abspath(__file__))
-ARQUIVOS = ['aggregate.py', 'aggregate_grave.py', 'driver_grave.py', 'publicar_restrito.py']
+ARQUIVOS = ['aggregate.py', 'aggregate_grave.py', 'driver_grave.py', 'publicar_restrito.py', 'ajustes_manuais.py']
 
 if not os.path.isdir(DRIVE):
     sys.exit('Pasta do Drive não encontrada: ' + DRIVE)

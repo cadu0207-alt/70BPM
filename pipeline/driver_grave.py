@@ -47,6 +47,7 @@ USO: python3 driver_grave.py  (roda a partir da pasta onde está data.json)
 import csv, json, os, glob, datetime
 import aggregate_grave as ag
 import publicar_restrito as pr
+import ajustes_manuais as aj
 
 _here = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.join(_here, "entrada")
@@ -393,6 +394,7 @@ def main():
     f_bo = latest_csv('TODOS OS B.O')
     if f_bo:
         rows_bo = read_csv(f_bo, encoding='latin-1')
+        aj.neutralizar_mv(rows_bo, 'TODOS OS B.O', report)  # correções aprovadas em auditoria (ver ajustes_manuais.py)
         run_analise_preditiva_homicidios(data, rows_bo, report)
         run_analise_preditiva_panorama(data, rows_bo, report)
         run_itvd(data, rows_bo, report)

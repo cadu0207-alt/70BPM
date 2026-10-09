@@ -1,5 +1,6 @@
 import csv, json, unicodedata, glob, os, sys, datetime
 import publicar_restrito as pr
+import ajustes_manuais as aj
 
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entrada")
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
@@ -279,6 +280,7 @@ def main():
 
     f = latest_csv('MV')
     rows = read_utf8_reds(f)
+    aj.neutralizar_mv(rows, 'MV', report)  # correções aprovadas em auditoria (ver ajustes_manuais.py)
     new_d = agg_sum_field(rows, 'IMV_TOTAL')
     new_list, ch, dr = merge_cell(data['mv']['municipios'], new_d)
     data['mv']['municipios'] = new_list
