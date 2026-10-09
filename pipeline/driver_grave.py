@@ -238,6 +238,12 @@ def periodo_label(total_mes):
     return f'jan-{MESES_LABEL[ultimo]}/2026'
 
 
+def periodo_label_rows(rows):
+    """'jan-<mês mais recente do export>/2026' — pros blocos que usam o export inteiro (sem array mensal)."""
+    meses = [int(r['MES_NUMERICO']) for r in rows if (r.get('MES_NUMERICO') or '').strip().isdigit()]
+    return f'jan-{MESES_LABEL[max(meses) - 1]}/2026' if meses else None
+
+
 def pop_by_muni_from_data(data):
     return {m['nome'].upper(): m.get('pop', 0) for m in data['violencia_domestica']['municipios']}
 
@@ -307,6 +313,7 @@ def run_analise_preditiva_panorama(data, rows, report):
         dados_muni = by_muni.get(key, {})
         for campo in ('total_mes', 'prec_mes', 'mp_mes', 'armas_mes', 'pris_mes', 'vd_mes'):
             m[campo] = dados_muni.get(campo, [0] * n_meses)
+    ap['periodo_dados'] = periodo_label(panorama_novo['total_mes'])
     report['analise_preditiva_panorama'] = {'old_total': old_total, 'new_total': new_total}
 
 
@@ -383,6 +390,7 @@ def run_reincidencia(data, rows, report):
     rc['municipios'] = novo['municipios']
     rc['ranking'] = novo['ranking']
     rc['enderecos'] = novo['enderecos']
+    rc['periodo_dados'] = periodo_label_rows(rows) or rc.get('periodo_dados')
     report['reincidencia'] = {'old_total': old_total, 'new_total': new_total}
 
 

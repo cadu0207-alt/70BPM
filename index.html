@@ -127,6 +127,7 @@
 
   /* ---------- KPI CARDS ---------- */
   .kpi-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom: 20px; }
+  .kpi-grid-home { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .kpi-card {
     position:relative; border-radius: 3px; padding: 18px 18px 16px; text-align:left; color:white;
     background: var(--panel); border:1px solid var(--panel-border); border-left-width:3px;
@@ -276,12 +277,13 @@
     .topbar { flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:8px 12px; padding:10px 14px; }
     .topbar-title { flex:1; min-width:0; font-size:10px; line-height:1.4; }
     .topbar-status { flex-wrap:wrap; gap:6px 10px; width:100%; font-size:10px; }
-    .mun-filtro-wrap { flex:1; min-width:0; }
+    .mun-filtro-wrap { flex:1 1 100%; min-width:0; }
     .mun-filtro-select { flex:1; min-width:0; max-width:100%; }
     #dadosAtualizadosEm { flex-basis:100%; }
     .main { padding:16px 14px 44px; }
     .page-title { font-size:21px; }
-    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
+    .kpi-grid, .kpi-grid-home { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
+    .kpi-grid-home > .kpi-card:last-child { grid-column:1 / -1; }
     .kpi-card { padding:14px 12px; }
     .kpi-card .val { font-size:clamp(17px, 5.6vw, 24px); overflow-wrap:anywhere; }
     .kpi-card .lbl { font-size:9.5px; letter-spacing:0.05em; }
@@ -303,7 +305,7 @@
 </head>
 <body>
 <div class="nav-backdrop" id="navBackdrop"></div>
-<div class="sidebar" id="sidebar">
+<nav class="sidebar" id="sidebar" aria-label="Menu principal">
   <div class="brand">
     <div class="unit">70&ordm; BPM</div>
     <div class="sub">Painel de Indicadores &middot; 15&ordm; RPM</div>
@@ -344,10 +346,10 @@
       <button class="nav-btn" data-page="idob">IDOB &middot; Boemia</button>
       <button class="nav-btn" data-page="cavaloaco">Cavalo de Aço</button>
       <button class="nav-btn" data-page="rolezinho">Rolezinho</button>
-      <button class="nav-btn disabled" title="IDOCA completo aguarda quantidade de motos abordadas por RAT (só temos nº de operações)">IDOCA</button>
+      <button class="nav-btn disabled" aria-disabled="true" title="IDOCA completo aguarda quantidade de motos abordadas por RAT (só temos nº de operações)">IDOCA</button>
       <button class="nav-btn" data-page="padesc">Padrinhos da Escola</button>
       <button class="nav-btn" data-page="saque_seguro">Saque Seguro</button>
-      <button class="nav-btn disabled" title="Aguardando dados (Polícia Cidadã)">Pol.Cid.Em</button>
+      <button class="nav-btn disabled" aria-disabled="true" title="Aguardando dados (Polícia Cidadã)">Pol.Cid.Em</button>
     </div>
     <div class="nav-group">
       <div class="nav-group-label">Guias e Documentos</div>
@@ -357,19 +359,19 @@
       <button class="nav-btn" data-page="checklist" title="Uso interno — P3 e comandantes autorizados">Checklist de Atualização</button>
     </div>
   </div>
-</div>
+</nav>
 <div class="app-col">
   <div class="topbar">
     <button type="button" class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">&#9776;</button>
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
-      <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
+      <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select" aria-label="Filtrar por município" title="Filtrar por município"></select></span>
       <span id="ppvdAuthWidget"></span>
       <span id="statusDados" class="status-dados" title="Verificando a data dos dados…"><span class="dot"></span><span id="statusDadosTxt">Verificando dados…</span></span>
       <span id="dadosAtualizadosEm">Dados atualizados em —</span>
     </div>
   </div>
-  <div class="main" id="main"></div>
+  <main class="main" id="main"></main>
 </div>
 
 <script>
@@ -671,21 +673,21 @@ function renderHome() {
     </div>
     <div class="ap-cta-arrow">&#8594;</div>
   </div>`;
-  html += `<div class="updated">IMV/CVPe/CVPa/Furto/Armas/POG/PPAG/IDOB/ITVD/Esforço-Furto/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro atualizados até ${DATA.saque_seguro.meses[Math.min(MES_ATUAL_IDX, DATA.saque_seguro.meses.length-1)]}/2026 (ITVD e Esforço-Furto automatizados direto do TODOS OS B.O desde 28/08/2026). Pol.Cid, IDOCA completo (falta vítimas MV/CVPe/CVPa do Cavalo de Aço) ainda aguardando export específico.</div>`;
-  html += `<div class="kpi-grid">`;
-  html += kpiCard('Mortes Violentas (Acum)', mvPct);
-  html += kpiCard('CVpe Acum', cvpePct);
-  html += kpiCard('CVpa Acum', cvpaPct);
-  html += `<div class="kpi-card ${pogAcum>=pogMeta?'kpi-green':'kpi-red'}"><div class="val">${pogAcum}/${pogMeta}</div><div class="lbl">POG Acum (Res/Meta)</div></div>`;
-  html += `</div>`;
-  html += `<div class="kpi-grid">`;
-  html += `<div class="kpi-card ${padescAcum>=padescMeta?'kpi-green':'kpi-red'}"><div class="val">${padescAcum}/${padescMeta}</div><div class="lbl">Pad. Escolar Acum (Res/Meta)</div></div>`;
-  html += `<div class="kpi-card kpi-neutral"><div class="val">${armasAcum}</div><div class="lbl">Armas de Fogo e simu.</div></div>`;
-  html += kpiCard('Furto Rural Acum', furtoPct);
+  html += `<div class="updated"><b>Dados até ${DATA.saque_seguro.meses[Math.min(MES_ATUAL_IDX, DATA.saque_seguro.meses.length-1)]}/2026:</b> IMV, CVPe, CVPa, Furto Rural, Armas, POG, PPAG, IDOB, ITVD, Esforço-Furto, Cavalo de Aço, Rolezinho, Pad. Escolar e Saque Seguro. ITVD e Esforço-Furto saem direto do TODOS OS B.O desde 28/08/2026.<br>Ainda sem dados: IDOCA completo (faltam as vítimas MV/CVPe/CVPa do Cavalo de Aço) e Pol.Cid.Em — aguardando export específico.</div>`;
+  // 9 cartões num grid só (3 colunas no desktop): crimes / outros indicadores / metas operacionais.
+  // Antes eram 2 grids de 4 colunas e o "Saque Seguro" sobrava sozinho na última linha.
   const idobQop = DATA.idob.total_qtdeop_acum[miIdob];
   const idobVit = DATA.idob.total_mv_acum[miIdob]+DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
   const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
+  html += `<div class="kpi-grid kpi-grid-home">`;
+  html += kpiCard('Mortes Violentas (Acum)', mvPct);
+  html += kpiCard('CVpe Acum', cvpePct);
+  html += kpiCard('CVpa Acum', cvpaPct);
+  html += kpiCard('Furto Rural Acum', furtoPct);
+  html += `<div class="kpi-card kpi-neutral"><div class="val">${armasAcum}</div><div class="lbl">Armas de Fogo e simu.</div></div>`;
   html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div></div>`;
+  html += `<div class="kpi-card ${pogAcum>=pogMeta?'kpi-green':'kpi-red'}"><div class="val">${pogAcum}/${pogMeta}</div><div class="lbl">POG Acum (Res/Meta)</div></div>`;
+  html += `<div class="kpi-card ${padescAcum>=padescMeta?'kpi-green':'kpi-red'}"><div class="val">${padescAcum}/${padescMeta}</div><div class="lbl">Pad. Escolar Acum (Res/Meta)</div></div>`;
   html += `<div class="kpi-card ${saqueAcum>=saqueMeta?'kpi-green':'kpi-red'}"><div class="val">${saqueAcum}/${saqueMeta}</div><div class="lbl">Saque Seguro Acum (Res/Meta)</div></div>`;
   html += `</div>`;
   html += renderCumprimentoMatrix('mes');
@@ -4322,6 +4324,19 @@ if (!(location.hash || '').startsWith('#visita=')) {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') set(false); });
   document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => set(false)));
   window.addEventListener('resize', () => { if (window.innerWidth > 900) set(false); });
+})();
+
+// Semântica pra leitor de tela (análise de 2026-10-09): o título de cada página (.page-title,
+// que é um <div> montado por ~25 renders diferentes) passa a ser o <h1> da página.
+(function tituloComoH1() {
+  const main = document.getElementById('main');
+  if (!main) return;
+  const marcar = () => {
+    const t = main.querySelector('.page-title');
+    if (t && t.getAttribute('role') !== 'heading') { t.setAttribute('role', 'heading'); t.setAttribute('aria-level', '1'); }
+  };
+  new MutationObserver(marcar).observe(main, { childList: true });
+  marcar();
 })();
 
 // Regra de acesso diário ao SiGOp (pedido de Eduardo em 2026-10-09): todo comandante de

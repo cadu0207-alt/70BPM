@@ -14983,7 +14983,7 @@
       "Novembro",
       "Dezembro"
     ],
-    "periodo_dados": "jan-ago/2026",
+    "periodo_dados": "jan-out/2026",
     "fonte": "REDS geral do 70º BPM (entrada/TODOS OS B.O), 8569 registros",
     "naturezas_precursoras": {
       "B01147": "Ameaça",
@@ -20116,7 +20116,7 @@
       "Novembro",
       "Dezembro"
     ],
-    "periodo_dados": "jan-ago/2026",
+    "periodo_dados": "jan-out/2026",
     "panorama": {
       "total_enderecos": 195
     },

@@ -152,10 +152,16 @@ async function novoContexto(browser, opcoes, comGate) {
   await page.waitForTimeout(300);
   const home = await page.evaluate(() => {
     const h3 = Array.from(document.querySelectorAll('#main h3')).find((h) => h.textContent.includes('Quadro de Cumprimento'));
-    return { linhas: h3 ? h3.closest('.chart-box').querySelectorAll('tbody tr').length : -1, kpis: document.querySelectorAll('#main .kpi-card').length, status: (document.getElementById('statusDadosTxt') || {}).textContent };
+    return { linhas: h3 ? h3.closest('.chart-box').querySelectorAll('tbody tr').length : -1, kpis: document.querySelectorAll('#main .kpi-card').length, status: (document.getElementById('statusDadosTxt') || {}).textContent,
+      kpisHome: document.querySelectorAll('#main .kpi-grid-home .kpi-card').length, mainTag: (document.getElementById('main') || {}).tagName, navTag: (document.getElementById('sidebar') || {}).tagName,
+      h1: document.querySelectorAll('#main [role=heading][aria-level="1"]').length, filtroRotulo: (document.getElementById('munFiltroGlobal') || {}).ariaLabel };
   });
   checa(home.linhas === 13 && home.kpis >= 4, `quadro com 13 municípios e ${home.kpis} KPIs`, 'Home incompleta: ' + JSON.stringify(home));
   checa(!!home.status && !/Verificando/.test(home.status), `indicador de atualização calculado ("${home.status}")`, 'indicador de atualização não foi calculado');
+  checa(home.kpisHome === 9, 'Home com os 9 cartões de KPI num grid só', `Home com ${home.kpisHome} cartões no grid (esperava 9)`);
+  checa(home.mainTag === 'MAIN' && home.navTag === 'NAV', 'páginas com <main> e <nav> (leitor de tela)', `marcos de página: main=${home.mainTag} nav=${home.navTag}`);
+  checa(home.h1 === 1, 'a página tem exatamente 1 título nível 1', `títulos nível 1 na página: ${home.h1}`);
+  checa(!!home.filtroRotulo, 'filtro de município com rótulo', 'filtro de município sem rótulo (aria-label)');
   await ctx.close();
 
   await browser.close();
