@@ -21,10 +21,11 @@
     --signal-dim: #14624a;
     --alert: #e6484f;
     --alert-dim: #6e2226;
+    --alert-text: #ff6b70;
     --caution: #d4c22a;
     --text: #eaf1f8;
     --muted: #7891a8;
-    --muted-dim: #4d6478;
+    --muted-dim: #6a8196;
     --mono: 'IBM Plex Mono', ui-monospace, monospace;
     --sans: 'IBM Plex Sans', -apple-system, sans-serif;
     --display: 'Rajdhani', var(--sans);
@@ -54,11 +55,11 @@
     padding: 22px 18px 16px; border-bottom: 1px solid var(--panel-border);
   }
   .brand .unit { font-family: var(--display); font-size:20px; font-weight:700; letter-spacing:0.06em; color:var(--text); line-height:1.1; }
-  .brand .sub { font-family: var(--mono); font-size:9.5px; letter-spacing:0.14em; color:var(--amber); text-transform:uppercase; margin-top:6px; }
+  .brand .sub { font-family: var(--mono); font-size:11px; letter-spacing:0.14em; color:var(--amber); text-transform:uppercase; margin-top:6px; }
   .nav-scroll { padding: 14px 10px 20px; flex:1; }
   .nav-group { margin-bottom: 18px; }
   .nav-group-label {
-    font-family: var(--mono); font-size:10px; letter-spacing:0.16em; text-transform:uppercase;
+    font-family: var(--mono); font-size:11px; letter-spacing:0.16em; text-transform:uppercase;
     color: var(--muted-dim); padding: 0 8px 6px; display:flex; align-items:center; gap:6px;
   }
   .nav-group-label::before { content:''; width:5px; height:5px; background:var(--muted-dim); flex-shrink:0; }
@@ -83,19 +84,19 @@
     padding: 12px 30px; border-bottom: 1px solid var(--panel-border);
     background: rgba(7,12,20,0.6); flex-shrink:0;
   }
-  .topbar-title { font-family: var(--mono); font-size:11px; letter-spacing:0.1em; color:var(--muted); text-transform:uppercase; }
+  .topbar-title { font-family: var(--mono); font-size:12px; letter-spacing:0.1em; color:var(--muted); text-transform:uppercase; }
   .topbar-title b { color:var(--text); font-weight:600; }
-  .topbar-status { display:flex; align-items:center; gap:16px; font-family:var(--mono); font-size:10.5px; color:var(--muted); letter-spacing:0.06em; }
+  .topbar-status { display:flex; align-items:center; gap:16px; font-family:var(--mono); font-size:11.5px; color:var(--muted); letter-spacing:0.06em; }
   .topbar-status .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--signal); box-shadow:0 0 8px var(--signal); margin-right:6px; }
   .status-dados { cursor:help; }
   .status-dados.dados-aviso { color:var(--caution); }
   .status-dados.dados-aviso .dot { background:var(--caution); box-shadow:0 0 8px var(--caution); }
-  .status-dados.dados-velho { color:var(--alert); font-weight:600; }
+  .status-dados.dados-velho { color:var(--alert-text); font-weight:600; }
   .status-dados.dados-velho .dot { background:var(--alert); box-shadow:0 0 8px var(--alert); }
   .mun-filtro-wrap { display:flex; align-items:center; gap:5px; color:var(--amber); }
   .mun-filtro-select {
     background: var(--bg-2); color:var(--text); border:1px solid var(--panel-border); border-radius:3px;
-    font-family:var(--mono); font-size:10.5px; padding:4px 6px; letter-spacing:0.03em; cursor:pointer;
+    font-family:var(--mono); font-size:11.5px; padding:4px 6px; letter-spacing:0.03em; cursor:pointer;
   }
   .mun-highlight-row td { background: rgba(232,168,60,0.14) !important; box-shadow: inset 3px 0 0 var(--amber); }
   .main { flex:1; padding: 26px 34px 50px; overflow:auto; }
@@ -108,11 +109,11 @@
   }
   .page-title::before { content:'// '; color: var(--amber); }
   .updated {
-    font-size:11.5px; color: var(--muted); margin-bottom:22px; font-family: var(--mono);
+    font-size:12.5px; color: var(--muted); margin-bottom:22px; font-family: var(--mono);
     padding-bottom:16px; border-bottom: 1px solid var(--line); letter-spacing:0.01em;
   }
   .fresh-badge {
-    display:inline-flex; align-items:center; gap:6px; font-family: var(--mono); font-size:10.5px;
+    display:inline-flex; align-items:center; gap:6px; font-family: var(--mono); font-size:11.5px;
     letter-spacing:0.04em; padding:4px 10px; border-radius:3px; margin: 2px 0 14px; text-transform:uppercase;
   }
   .fresh-badge::before { content:''; width:6px; height:6px; border-radius:50%; flex-shrink:0; }
@@ -120,7 +121,7 @@
   .fresh-ok::before { background: var(--signal); box-shadow:0 0 6px var(--signal); }
   .fresh-warn { background: rgba(212,194,42,0.1); color: var(--caution); border:1px solid #6b6318; }
   .fresh-warn::before { background: var(--caution); }
-  .fresh-stale { background: rgba(230,72,79,0.1); color: var(--alert); border:1px solid var(--alert-dim); }
+  .fresh-stale { background: rgba(230,72,79,0.1); color: var(--alert-text); border:1px solid var(--alert-dim); }
   .fresh-stale::before { background: var(--alert); }
   .fresh-snapshot { background: rgba(120,145,168,0.1); color: var(--muted); border:1px solid var(--muted-dim); }
   .fresh-snapshot::before { background: var(--muted); }
@@ -138,9 +139,9 @@
     background: linear-gradient(135deg, rgba(255,255,255,0.035), transparent 55%);
   }
   .kpi-card .val { font-family: var(--mono); font-size: 28px; font-weight:600; letter-spacing:-0.01em; }
-  .kpi-card .lbl { font-family: var(--mono); font-size: 10px; margin-top:6px; opacity:0.85; text-transform:uppercase; letter-spacing:0.09em; }
+  .kpi-card .lbl { font-family: var(--mono); font-size: 11px; margin-top:6px; opacity:0.85; text-transform:uppercase; letter-spacing:0.09em; }
   .kpi-red { border-left-color: var(--alert); }
-  .kpi-red .val { color: var(--alert); }
+  .kpi-red .val { color: var(--alert-text); }
   .kpi-green { border-left-color: var(--signal); }
   .kpi-green .val { color: var(--signal); }
   .kpi-neutral { border-left-color: var(--muted); }
@@ -159,7 +160,7 @@
   table.data-table { width:100%; border-collapse: collapse; font-size: 12.5px; font-family:var(--sans); margin-bottom:0; background:var(--panel); }
   table.data-table th {
     background: #142236; color: var(--muted); padding:9px 8px; text-align:center;
-    font-family: var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:0.07em; font-weight:500;
+    font-family: var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.07em; font-weight:500;
     border-bottom: 1px solid var(--panel-border);
   }
   table.data-table td { padding:7px 8px; text-align:center; border-bottom:1px solid rgba(234,241,248,0.10); font-family:var(--mono); font-size:12.5px; }
@@ -167,14 +168,20 @@
   table.data-table tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
   table.data-table tr:hover td { background: rgba(232,168,60,0.045); }
   table.data-table th.col-divider, table.data-table td.col-divider { border-left: 2px solid rgba(234,241,248,0.22); }
-  .pos { color: var(--alert); font-weight:600; }
+  .pos { color: var(--alert-text); font-weight:600; }
   .neg { color: var(--signal); font-weight:600; }
+  /* Sinal além da cor (daltonismo, impressão em P&B): ✓ dentro da meta / ! atenção / ✕ fora da meta */
+  .neg::before, .kpi-green .lbl::before, td[style*="rgba(33,201,138"]::before { content:'✓'; content:'✓' / ''; }
+  .pos::before, .kpi-red .lbl::before, td[style*="rgba(230,72,79"]::before { content:'✕'; content:'✕' / ''; }
+  td[style*="rgba(212,194,42"]::before, td[style*="rgba(240,190,50"]::before { content:'!'; content:'!' / ''; }
+  .neg::before, .pos::before, .kpi-green .lbl::before, .kpi-red .lbl::before,
+  td[style*="rgba(33,201,138"]::before, td[style*="rgba(230,72,79"]::before, td[style*="rgba(212,194,42"]::before, td[style*="rgba(240,190,50"]::before { font-size:.85em; font-weight:700; margin-right:4px; }
 
   /* ---------- CHARTS ---------- */
   .charts-row { display:flex; gap:16px; flex-wrap:wrap; }
   .chart-box { background:var(--panel); border:1px solid var(--panel-border); border-radius:4px; padding:16px 18px; flex:1; min-width:380px; }
   .chart-box h3 {
-    margin:0 0 14px; font-size:10.5px; color:var(--muted); font-family:var(--mono);
+    margin:0 0 14px; font-size:11.5px; color:var(--muted); font-family:var(--mono);
     text-transform:uppercase; letter-spacing:0.09em; font-weight:500;
     padding-bottom:10px; border-bottom:1px solid var(--line);
   }
@@ -184,9 +191,9 @@
     background: var(--panel); border:1px solid var(--panel-border); border-left: 3px solid var(--amber);
     border-radius:4px; padding:14px 18px; margin-bottom:22px; font-size:12.5px; color:var(--muted); line-height:1.65;
   }
-  .def-box b { color: var(--text); font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; }
+  .def-box b { color: var(--text); font-family:var(--mono); font-size:12px; letter-spacing:0.06em; text-transform:uppercase; }
   .def-box .formula { font-family:var(--mono); color:var(--text); font-size:12px; display:block; margin:8px 0; }
-  .def-box .polarity { color: var(--signal); font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:0.05em; }
+  .def-box .polarity { color: var(--signal); font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:0.05em; }
   .def-box code { color: var(--amber); font-family:var(--mono); }
 
   .btn-sigop {
@@ -205,7 +212,7 @@
   #sigopGate .sg-box { max-width:480px; width:100%; background:var(--panel, #101a26); border:1px solid rgba(232,168,60,0.55); border-radius:12px; padding:26px 24px; box-shadow:0 20px 60px rgba(0,0,0,0.6); text-align:center; }
   #sigopGate h2 { margin:0 0 10px; font-size:18px; color:#e8a83c; }
   #sigopGate p { margin:0 0 18px; font-size:14px; line-height:1.55; color:var(--text, #eaf1f8); }
-  #sigopGate .sg-note { margin:14px 0 0; font-size:11.5px; color:var(--muted, #7891a8); }
+  #sigopGate .sg-note { margin:14px 0 0; font-size:12.5px; color:var(--muted, #7891a8); }
 
   .pending-box {
     background:var(--panel); border:1px dashed var(--panel-border); border-radius:4px; padding:44px; text-align:center; color:var(--muted);
@@ -221,13 +228,13 @@
   .ppvd-btn-primary { background:var(--amber); color:#151005; border-color:var(--amber); font-weight:700; }
   .ppvd-btn-primary:hover { background:#f4bb54; }
   .ppvd-field { margin-bottom:14px; }
-  .ppvd-field label { display:block; font-family:var(--mono); font-size:11px; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+  .ppvd-field label { display:block; font-family:var(--mono); font-size:12px; letter-spacing:0.05em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
   .ppvd-field input, .ppvd-field select, .ppvd-field textarea {
     width:100%; max-width:420px; background:var(--bg-1); border:1px solid var(--panel-border); border-radius:4px;
     color:var(--text); padding:9px 11px; font-family:var(--sans); font-size:13.5px;
   }
   .ppvd-field textarea { max-width:640px; min-height:70px; }
-  .ppvd-badge { display:inline-block; padding:3px 9px; border-radius:3px; font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:0.03em; }
+  .ppvd-badge { display:inline-block; padding:3px 9px; border-radius:3px; font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:0.03em; }
   .ppvd-badge-critica { background:rgba(224,80,80,0.18); color:#ff8080; border:1px solid rgba(224,80,80,0.4); }
   .ppvd-badge-alta { background:rgba(232,168,60,0.18); color:var(--amber); border:1px solid rgba(232,168,60,0.4); }
   .ppvd-badge-media { background:rgba(120,140,160,0.18); color:var(--muted); border:1px solid var(--panel-border); }
@@ -272,11 +279,11 @@
     body.nav-open .nav-backdrop { opacity:1; pointer-events:auto; }
     .menu-toggle { display:inline-flex; }
     .nav-btn { padding:12px 12px; font-size:14px; }
-    .nav-group-label { font-size:10.5px; }
+    .nav-group-label { font-size:11.5px; }
     .app-col { width:100%; height:100dvh; }
     .topbar { flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:8px 12px; padding:10px 14px; }
-    .topbar-title { flex:1; min-width:0; font-size:10px; line-height:1.4; }
-    .topbar-status { flex-wrap:wrap; gap:6px 10px; width:100%; font-size:10px; }
+    .topbar-title { flex:1; min-width:0; font-size:11px; line-height:1.4; }
+    .topbar-status { flex-wrap:wrap; gap:6px 10px; width:100%; font-size:11px; }
     .mun-filtro-wrap { flex:1 1 100%; min-width:0; }
     .mun-filtro-select { flex:1; min-width:0; max-width:100%; }
     #dadosAtualizadosEm { flex-basis:100%; }
@@ -286,9 +293,9 @@
     .kpi-grid-home > .kpi-card:last-child { grid-column:1 / -1; }
     .kpi-card { padding:14px 12px; }
     .kpi-card .val { font-size:clamp(17px, 5.6vw, 24px); overflow-wrap:anywhere; }
-    .kpi-card .lbl { font-size:9.5px; letter-spacing:0.05em; }
+    .kpi-card .lbl { font-size:11px; letter-spacing:0.05em; }
     table.data-table { display:block; overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
-    table.data-table th { padding:8px 6px; font-size:9.5px; }
+    table.data-table th { padding:8px 6px; font-size:11px; }
     table.data-table td { padding:7px 6px; font-size:12px; }
     .chart-box { min-width:0; padding:14px 12px; }
     .def-box { padding:12px 14px; font-size:12.5px; }
@@ -632,7 +639,7 @@ function bannerAcompanhamentoDiario(itens) {
   return `<div class="def-box" style="border-color:var(--amber);margin-bottom:14px">
     <b>📅 Acompanhamento diário</b> — cada indicador é ponderado pela sua própria data de atualização, não por "hoje" fixo.
     ${linhas}
-    <span style="color:var(--muted);font-size:11px">Vale só pro mês em andamento — meses fechados no seletor abaixo continuam comparando com a meta cheia normalmente.</span>
+    <span style="color:var(--muted);font-size:12px">Vale só pro mês em andamento — meses fechados no seletor abaixo continuam comparando com a meta cheia normalmente.</span>
   </div>`;
 }
 
@@ -712,9 +719,9 @@ const MUNICIPIOS_CANON = ['Águas Vermelhas','Araçuaí','Cachoeira de Pajeú','
 
 function semaforoCell(cor, texto, titulo) {
   const map = {
-    verde: {bg:'rgba(33,201,138,0.25)', fg:'#21c98a'},
+    verde: {bg:'rgba(33,201,138,0.25)', fg:'#3fe0a5'},
     amarelo: {bg:'rgba(212,194,42,0.25)', fg:'#d4c22a'},
-    vermelho: {bg:'rgba(230,72,79,0.25)', fg:'#e6484f'},
+    vermelho: {bg:'rgba(230,72,79,0.25)', fg:'#ff8a8f'},
   };
   const c = map[cor];
   const tt = titulo ? ` title="${titulo}"` : '';
@@ -876,7 +883,7 @@ function renderRankingTable(modo) {
   let rows = '';
   ranking.forEach((r, i) => {
     const posicao = i+1;
-    const totalColor = posicao<=3 ? '#21c98a' : (posicao>n-3 ? '#e6484f' : '#5b9bd5');
+    const totalColor = posicao<=3 ? '#21c98a' : (posicao>n-3 ? '#ff6b70' : '#5b9bd5');
     const pctBar = Math.max(4, ((r.total - minTotal) / span) * 100);
     const detalhe = detalheLabels.map(([k,lbl]) => `${lbl}: ${r[k]}`).join(' &middot; ');
     rows += `<div class="rank-row" title="${detalhe.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
@@ -988,7 +995,7 @@ function renderCumprimentoMatrix(modo) {
       <th>Pad.Escolar</th><th>Saque Seguro</th><th>IDOB</th><th>ITVD</th>
     </tr></thead><tbody>${rows}</tbody></table>
     </div>
-    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Verde = cumpriu a meta &middot; Amarelo = próximo (tolerância) &middot; Vermelho = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Cavalo de Aço/Pad.Escolar/Saque Seguro: quanto maior, melhor — no mês em andamento a cor usa a meta proporcional aos dias já fechados de cada indicador (passe o mouse na célula pra ver); meses fechados usam a meta cheia. IDOB/ITVD: índice de qualidade (não é meta numérica); sem operação/ocorrência = 100%.</div>
+    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Verde (&#10003;) = cumpriu a meta &middot; Amarelo (!) = próximo (tolerância) &middot; Vermelho (&#10005;) = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Cavalo de Aço/Pad.Escolar/Saque Seguro: quanto maior, melhor — no mês em andamento a cor usa a meta proporcional aos dias já fechados de cada indicador (passe o mouse na célula pra ver); meses fechados usam a meta cheia. IDOB/ITVD: índice de qualidade (não é meta numérica); sem operação/ocorrência = 100%.</div>
   </div>`;
   return html;
 }
@@ -1130,9 +1137,9 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
 
 function pogBandColor(v) {
   // Meta = 100%. Faixa 95-105 = verde, 90-95/105-110 = amarelo, fora disso = vermelho.
-  if (v >= 95 && v <= 105) return { bg: 'rgba(33,201,138,0.22)', fg: '#21c98a' };
+  if (v >= 95 && v <= 105) return { bg: 'rgba(33,201,138,0.22)', fg: '#3fe0a5' };
   if ((v >= 90 && v < 95) || (v > 105 && v <= 110)) return { bg: 'rgba(212,194,42,0.22)', fg: '#d4c22a' };
-  return { bg: 'rgba(230,72,79,0.22)', fg: '#e6484f' };
+  return { bg: 'rgba(230,72,79,0.22)', fg: '#ff8a8f' };
 }
 function pogCell(v) {
   const c = pogBandColor(v);
@@ -1308,9 +1315,9 @@ function idobColor(v) {
   return 'rgba(230,72,79,0.22)';
 }
 function idobTextColor(v) {
-  if (v >= 95) return '#21c98a';
+  if (v >= 95) return '#3fe0a5';
   if (v >= 85) return '#d4c22a';
-  return '#e6484f';
+  return '#ff8a8f';
 }
 
 function renderIDOBPage() {
@@ -1391,8 +1398,8 @@ function renderIDOBPage() {
 
     function bmMonthCell(cumpriu) {
       return cumpriu
-        ? `<td style="background:rgba(33,201,138,0.22);color:#21c98a;font-weight:600">CUMPRIU</td>`
-        : `<td style="background:rgba(230,72,79,0.22);color:#e6484f;font-weight:600">NÃO CUMPRIU</td>`;
+        ? `<td style="background:rgba(33,201,138,0.22);color:#3fe0a5;font-weight:600">CUMPRIU</td>`
+        : `<td style="background:rgba(230,72,79,0.22);color:#ff8a8f;font-weight:600">NÃO CUMPRIU</td>`;
     }
 
     function bmRows(mi) {
@@ -1403,7 +1410,7 @@ function renderIDOBPage() {
         const cls = dAc>=100?'neg':'pos';
         const cumpriuMes = mMes ? (rMes >= mMes) : true;
         const tierLabel = m.tier===3?'Cia':(m.tier===2?'Pel':'Dest');
-        html += `<tr><td style="text-align:left">${m.nome} <span style="opacity:.6;font-size:.85em">(${tierLabel})</span></td>
+        html += `<tr><td style="text-align:left">${m.nome} <span style="opacity:.6;font-size:.92em">(${tierLabel})</span></td>
           <td>${mMes}</td><td>${rMes}</td>${bmMonthCell(cumpriuMes)}
           <td class="col-divider">${mAc}</td><td>${rAc}</td><td><span class="${cls}">${dAc.toFixed(0)}%</span></td>
         </tr>`;
@@ -1501,8 +1508,8 @@ function renderCavaloAcoPage() {
 
   function monthCell(cumpriu) {
     return cumpriu
-      ? `<td style="background:rgba(33,201,138,0.22);color:#21c98a;font-weight:600">CUMPRIU</td>`
-      : `<td style="background:rgba(230,72,79,0.22);color:#e6484f;font-weight:600">NÃO CUMPRIU</td>`;
+      ? `<td style="background:rgba(33,201,138,0.22);color:#3fe0a5;font-weight:600">CUMPRIU</td>`
+      : `<td style="background:rgba(230,72,79,0.22);color:#ff8a8f;font-weight:600">NÃO CUMPRIU</td>`;
   }
 
   function rows(mi) {
@@ -1633,7 +1640,7 @@ function renderRolezinhoPage() {
 
   function cumpriuCell(realizado, meta) {
     const cumpriu = realizado >= meta;
-    return `<td style="background:${cumpriu?'rgba(33,201,138,0.22)':'rgba(230,72,79,0.22)'};color:${cumpriu?'#21c98a':'#e6484f'};font-weight:600">${realizado}</td>`;
+    return `<td style="background:${cumpriu?'rgba(33,201,138,0.22)':'rgba(230,72,79,0.22)'};color:${cumpriu?'#3fe0a5':'#ff8a8f'};font-weight:600">${realizado}</td>`;
   }
 
   function rows(mi) {
@@ -1672,9 +1679,9 @@ function renderRolezinhoPage() {
 
 function desColor(reds, prisoes) {
   const des = reds > 0 ? (prisoes / reds) * 100 : 100;
-  if (des >= 50) return { bg: 'rgba(33,201,138,0.22)', fg: '#21c98a' };
+  if (des >= 50) return { bg: 'rgba(33,201,138,0.22)', fg: '#3fe0a5' };
   if (des >= 25) return { bg: 'rgba(240,190,50,0.22)', fg: '#e6b400' };
-  return { bg: 'rgba(230,72,79,0.22)', fg: '#e6484f' };
+  return { bg: 'rgba(230,72,79,0.22)', fg: '#ff8a8f' };
 }
 
 function renderEsforcoFurtoPage() {
@@ -1724,12 +1731,12 @@ function renderEsforcoFurtoPage() {
 
 function gravBadge(g) {
   const map = {
-    critica: { bg: '#c0392b', label: 'CRÍTICA' },
-    alta: { bg: '#d2691e', label: 'ALTA' },
-    media: { bg: '#b8860b', label: 'MÉDIA' },
+    critica: { bg: '#c0392b', fg: '#fff', label: 'CRÍTICA' },
+    alta: { bg: '#d2691e', fg: '#0b0f14', label: 'ALTA' },
+    media: { bg: '#b8860b', fg: '#0b0f14', label: 'MÉDIA' },
   };
-  const c = map[g] || { bg: '#666', label: (g || '').toUpperCase() };
-  return `<span style="background:${c.bg};color:#fff;font-weight:700;font-size:10px;letter-spacing:0.04em;padding:4px 10px;border-radius:3px;text-transform:uppercase;white-space:nowrap">${c.label}</span>`;
+  const c = map[g] || { bg: '#666', fg: '#fff', label: (g || '').toUpperCase() };
+  return `<span style="background:${c.bg};color:${c.fg};font-weight:700;font-size:11px;letter-spacing:0.04em;padding:4px 10px;border-radius:3px;text-transform:uppercase;white-space:nowrap">${c.label}</span>`;
 }
 
 function renderAnalisePreditivaPage() {
@@ -1872,7 +1879,7 @@ function renderViolenciaDomesticaPage() {
   html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th><th>Endereços Reincid.</th></tr></thead><tbody>`;
   ranking.forEach((m, i) => {
     const c = rankColor(i, ranking.length, true);
-    html += `<tr><td style="background:${c};color:#0b0f14;font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td><td>${m.enderecos_reincidentes > 0 ? ('⚠ ' + m.enderecos_reincidentes) : '—'}</td></tr>`;
+    html += `<tr><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td><td>${m.enderecos_reincidentes > 0 ? ('⚠ ' + m.enderecos_reincidentes) : '—'}</td></tr>`;
   });
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td><td>${totalEnderecos}</td></tr>`;
   html += `</tbody></table>`;
@@ -2012,7 +2019,7 @@ function renderCrimesViolentosPage() {
   html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th></tr></thead><tbody>`;
   ranking.forEach((m, i) => {
     const c = rankColor(i, ranking.length, true);
-    html += `<tr><td style="background:${c};color:#0b0f14;font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td></tr>`;
+    html += `<tr><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td></tr>`;
   });
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td></tr>`;
   html += `</tbody></table>`;
@@ -2109,7 +2116,7 @@ function renderReincidenciaPage() {
   html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Endereços Reincidentes</th></tr></thead><tbody>`;
   ranking.forEach((m, i) => {
     const c = rankColor(i, ranking.length, true);
-    html += `<tr><td style="background:${c};color:#0b0f14;font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.enderecos_reincidentes}</td></tr>`;
+    html += `<tr><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.enderecos_reincidentes}</td></tr>`;
   });
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(municipiosData.reduce((s,m)=>s+(m.pop||0),0), 0)}</td><td>${totalGeral}</td></tr>`;
   html += `</tbody></table>`;
@@ -2175,6 +2182,17 @@ function renderReincidenciaPage() {
 // posição 1 = maior índice = pior). Sem isso, posição 1 saía sempre verde, mesmo sendo o
 // município com a maior taxa (achado por Eduardo em 2026-09-08, ranking de Violência
 // Doméstica mostrando Itinga verde na posição 1 apesar de ter o maior índice).
+function rankTextColor(corHsl) {
+  // texto do número da posição: branco ou escuro, o que contrastar mais com o fundo hsl() do rankColor
+  const m = /hsl\(([\d.]+),\s*([\d.]+)%,\s*([\d.]+)%\)/.exec(corHsl);
+  if (!m) return '#fff';
+  const h = +m[1], s = +m[2] / 100, l = +m[3] / 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  const lin = (v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  const L = 0.2126 * lin(f(0)) + 0.7152 * lin(f(8)) + 0.0722 * lin(f(4));
+  return (1.05 / (L + 0.05)) >= ((L + 0.05) / 0.0545) ? '#fff' : '#0b0f14';
+}
 function rankColor(idx, total, invertido = false) {
   const t = total > 1 ? idx / (total - 1) : 0;
   const tAjustado = invertido ? (1 - t) : t;
@@ -2336,7 +2354,8 @@ function severityBadge(sev) {
     'ATENÇÃO': '#c9a227',
   };
   const bg = map[sev] || '#666';
-  return `<span style="background:${bg};color:#fff;font-weight:700;font-size:10px;letter-spacing:0.04em;padding:4px 10px;border-radius:3px;text-transform:uppercase;white-space:nowrap">${sev}</span>`;
+  const fg = (sev === 'CRÍTICO' || !map[sev]) ? '#fff' : '#0b0f14'; // fundos claros (laranja/ouro) pedem texto escuro
+  return `<span style="background:${bg};color:${fg};font-weight:700;font-size:11px;letter-spacing:0.04em;padding:4px 10px;border-radius:3px;text-transform:uppercase;white-space:nowrap">${sev}</span>`;
 }
 
 function findMuniIdx(municipios, nome) {
@@ -2429,7 +2448,7 @@ function renderAnaliseCiaBloco(ciaNome, mi) {
   allIssues.sort((a, b) => a.ordem - b.ordem);
 
   let html = `<div style="margin-top:10px">`;
-  html += `<div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--mono)">Análise por Companhia</div>`;
+  html += `<div style="font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--mono)">Análise por Companhia</div>`;
   html += `<div style="font-size:24px;font-weight:800;margin:4px 0 16px">${ciaNome}</div>`;
 
   if (allIssues.length === 0) {
@@ -2462,7 +2481,7 @@ function renderAnaliseCiaBloco(ciaNome, mi) {
       let texto = `<b>${pior}</b> é o principal vetor de problemas da ${ciaNome} (${principal.indicador.toLowerCase()}: ${principal.detalhe})`;
       texto += outros.length ? ` e apresenta baixo desempenho também em ${outros.join(', ')}.` : `.`;
       html += `<div style="background:#12161c;border:1px solid var(--panel-border);border-radius:6px;padding:16px 20px;margin-top:16px">
-        <div style="color:var(--amber);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Destaque Crítico</div>
+        <div style="color:var(--amber);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Destaque Crítico</div>
         <div style="color:var(--text);font-size:13px;line-height:1.6">${texto}</div>
       </div>`;
     }
@@ -2523,7 +2542,7 @@ function renderApresentacaoGdoPage() {
     <th>Meta</th><th>Res.</th><th>Des.</th>
     <th>Meta</th><th>Res.</th><th>Des.</th>
   </tr></thead><tbody>${slide(mi)}</tbody></table>`;
-  html += `<div class="def-box" style="margin-top:16px;font-size:11.5px">
+  html += `<div class="def-box" style="margin-top:16px;font-size:12.5px">
     Y15001 - Patrulha Escolar/Patrulha de Prevenção às Drogas;<br>
     Y07012 - Operação de Prevenção a Violência Doméstica;<br>
     Y07014 - Ação/Operação em Zonal Rural;
@@ -2538,7 +2557,7 @@ function renderApresentacaoGdoPage() {
   let ciaAtiva = cias[0];
   html += `<div style="margin-top:34px;padding-top:24px;border-top:1px solid var(--line)">`;
   html += `<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
-    <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="ciaAnaliseLabel">GDO Jan-${mesesMv[miAnalise]}/2026</div>
+    <div style="font-size:12px;color:var(--muted);font-family:var(--mono)" id="ciaAnaliseLabel">GDO Jan-${mesesMv[miAnalise]}/2026</div>
     <select class="month-select" id="ciaMonthSel" style="width:auto">
       ${mesesMv.slice(0, miAnalise + 1).map((m, i) => `<option value="${i}" ${i === miAnalise ? 'selected' : ''}>Acumulado até ${m}</option>`).join('')}
     </select>
@@ -2650,7 +2669,7 @@ function renderChecklistPage() {
       <table class="data-table"><tbody>`;
     grupo.itens.forEach(item => {
       const linkHtml = item.sigop && SIGOP_LINKS[item.sigop]
-        ? `<a class="btn-sigop" style="padding:3px 10px;font-size:9.5px" href="${SIGOP_LINKS[item.sigop]}" target="_blank" rel="noopener noreferrer"><span>SIGOP &#8599;</span></a>`
+        ? `<a class="btn-sigop" style="padding:3px 10px;font-size:11.5px" href="${SIGOP_LINKS[item.sigop]}" target="_blank" rel="noopener noreferrer"><span>SIGOP &#8599;</span></a>`
         : '';
       html += `<tr>
         <td style="width:36px;text-align:center"><input type="checkbox" class="chk-item" data-id="${item.id}" style="width:16px;height:16px;cursor:pointer"></td>
@@ -3016,7 +3035,7 @@ function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {
   html += `<div class="def-box"><b>${d.periodo}</b><br>${defHtml}</div>`;
   html += `<table class="data-table"><thead><tr>
     <th style="text-align:left">Fração</th><th style="text-align:left">Município</th>
-    ${colunas.map(c => `<th${c.highlight?' style="background:rgba(230,72,79,0.28)"':''}>${c.label}</th>`).join('')}
+    ${colunas.map(c => `<th${c.highlight?' style="background:rgba(230,72,79,0.28);color:var(--text)"':''}>${c.label}</th>`).join('')}
     <th>Total Absoluto</th>
   </tr></thead><tbody>`;
   d.cias.forEach(cia => {
@@ -3026,7 +3045,7 @@ function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {
       html += `<td style="text-align:left">${m.nome}</td>`;
       colunas.forEach(c => {
         html += c.highlight
-          ? `<td style="background:rgba(230,72,79,0.22);color:#e6484f;font-weight:600">${m[c.key]}</td>`
+          ? `<td style="background:rgba(230,72,79,0.22);color:#ff8a8f;font-weight:600">${m[c.key]}</td>`
           : `<td>${m[c.key]}</td>`;
       });
       html += `<td style="font-weight:700">${m.total}</td></tr>`;
@@ -3036,7 +3055,7 @@ function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td colspan="2" style="text-align:left">TOTAL</td>`;
   colunas.forEach(c => {
     html += c.highlight
-      ? `<td style="background:rgba(230,72,79,0.28);color:#e6484f">${t[c.key]}</td>`
+      ? `<td style="background:rgba(230,72,79,0.28);color:#ff8a8f">${t[c.key]}</td>`
       : `<td>${t[c.key]}</td>`;
   });
   html += `<td>${t.total}</td></tr>`;
@@ -3849,7 +3868,7 @@ async function ppvdRenderCaso(caso) {
   html += `<div class="kpi-card ${orientFinal.nivel === 'critica' ? 'kpi-red' : (orientFinal.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${caso.gut_final_score || '—'}</div><div class="lbl">GUT Final (última visita)</div></div>`;
   html += `</div>`;
 
-  html += `<div class="ppvd-card"><b>Classificação GUT Inicial</b> <span style="color:var(--muted);font-size:11px">(preenchida pelo comandante ao abrir o caso, com base no REDS + FONAR)</span><br><br>`;
+  html += `<div class="ppvd-card"><b>Classificação GUT Inicial</b> <span style="color:var(--muted);font-size:12px">(preenchida pelo comandante ao abrir o caso, com base no REDS + FONAR)</span><br><br>`;
   html += `<div class="ppvd-field"><label>Gravidade</label>${ppvdSelectGUT('ppvdG', 'gravidade', caso.gravidade)}</div>`;
   html += `<div class="ppvd-field"><label>Urgência</label>${ppvdSelectGUT('ppvdU', 'urgencia', caso.urgencia)}</div>`;
   html += `<div class="ppvd-field"><label>Tendência</label>${ppvdSelectGUT('ppvdT', 'tendencia', caso.tendencia)}</div>`;
@@ -3873,7 +3892,7 @@ async function ppvdRenderCaso(caso) {
     html += `<div class="ppvd-card"><b>Despachar visita — ${ehRetorno ? 'Retorno' : 'Visita inicial'}</b><br><br>`;
     html += `<div class="ppvd-field"><label>Militar responsável (nome)</label><input id="ppvdRespNome" value="${caso.militar_responsavel || (sugestao ? sugestao.nome : '')}"></div>`;
     html += `<div class="ppvd-field"><label>WhatsApp (com DDD)</label><input id="ppvdRespWhats" value="${caso.militar_responsavel_whatsapp || (sugestao ? sugestao.whatsapp : '')}"></div>`;
-    html += `<div style="color:var(--muted);font-size:11.5px;margin-bottom:10px">Ao despachar, abre o WhatsApp com a mensagem já pronta e o link da página de registro da visita. Dá pra trocar o nome/WhatsApp aqui sem alterar o cadastro fixo.</div>`;
+    html += `<div style="color:var(--muted);font-size:12.5px;margin-bottom:10px">Ao despachar, abre o WhatsApp com a mensagem já pronta e o link da página de registro da visita. Dá pra trocar o nome/WhatsApp aqui sem alterar o cadastro fixo.</div>`;
     html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdDespacharVD('${caso.id}', ${ehRetorno})">Despachar${ehRetorno ? ' Retorno' : ''} (WhatsApp)</button>`;
     html += `</div>`;
   }
@@ -3881,7 +3900,7 @@ async function ppvdRenderCaso(caso) {
   const pendente = (visitas || []).find(v => v.despachado_em && !v.visita_realizada_em);
   if (pendente) {
     html += `<div class="ppvd-card" style="border-color:var(--amber)"><b>⏳ Visita pendente de resposta do militar</b> — despachada em ${ppvdFmtDT(pendente.despachado_em)} por ${pendente.despachado_por || '—'} pra ${pendente.guarnicao || '—'}<br>`;
-    html += `<div style="color:var(--muted);font-size:11.5px;margin:8px 0">Link enviado: <code>${ppvdLinkVisitaPublica(pendente.token)}</code></div>`;
+    html += `<div style="color:var(--muted);font-size:12.5px;margin:8px 0">Link enviado: <code>${ppvdLinkVisitaPublica(pendente.token)}</code></div>`;
     html += `<details><summary style="cursor:pointer;color:var(--amber)">Registrar manualmente (se o militar não conseguiu usar o link)</summary><br>`;
     html += `<div class="ppvd-field"><label>Visita ao autor realizada?</label><select id="ppvdManAutorFeita"><option value="false">Não</option><option value="true">Sim</option></select></div>`;
     html += `<div class="ppvd-field"><label>Visita à vítima realizada?</label><select id="ppvdManVitimaFeita"><option value="false">Não</option><option value="true">Sim</option></select></div>`;

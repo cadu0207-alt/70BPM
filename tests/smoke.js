@@ -35,6 +35,39 @@ async function novoContexto(browser, opcoes, comGate) {
   return ctx;
 }
 
+// Auditoria de leitura (roda dentro da página): contraste real do texto (com transparência) e fonte mínima.
+function auditar() {
+  const parse = (s) => { const m = s.match(/[\d.]+/g).map(Number); return { r: m[0], g: m[1], b: m[2], a: m.length > 3 ? m[3] : 1 }; };
+  const mistura = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a), a: 1 });
+  const lum = (c) => { const f = [c.r, c.g, c.b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; };
+  const fundo = (el) => {
+    const cadeia = [];
+    for (let e = el; e; e = e.parentElement) { const c = parse(getComputedStyle(e).backgroundColor); if (c.a > 0) cadeia.push(c); if (c.a >= 1) break; }
+    let base = { r: 7, g: 12, b: 20, a: 1 };
+    for (let i = cadeia.length - 1; i >= 0; i--) base = mistura(cadeia[i], base);
+    return base;
+  };
+  const falhas = {}, fontes = {};
+  const raiz = document.getElementById('main');
+  raiz.querySelectorAll('*').forEach((el) => {
+    const txt = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).map((n) => n.textContent.trim()).join(' ');
+    if (!txt) return;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || el.getClientRects().length === 0) return;
+    const fs = parseFloat(cs.fontSize);
+    if (fs < 11) fontes[fs] = (fontes[fs] || 0) + 1;
+    let fg = parse(cs.color); const bg = fundo(el); fg = mistura(fg, bg);
+    const l1 = lum(fg), l2 = lum(bg), cr = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    const grande = fs >= 24 || (fs >= 18.66 && parseInt(cs.fontWeight) >= 700);
+    if (cr < (grande ? 3 : 4.5)) {
+      const k = cs.color + '|' + [bg.r, bg.g, bg.b].map(Math.round).join(',') + '|' + fs;
+      if (!falhas[k]) falhas[k] = { cr: +cr.toFixed(2), fs, cor: cs.color, bg: [bg.r, bg.g, bg.b].map(Math.round).join(','), ex: txt.slice(0, 28), n: 0 };
+      falhas[k].n++;
+    }
+  });
+  return { falhas: Object.values(falhas), fontes, estouroMain: raiz.scrollWidth > raiz.clientWidth + 1, estouroPagina: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
+}
+
 (async () => {
   await new Promise((r) => servidor.listen(0, '127.0.0.1', r));
   const base = 'http://127.0.0.1:' + servidor.address().port + '/index.html';
@@ -162,6 +195,23 @@ async function novoContexto(browser, opcoes, comGate) {
   checa(home.mainTag === 'MAIN' && home.navTag === 'NAV', 'páginas com <main> e <nav> (leitor de tela)', `marcos de página: main=${home.mainTag} nav=${home.navTag}`);
   checa(home.h1 === 1, 'a página tem exatamente 1 título nível 1', `títulos nível 1 na página: ${home.h1}`);
   checa(!!home.filtroRotulo, 'filtro de município com rótulo', 'filtro de município sem rótulo (aria-label)');
+  await ctx.close();
+
+  // ---------- 7) Legibilidade: contraste >= 4,5:1 e fonte >= 11px em todas as páginas ----------
+  console.log('\n[7] Legibilidade: contraste e tamanho de fonte (desktop, todas as páginas)');
+  ctx = await novoContexto(browser, { viewport: { width: 1280, height: 800 } });
+  page = await ctx.newPage();
+  await page.goto(base);
+  await page.waitForFunction(() => typeof goToPage === 'function' && typeof pages === 'object');
+  const problemasLeitura = [];
+  for (const k of await page.evaluate(() => Object.keys(pages))) {
+    await page.evaluate((key) => goToPage(key), k);
+    await page.waitForTimeout(200);
+    const r = await page.evaluate(auditar);
+    r.falhas.forEach((f) => problemasLeitura.push(`${k}: contraste ${f.cr}:1 (${f.fs}px) "${f.ex}"`));
+    Object.entries(r.fontes).forEach(([fs, n]) => problemasLeitura.push(`${k}: ${n} texto(s) com ${fs}px (mínimo 11px)`));
+  }
+  checa(problemasLeitura.length === 0, 'nenhum texto com contraste baixo ou fonte menor que 11px', 'legibilidade: ' + problemasLeitura.slice(0, 4).join(' | '));
   await ctx.close();
 
   await browser.close();
