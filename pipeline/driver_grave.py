@@ -9,7 +9,7 @@ docstring: "cada rodada da rotina diária reconstrói a lógica ad-hoc"). Criado
 Cobre, sem proteção de queda (overwrite direto, igual aggregate.py agora):
   - Esforço-Furto/Prisões (fonte: TODOS OS B.O)
   - IDOB — quantidade de operações Boemia (fonte: entrada/IDOB, RAT)
-  - IDOB-vítimas — MV/CVPe/CVPa em bar/boate (fonte: entrada/CRIMES VIOLENTOS BOEMIA, REDS)
+  - IDOB-vítimas — MV/CVPe/CVPa em bar/boate (fonte: TODOS OS B.O, filtro de local bar/boate; desde 2026-10-09 — a pasta CRIMES VIOLENTOS BOEMIA ficou sem uso)
   - Cavalo de Aço Eficácia/Eficiência (fonte: TODOS OS RAT)
 
 ★ 2026-09-03: passou a cobrir também o bloco "rebuild completo" (fonte: TODOS OS B.O),
@@ -183,11 +183,11 @@ def run_idob_boemia(data, report):
         recompute_totals(data['boemia_meta'], 'realizado_mes', 'realizado_acum', 'total_mes', 'total_acum')
 
 
-def run_idob_vitimas(data, report):
-    f = latest_csv('CRIMES VIOLENTOS BOEMIA')
-    if not f:
-        return
-    rows = read_csv(f, encoding='latin-1')
+def run_idob_vitimas(data, rows, f, report):
+    # Fonte trocada em 2026-10-09: antes lia entrada/CRIMES VIOLENTOS BOEMIA (export separado, parado
+    # desde 11/08, então as vítimas de set/out do IDOB nunca atualizavam). Agora usa o TODOS OS B.O
+    # (mesmas colunas, em dia): validado célula a célula — reproduz EXATAMENTE os valores de jan-ago
+    # que vieram do arquivo antigo (0 diferenças). A pasta CRIMES VIOLENTOS BOEMIA ficou sem uso.
     municipios_order = [m['nome'].upper() for m in data['idob']['municipios']]
     # ★ n_meses FIXO em 8 (não n_meses_atuais(rows)) — bug documentado em 2026-08-27:
     # esse export é pequeno/parado, se o mes mais recente dele não tiver linha o array
@@ -203,7 +203,7 @@ def run_idob_vitimas(data, report):
     recompute_totals(data['idob'], 'mv_mes', 'mv_acum', 'total_mv_mes', 'total_mv_acum')
     recompute_totals(data['idob'], 'cvpe_mes', 'cvpe_acum', 'total_cvpe_mes', 'total_cvpe_acum')
     recompute_totals(data['idob'], 'cvpa_mes', 'cvpa_acum', 'total_cvpa_mes', 'total_cvpa_acum')
-    report['idob_vitimas'] = {'file': f, 'drops': dr1 + dr2 + dr3, 'changes': ch1 + ch2 + ch3}
+    report['idob_vitimas'] = {'fonte': 'TODOS OS B.O', 'file': f, 'drops': dr1 + dr2 + dr3, 'changes': ch1 + ch2 + ch3}
 
 
 def run_cavalo_eficacia(data, report):
@@ -388,13 +388,13 @@ def main():
     report = {}
     run_esforco_furto(data, report)
     run_idob_boemia(data, report)
-    run_idob_vitimas(data, report)
     run_cavalo_eficacia(data, report)
 
     f_bo = latest_csv('TODOS OS B.O')
     if f_bo:
         rows_bo = read_csv(f_bo, encoding='latin-1')
         aj.neutralizar_mv(rows_bo, 'TODOS OS B.O', report)  # correções aprovadas em auditoria (ver ajustes_manuais.py)
+        run_idob_vitimas(data, rows_bo, f_bo, report)
         run_analise_preditiva_homicidios(data, rows_bo, report)
         run_analise_preditiva_panorama(data, rows_bo, report)
         run_itvd(data, rows_bo, report)
