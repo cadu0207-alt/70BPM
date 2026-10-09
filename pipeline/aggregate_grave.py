@@ -48,8 +48,9 @@ def _f1(v):
 
 
 def read_todos_os_bo(csv_path):
+    import leitura_csv as lc  # detecta a codificação real (UTF-8 vs latin-1) pelos bytes
     rows = []
-    with open(csv_path, encoding='latin-1') as f:
+    with lc.abrir_texto(csv_path, fallback='latin-1') as f:
         reader = csv.DictReader(f, delimiter=';')
         for row in reader:
             rows.append(row)

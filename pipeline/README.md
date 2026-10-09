@@ -35,6 +35,7 @@ O repositório e o site são **públicos**. Nº do REDS, data, bairro, **rua e n
 | `aggregate.py` | 11 indicadores por município e mês (MV, CVPE, CVPa, Furto Rural, Armas, Cavalo de Aço, Rolezinho, Padrinhos, Saque Seguro, POG, PPAG). Sobrescreve célula a célula e relata quedas. |
 | `aggregate_grave.py` | Funções de reconstrução completa (Análise Preditiva, Violência Doméstica, Crimes Violentos, Reincidência, ITVD, IDOB, Esforço-Furto). Só funções, não roda sozinho. |
 | `driver_grave.py` | Chama as funções acima na ordem certa, aplica as proteções (Jan/Fev do IDOB preservados), sincroniza a Meta Boemia e carimba `atualizado_em`. |
+| `leitura_csv.py` | Lê cada export na codificação REAL (UTF-8 vs latin-1, pelos bytes) e repara texto com acento quebrado. Os `relatorio_estatisticas_*` são UTF-8; lê-los como latin-1 gerava "INVÃLIDO". |
 | `ajustes_manuais.py` | Correções aprovadas em auditoria que a fonte ainda não refletiu (ex.: MV lançado por erro de cadastro). Neutraliza o sinal de MV de um REDS e **se desliga sozinho** quando o SiGOp vier corrigido (avisa `AJUSTE RESOLVIDO` no relatório). A lista (`ajustes_manuais.json`) fica só no Drive, porque traz nº de REDS. |
 | `publicar_restrito.py` | Separa público/restrito, grava os 3 arquivos e envia o restrito ao Supabase. Usado ao final de `aggregate.py` e `driver_grave.py`. |
 

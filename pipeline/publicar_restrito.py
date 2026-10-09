@@ -18,6 +18,7 @@ Fluxo:
     e do Drive: ~/.70bpm/pipeline_token.txt (ou variável de ambiente PIPELINE_TOKEN_70BPM).
 """
 import copy, json, os, urllib.error, urllib.request
+import leitura_csv as lc
 
 _here = os.path.dirname(os.path.abspath(__file__))
 PATH_COMPLETO = os.path.join(_here, 'data_completo.json')
@@ -90,11 +91,12 @@ def _enviar(chave, conteudo, token):
 def salvar(data, enviar=True):
     """Grava completo + público + restrito e (se houver token) envia o restrito ao Supabase.
     Nunca levanta erro de rede: devolve um dict de status pro relatório da rotina."""
+    reparados = lc.reparar_arvore(data)  # rede de segurança contra acento quebrado (UTF-8 lido como latin-1)
     publico, restrito = separar(data)
     json.dump(data, open(PATH_COMPLETO, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
     json.dump(publico, open(PATH_PUBLICO, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
     json.dump(restrito, open(PATH_RESTRITO, 'w', encoding='utf-8'), ensure_ascii=False)
-    status = {'publico': PATH_PUBLICO, 'enviado': {}, 'erros': {}}
+    status = {'publico': PATH_PUBLICO, 'enviado': {}, 'erros': {}, 'textos_reparados': reparados}
     if not enviar:
         status['aviso'] = 'envio ao Supabase desligado'
         return status

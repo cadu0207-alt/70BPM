@@ -1,6 +1,7 @@
 import csv, json, unicodedata, glob, os, sys, datetime
 import publicar_restrito as pr
 import ajustes_manuais as aj
+import leitura_csv as lc
 
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entrada")
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
@@ -215,7 +216,7 @@ def agg_bos_filter(path, natureza_code, historico_substr=None, unidade_substr='7
     porque c_unid virava None → string vazia → nunca contém '70 BPM'. Confirmado que
     UNID_AREA_NIVEL_5 tem exatamente essa informação ('70 BPM' em todas as linhas do 70º BPM)
     nesse formato alternativo — usado como fallback só quando a coluna antiga não existe."""
-    with open(path, encoding='latin1') as fh:
+    with lc.abrir_texto(path, fallback='latin1') as fh:  # codificação real pelos bytes (relatorio (N) = latin-1; relatorio_estatisticas_* = UTF-8)
         r = csv.DictReader(fh, delimiter=';')
         header = r.fieldnames
         def col(*subs):

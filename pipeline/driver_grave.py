@@ -48,6 +48,7 @@ import csv, json, os, glob, datetime
 import aggregate_grave as ag
 import publicar_restrito as pr
 import ajustes_manuais as aj
+import leitura_csv as lc
 
 _here = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.join(_here, "entrada")
@@ -64,7 +65,9 @@ def latest_csv(folder):
 
 
 def read_csv(path, encoding='utf-8'):
-    with open(path, encoding=encoding) as f:
+    # `encoding` virou só o FALLBACK: a codificação real é detectada pelos bytes (leitura_csv.py).
+    # Os exports relatorio_estatisticas_* são UTF-8; lê-los como latin-1 quebrava os acentos.
+    with lc.abrir_texto(path, fallback=encoding) as f:
         return list(csv.DictReader(f, delimiter=';'))
 
 
