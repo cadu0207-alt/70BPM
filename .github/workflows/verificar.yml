@@ -1,0 +1,34 @@
+name: Verificar painel
+
+# Roda a cada envio (push) e pull request. Se qualquer verificação falhar, o GitHub marca o commit
+# com ✖ vermelho. Não bloqueia a publicação do site (o GitHub Pages publica por conta própria) —
+# serve para avisar na hora que algo quebrou.
+on:
+  push:
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências de teste
+        run: npm ci
+
+      - name: Instalar navegador (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      # verificar-publico.js  -> data.json sem nº de REDS nem endereço (repositório público)
+      # validate-data.js      -> séries mensais coerentes (acumulado = soma, totais = soma dos municípios)
+      # tests/smoke.js        -> 24 páginas, celular, privacidade, pop-up do SiGOp, recarregar a página
+      - name: Rodar verificações
+        run: npm test
+        env:
+          CI: 'true'

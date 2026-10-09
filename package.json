@@ -1,0 +1,12 @@
+{
+  "name": "painel-70bpm",
+  "private": true,
+  "description": "Painel de indicadores do 70º BPM — só ferramentas de teste (o site em si não tem build)",
+  "scripts": {
+    "test": "node verificar-publico.js && node validate-data.js && node tests/smoke.js",
+    "test:smoke": "node tests/smoke.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}
