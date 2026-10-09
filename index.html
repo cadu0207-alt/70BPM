@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>70º BPM &middot; Painel de Indicadores Operacionais</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -148,7 +149,7 @@
   select.month-select:focus { outline:1px solid var(--amber); }
 
   /* ---------- TABLES ---------- */
-  .table-wrap { border:1px solid var(--panel-border); border-radius:4px; overflow:hidden; margin-bottom:26px; }
+  .table-wrap { border:1px solid var(--panel-border); border-radius:4px; overflow-x:auto; margin-bottom:26px; -webkit-overflow-scrolling:touch; }
   table.data-table { width:100%; border-collapse: collapse; font-size: 12.5px; font-family:var(--sans); margin-bottom:0; background:var(--panel); }
   table.data-table th {
     background: #142236; color: var(--muted); padding:9px 8px; text-align:center;
@@ -243,11 +244,62 @@
   .ap-cta .ap-cta-title { font-weight:700; color:var(--amber); font-size:14.5px; letter-spacing:0.02em; }
   .ap-cta .ap-cta-sub { color:var(--muted); font-size:12px; margin-top:3px; }
   .ap-cta .ap-cta-arrow { margin-left:auto; font-size:20px; color:var(--amber); flex-shrink:0; }
+
+  /* ---------- RESPONSIVO ---------- */
+  /* Primeira coluna (município/indicador) fica fixa ao rolar a tabela pro lado */
+  table.data-table thead tr th:first-child { position:sticky; left:0; z-index:3; }
+  table.data-table tbody tr td:first-child { position:sticky; left:0; z-index:2; background:var(--panel); }
+  .menu-toggle, .nav-backdrop { display:none; }
+  .menu-toggle {
+    align-items:center; justify-content:center; width:40px; height:40px; flex-shrink:0; cursor:pointer;
+    background:var(--bg-2); color:var(--amber); border:1px solid var(--panel-border); border-radius:6px; font-size:20px; line-height:1;
+  }
+  .menu-toggle:focus-visible, .nav-btn:focus-visible, .ppvd-btn:focus-visible, .btn-sigop:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+  @media (max-width: 900px) {
+    body { display:block; }
+    .sidebar {
+      position:fixed; left:0; top:0; bottom:0; z-index:1000; width:min(290px, 84vw); height:100dvh;
+      transform:translateX(-100%); visibility:hidden; transition: transform .2s ease;
+    }
+    body.nav-open .sidebar { transform:none; visibility:visible; box-shadow:10px 0 40px rgba(0,0,0,0.65); }
+    .nav-backdrop { display:block; position:fixed; inset:0; z-index:999; background:rgba(0,0,0,0.6); opacity:0; pointer-events:none; transition: opacity .2s ease; }
+    body.nav-open .nav-backdrop { opacity:1; pointer-events:auto; }
+    .menu-toggle { display:inline-flex; }
+    .nav-btn { padding:12px 12px; font-size:14px; }
+    .nav-group-label { font-size:10.5px; }
+    .app-col { width:100%; height:100dvh; }
+    .topbar { flex-wrap:wrap; justify-content:flex-start; align-items:center; gap:8px 12px; padding:10px 14px; }
+    .topbar-title { flex:1; min-width:0; font-size:10px; line-height:1.4; }
+    .topbar-status { flex-wrap:wrap; gap:6px 10px; width:100%; font-size:10px; }
+    .topbar-status > span:nth-child(3) { display:none; }
+    .mun-filtro-wrap { flex:1; min-width:0; }
+    .mun-filtro-select { flex:1; min-width:0; max-width:100%; }
+    #dadosAtualizadosEm { flex-basis:100%; }
+    .main { padding:16px 14px 44px; }
+    .page-title { font-size:21px; }
+    .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
+    .kpi-card { padding:14px 12px; }
+    .kpi-card .val { font-size:clamp(17px, 5.6vw, 24px); overflow-wrap:anywhere; }
+    .kpi-card .lbl { font-size:9.5px; letter-spacing:0.05em; }
+    table.data-table { display:block; overflow-x:auto; max-width:100%; -webkit-overflow-scrolling:touch; }
+    table.data-table th { padding:8px 6px; font-size:9.5px; }
+    table.data-table td { padding:7px 6px; font-size:12px; }
+    .chart-box { min-width:0; padding:14px 12px; }
+    .def-box { padding:12px 14px; font-size:12.5px; }
+    .updated, .def-box, .chart-box h3 { overflow-wrap:anywhere; }
+    .rank-row > div:nth-child(2) { width:104px !important; font-size:12.5px; }
+    .btn-sigop { width:100%; justify-content:center; }
+    .ppvd-card { padding:16px 14px; }
+    input, select, textarea, .ppvd-field input, .ppvd-field select, .ppvd-field textarea { font-size:16px !important; }
+    select.month-select { width:100%; max-width:100%; }
+    #sigopGate .sg-box { padding:22px 18px; }
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
-<div class="sidebar">
+<div class="nav-backdrop" id="navBackdrop"></div>
+<div class="sidebar" id="sidebar">
   <div class="brand">
     <div class="unit">70&ordm; BPM</div>
     <div class="sub">Painel de Indicadores &middot; 15&ordm; RPM</div>
@@ -304,6 +356,7 @@
 </div>
 <div class="app-col">
   <div class="topbar">
+    <button type="button" class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="sidebar">&#9776;</button>
     <div class="topbar-title"><b>70º Batalhão de Polícia Militar</b> &nbsp;/&nbsp; Araçuaí-MG &nbsp;/&nbsp; Painel Operacional</div>
     <div class="topbar-status">
       <span class="mun-filtro-wrap">🖈 <select id="munFiltroGlobal" class="mun-filtro-select"></select></span>
@@ -4163,6 +4216,22 @@ if (!(location.hash || '').startsWith('#visita=')) {
     b.classList.toggle('active', b.dataset.page === paginaRestaurada);
   });
 } // se for link publico de visita (#visita=...), ppvdCheckVisitaPublica ja assumiu o #main — nao sobrescreve
+
+// Menu recolhível no celular (a barra lateral vira gaveta abaixo de 900px).
+(function menuMobile() {
+  const btn = document.getElementById('menuToggle'), fundo = document.getElementById('navBackdrop');
+  if (!btn || !fundo) return;
+  const set = (aberto) => {
+    document.body.classList.toggle('nav-open', aberto);
+    btn.setAttribute('aria-expanded', String(aberto));
+    btn.setAttribute('aria-label', aberto ? 'Fechar menu' : 'Abrir menu');
+  };
+  btn.addEventListener('click', () => set(!document.body.classList.contains('nav-open')));
+  fundo.addEventListener('click', () => set(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') set(false); });
+  document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => set(false)));
+  window.addEventListener('resize', () => { if (window.innerWidth > 900) set(false); });
+})();
 
 // Regra de acesso diário ao SiGOp (pedido de Eduardo em 2026-10-09): todo comandante de
 // pelotão/destacamento/companhia precisa acessar o SiGOp pelo menos uma vez por dia. No 1º
