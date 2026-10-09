@@ -393,6 +393,93 @@ def run_reincidencia(data, rows, report):
     rc['periodo_dados'] = periodo_label_rows(rows) or rc.get('periodo_dados')
     report['reincidencia'] = {'old_total': old_total, 'new_total': new_total}
 
+# ---------------------------------------------------------------------------------------------
+# Detalhamento por natureza de MV/CVPE/CVPA (mv_detalhado, cvpe_detalhado, cvpa_detalhado).
+# Até 2026-10-09 eram uma FOTO FIXA ("Acumulado - Janeiro a Agosto") que ninguém atualizava. Agora a
+# rotina refaz tudo a cada rodada a partir dos mesmos exports MV/CVPE/CVPA (colunas por natureza:
+# IMV_B01121, ICVPE_B01121_MILITAR, ICVPA_C01157...), e guarda também a série mensal por município
+# (`por_mes`) pra a apresentação da GDO poder montar "Janeiro a <mês escolhido>".
+# ---------------------------------------------------------------------------------------------
+MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+DETALHADOS = {
+    'mv_detalhado': ('MV', 'IMV_TOTAL', [('homicidio', 'IMV_B01121'), ('roubo_fatal', 'IMV_C01157'), ('lesao', 'IMV_B01129'),
+                                         ('femi', 'IMV_B01504'), ('sequestro', 'IMV_B01148'), ('tortura', 'IMV_B02001')]),
+    'cvpe_detalhado': ('CVPE', 'ICVPE_TOTAL', [('civil', 'ICVPE_B01121'), ('militar', 'ICVPE_B01121_MILITAR'), ('tortura', 'ICVPE_B02001'),
+                                               ('sequestro', 'ICVPE_B01148'), ('femi', 'ICVPE_B01504')]),
+    'cvpa_detalhado': ('CVPA', 'ICVPA_TOTAL', [('roubo', 'ICVPA_C01157'), ('extorsao', 'ICVPA_C01158'), ('extorsao_seq', 'ICVPA_C01159')]),
+}
+
+
+def _norm_nome(s):
+    import unicodedata
+    s = unicodedata.normalize('NFD', s or '')
+    return ''.join(c for c in s if unicodedata.category(c) != 'Mn').upper().strip()
+
+
+def _num(v):
+    try:
+        return int(float(v or 0))
+    except ValueError:
+        return 0
+
+
+def run_detalhados(data, rows_bo, report):
+    meses_bo = [_num(r.get('MES_NUMERICO')) for r in (rows_bo or []) if (r.get('MES_NUMERICO') or '').strip().isdigit()]
+    ult_mes = max(meses_bo) if meses_bo else None
+    for chave, (pasta, col_total, colunas) in DETALHADOS.items():
+        f = latest_csv(pasta)
+        if not f or chave not in data:
+            report[chave] = {'skipped': True, 'reason': f'sem export em entrada/{pasta}' if not f else 'bloco inexistente'}
+            continue
+        rows = read_csv(f, encoding='latin-1')
+        if pasta == 'MV':
+            aj.neutralizar_mv(rows, 'MV (detalhado)', report)  # mesma correção aprovada; só neutraliza, quem decide é o bloco MV
+        bloco = data[chave]
+        idx = {}
+        for c in bloco['cias']:
+            for m in c['municipios']:
+                idx[_norm_nome(m['nome'])] = m
+        por_mes = {n: {k: [0] * N_MESES for k, _ in colunas} for n in idx}
+        outros_mes = {n: [0] * N_MESES for n in idx}
+        fora, soma_total, soma_fora = [], 0, 0
+        for r in rows:
+            tot = _num(r.get(col_total))
+            if tot <= 0:
+                continue
+            soma_total += tot
+            nome = _norm_nome(r.get('MUNICIPIO'))
+            mes = _num(r.get('MES_NUMERICO')) - 1
+            if nome not in idx or not (0 <= mes < N_MESES):
+                fora.append(nome or '?'); soma_fora += tot
+                continue
+            classif = 0
+            for k, col in colunas:
+                v = _num(r.get(col))
+                por_mes[nome][k][mes] += v
+                classif += v
+            if tot > classif:  # entra no indicador mas não é uma das naturezas das colunas (ex.: furto com extorsão secundária)
+                outros_mes[nome][mes] += tot - classif
+        antes = dict(bloco.get('total', {}))
+        total = {k: 0 for k, _ in colunas}
+        total_outros = 0
+        for n, m in idx.items():
+            for k, _ in colunas:
+                m[k] = sum(por_mes[n][k])
+                total[k] += m[k]
+            m['outros'] = sum(outros_mes[n])
+            total_outros += m['outros']
+            m['total'] = sum(m[k] for k, _ in colunas) + m['outros']
+            m['por_mes'] = dict(por_mes[n], outros=outros_mes[n])
+        total['outros'] = total_outros
+        total['total'] = sum(total[k] for k, _ in colunas) + total_outros
+        bloco['total'] = total
+        if ult_mes:
+            bloco['periodo'] = f'Acumulado - Janeiro a {MESES_NOME[ult_mes - 1]}'
+        bloco['atualizado_em'] = datetime.date.today().isoformat()
+        report[chave] = {'file': f, 'total_antes': antes.get('total'), 'total_depois': total['total'], 'soma_indicador': soma_total,
+                         'fora_da_lista': sorted(set(fora)), 'outros': total_outros,
+                         'confere': total['total'] + soma_fora == soma_total}
+
 
 def main():
     data = pr.carregar()  # data_completo.json (com blocos restritos); ver publicar_restrito.py
@@ -412,6 +499,7 @@ def main():
         run_violencia_domestica(data, rows_bo, report)
         run_crimes_violentos(data, rows_bo, report)
         run_reincidencia(data, rows_bo, report)
+        run_detalhados(data, rows_bo, report)
 
     # Carimba atualizado_em em todo bloco tocado (e não pulado) nesta rodada — mesmo
     # motivo do aggregate.py (ver 2026-09-28): sem isso o campo ficava parado na última

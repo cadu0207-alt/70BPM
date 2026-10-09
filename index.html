@@ -1122,7 +1122,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   }
   const detCfg = DETALHADO_CONFIG[key];
   if (detCfg && DATA[detCfg.dataKey]) {
-    html += detalhadoPorNaturezaHtml(DATA[detCfg.dataKey], detCfg.titulo, detCfg.colunas, detCfg.defHtml, detCfg.fonteHtml);
+    html += detalhadoPorNaturezaHtml(DATA[detCfg.dataKey], detCfg.titulo, detCfg.colunas.concat(((DATA[detCfg.dataKey].total || {}).outros || 0) > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []), detCfg.defHtml, detCfg.fonteHtml);
   }
   document.getElementById('main').innerHTML = html;
 
@@ -2670,16 +2670,27 @@ async function gerarApresentacaoGdo(mi) {
       gdoTabela(s, gdoLinhasPadrao(d, mi, (r, m) => statusTeto(r, m), 'Var.%', gdoVar), [3.4, 1.35, 1.35, 1.55, 1.35, 1.35, 1.55]);
       gdoSlidesGraficos(pptx, brasao.peq, `${nome} — evolução 2026`, d, mi, meses);
     });
-    // detalhamento por natureza (foto fixa gravada no painel: avisa se o período não bate)
+    // detalhamento por natureza: a rotina diária guarda a série mensal por município (`por_mes`), então dá pra
+    // montar "Janeiro a <mês escolhido>"; foto antiga (sem `por_mes`) avisa se o período não bate
     [['mv_detalhado', 'Mortes Violentas por natureza', [['homicidio', 'Homicídio'], ['roubo_fatal', 'Roubo c/ lesão fatal'], ['lesao', 'Lesão corporal'], ['femi', 'Feminicídio'], ['sequestro', 'Sequestro'], ['tortura', 'Tortura']]],
       ['cvpe_detalhado', 'CVPE por natureza', [['civil', 'HT civil'], ['militar', 'HT PM'], ['tortura', 'Tortura'], ['sequestro', 'Sequestro'], ['femi', 'Feminicídio']]],
-      ['cvpa_detalhado', 'CVPA por natureza', [['roubo', 'Roubo'], ['extorsao', 'Extorsão'], ['extorsao_seq', 'Extorsão c/ seq.']]]].forEach(([k, nome, cols]) => {
+      ['cvpa_detalhado', 'CVPA por natureza', [['roubo', 'Roubo'], ['extorsao', 'Extorsão'], ['extorsao_seq', 'Extorsão c/ seq.']]]].forEach(([k, nome, colsBase]) => {
       const d = DATA[k]; if (!d) return;
-      const defasada = !String(d.periodo || '').includes(nomeMes);
-      s = gdoSlide(pptx, brasao.peq, `${nome} — ${d.periodo}`, { tamTitulo: 22 });
+      const temMes = d.cias.every(c => c.municipios.every(m => m.por_mes));
+      const v = (m, c) => (temMes ? (m.por_mes[c] || []).slice(0, mi + 1).reduce((a, b) => a + b, 0) : (m[c] || 0));
+      const somaOutros = d.cias.reduce((a, c) => a + c.municipios.reduce((b, m) => b + v(m, 'outros'), 0), 0);
+      const cols = colsBase.concat(somaOutros > 0 ? [['outros', 'Outros']] : []);
+      const periodo = temMes ? `Acumulado - Janeiro a ${nomeMes}` : d.periodo;
+      const defasada = !temMes && !String(d.periodo || '').includes(nomeMes);
+      s = gdoSlide(pptx, brasao.peq, `${nome} — ${periodo}`, { tamTitulo: 22 });
       const linhas = [[gdoCabec('Cia', { align: 'left' }), gdoCabec('Fração', { align: 'left' })].concat(cols.map(c => gdoCabec(c[1])), [gdoCabec('Total')])];
-      d.cias.forEach(c => c.municipios.forEach((m, i) => linhas.push([gdoEsq(i === 0 ? c.nome : '', i === 0 ? {} : {}), gdoEsq(m.nome.toUpperCase(), { bold: false })].concat(cols.map(cc => gdoNor(m[cc[0]])), [gdoNor(m.total, { bold: true })]))));
-      linhas.push([gdoEsq('TOTAL', { fill: { color: 'D9D9D9' } }), gdoNor('', { fill: { color: 'D9D9D9' } })].concat(cols.map(cc => gdoNor(d.total[cc[0]], { fill: { color: 'D9D9D9' }, bold: true })), [gdoNor(d.total.total, { fill: { color: 'D9D9D9' }, bold: true })]));
+      const totais = {}; cols.forEach(c => { totais[c[0]] = 0; });
+      d.cias.forEach(c => c.municipios.forEach((m, i) => {
+        cols.forEach(cc => { totais[cc[0]] += v(m, cc[0]); });
+        linhas.push([gdoEsq(i === 0 ? c.nome : ''), gdoEsq(m.nome.toUpperCase(), { bold: false })].concat(cols.map(cc => gdoNor(v(m, cc[0]))), [gdoNor(cols.reduce((a, cc) => a + v(m, cc[0]), 0), { bold: true })]));
+      }));
+      const tf = { fill: { color: 'D9D9D9' }, bold: true };
+      linhas.push([gdoEsq('TOTAL', { fill: { color: 'D9D9D9' } }), gdoNor('', { fill: { color: 'D9D9D9' } })].concat(cols.map(cc => gdoNor(totais[cc[0]], tf)), [gdoNor(cols.reduce((a, cc) => a + totais[cc[0]], 0), tf)]));
       gdoTabela(s, linhas, [1.4, 2.6].concat(cols.map(() => Math.max(1.1, 7.3 / cols.length)), [1.1]), { fontSize: 10.5, rowH: 0.3 });
       if (defasada) s.addText(`ATENÇÃO: esta tabela detalhada está gravada no painel com o período "${d.periodo}" — não foi atualizada para ${nomeMes}. Atualize antes de apresentar (ou use o print do SiGOp).`, { x: 0.3, y: 6.55, w: 12.73, h: 0.45, fontFace: 'Arial', fontSize: 12, bold: true, color: '9C0006', fill: { color: 'FFC7CE' }, valign: 'middle', margin: 6 });
     });
