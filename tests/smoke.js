@@ -374,10 +374,13 @@ function auditar() {
       ppvdUser = { id: 'u1' }; ppvdPerfil = perfil; ppvdRestritoCarregado = true; ppvdCaseRestoreTentado = true;
       let renders = 0; const orig = pages.violencia_domestica; pages.violencia_domestica = () => { renders++; };
       currentPageKey = 'violencia_domestica';
+      ppvdRenderAuthWidget(); let widgetMut = 0;
+      new MutationObserver((l) => { widgetMut += l.length; }).observe(document.getElementById('ppvdAuthWidget'), { childList: true, subtree: true });
       const out = {};
       await ppvdOnSession({ user: { id: 'u1' } }, 'SIGNED_IN'); out.signedIn = renders;
       await ppvdOnSession({ user: { id: 'u1' } }, 'TOKEN_REFRESHED'); out.tokenRefreshed = renders;
       await ppvdOnSession({ user: { id: 'u1' } }, 'INITIAL_SESSION'); out.initial = renders;
+      await new Promise((ok) => setTimeout(ok, 50)); out.widget = widgetMut;
       falhaRede = true;
       await ppvdOnSession({ user: { id: 'u1' } }, 'SIGNED_IN'); out.semRede = renders; out.perfilMantido = !!ppvdPerfil && ppvdPerfil.aprovado === true;
       falhaRede = false;
@@ -386,6 +389,7 @@ function auditar() {
       return out;
     });
     checa(r.signedIn === 0 && r.tokenRefreshed === 0 && r.initial === 0, 'SIGNED_IN, TOKEN_REFRESHED e INITIAL_SESSION da mesma sessão não refazem a tela', 'a tela foi refeita ao voltar pra aba: ' + JSON.stringify(r));
+    checa(r.widget === 0, 'os botões do topo (login/mensagens) não piscam ao voltar pra aba', 'o widget de login foi refeito ao voltar: ' + JSON.stringify(r));
     checa(r.semRede === 0 && r.perfilMantido, 'falha de rede ao voltar mantém o perfil e a tela', 'sem rede derrubou o perfil/tela: ' + JSON.stringify(r));
     checa(r.signedOut === 1, 'sair da conta (SIGNED_OUT) ainda refaz a tela', 'SIGNED_OUT não refez a tela: ' + JSON.stringify(r));
     await ctxS.close();

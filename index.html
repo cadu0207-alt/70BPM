@@ -4099,7 +4099,8 @@ async function ppvdInit() {
   await ppvdOnSession(session);
   await ppvdCarregarMilitares();
   ppvdSupa.auth.onAuthStateChange(async (event, session) => {
-    await ppvdOnSession(session, event);
+    const mudou = await ppvdOnSession(session, event);
+    if (mudou === false) return; // mesma sessão (voltou pra aba): nada a recarregar
     ppvdMilitaresCache = null;
     await ppvdCarregarMilitares();
   });
@@ -4146,7 +4147,7 @@ async function ppvdOnSession(session, event) {
   let novoPerfil = null;
   if (novoUser) {
     const { data, error } = await ppvdSupa.from('perfis').select('*').eq('user_id', novoUser.id).maybeSingle();
-    if (error && ppvdPerfil && userIdAntes === novoUser.id) return; // sem rede ao voltar pra aba: mantém tudo como está
+    if (error && ppvdPerfil && userIdAntes === novoUser.id) return false; // sem rede ao voltar pra aba: mantém tudo como está
     novoPerfil = data || null;
   }
   ppvdUser = novoUser;
@@ -4159,7 +4160,7 @@ async function ppvdOnSession(session, event) {
   const casoRestaurado = await ppvdTentarRestaurarCaso();
   const identidadeIgual = userIdAntes === (ppvdUser ? ppvdUser.id : null);
   const aprovacaoIgual = aprovadoAntes === (ppvdPerfil ? ppvdPerfil.aprovado : null);
-  if (event && event !== 'SIGNED_OUT' && identidadeIgual && aprovacaoIgual && !restritoMudou) return; // SIGNED_IN/TOKEN_REFRESHED/INITIAL_SESSION ao voltar pra aba
+  if (event && event !== 'SIGNED_OUT' && identidadeIgual && aprovacaoIgual && !restritoMudou) return false; // SIGNED_IN/TOKEN_REFRESHED/INITIAL_SESSION ao voltar pra aba
   // Se acabou de restaurar um caso aberto (aba descartada/recarregada), não sobrescreve com a
   // lista de novo — achado por Eduardo em 2026-09-09, o caso restaurado acima estava sendo
   // apagado na mesma passada por este mesmo bloco de re-render.
@@ -4174,19 +4175,21 @@ async function ppvdOnSession(session, event) {
 function ppvdRenderAuthWidget() {
   const el = document.getElementById('ppvdAuthWidget');
   if (!el) return;
+  // só troca o HTML quando mudou: refazer igual a cada volta pra aba piscava os botões do topo
+  const poe = (html) => { if (el.dataset.html === html) return; el.innerHTML = html; el.dataset.html = html; };
   if (!ppvdSupa) { el.innerHTML = ''; return; }
   if (!ppvdUser) {
-    el.innerHTML = `<button class="ppvd-btn" onclick="ppvdSignIn()">Entrar (PPVD)</button>`;
+    poe(`<button class="ppvd-btn" onclick="ppvdSignIn()">Entrar (PPVD)</button>`);
   } else if (!ppvdPerfil) {
-    el.innerHTML = `<span style="color:var(--amber)">Complete seu cadastro PPVD ↓</span>`;
+    poe(`<span style="color:var(--amber)">Complete seu cadastro PPVD ↓</span>`);
   } else if (!ppvdPerfil.aprovado) {
-    el.innerHTML = `<span style="color:var(--muted)">${ppvdPerfil.nome} &middot; aguardando aprovação</span> <button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
+    poe(`<span style="color:var(--muted)">${ppvdPerfil.nome} &middot; aguardando aprovação</span> <button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`);
   } else {
-    el.innerHTML = `<span style="color:var(--text)">${ppvdPerfil.nome} (${ppvdPerfil.cargo})</span> ` +
+    poe(`<span style="color:var(--text)">${ppvdPerfil.nome} (${ppvdPerfil.cargo})</span> ` +
       (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> ` : '') +
       `<button class="ppvd-btn" onclick="ppvdOpenMilitares()">Militares Responsáveis</button> ` +
       `<button class="ppvd-btn" onclick="goToPage('mensagens')">✉ Mensagens<span id="msgBadge"></span></button> ` +
-      `<button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`;
+      `<button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`);
     ppvdAtualizarBadgeMensagens();
   }
 }
