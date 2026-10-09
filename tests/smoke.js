@@ -269,6 +269,36 @@ function auditar() {
   }
   await ctx.close();
 
+  // ---------- 10) Apresentação de GDO: gera o .pptx do mês ----------
+  console.log('\n[10] Apresentação de GDO pronta (.pptx)');
+  {
+    const ctxG = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+    await ctxG.addInitScript((h) => { try { localStorage.setItem('sigopAcessoDia', h); } catch (e) {} }, hoje());
+    await ctxG.route('**/*', (rota) => {
+      const u = rota.request().url();
+      if (u.includes('pptxgenjs')) return rota.fulfill({ path: path.join(RAIZ, 'node_modules', 'pptxgenjs', 'dist', 'pptxgen.bundle.js'), contentType: 'text/javascript' });
+      return u.startsWith('http://127.0.0.1') ? rota.continue() : rota.abort();
+    });
+    const pg = await ctxG.newPage();
+    const errosG = [];
+    pg.on('pageerror', (e) => errosG.push(e.message));
+    await pg.goto(base);
+    await pg.waitForFunction(() => typeof goToPage === 'function');
+    await pg.evaluate(() => goToPage('apresentacao_gdo'));
+    await pg.waitForSelector('#gdoGerar');
+    const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 60000 }), pg.click('#gdoGerar')]);
+    const tmp = path.join(require('os').tmpdir(), 'gdo-smoke-' + Date.now() + '.pptx');
+    await dl.saveAs(tmp);
+    const bytes = fs.readFileSync(tmp);
+    // .pptx é um zip: confere pelo diretório central quantos slides tem (sem dependência extra)
+    const slides = (bytes.toString('latin1').match(/ppt\/slides\/slide\d+\.xml/g) || []).filter((v, i, a) => a.indexOf(v) === i).length;
+    fs.unlinkSync(tmp);
+    checa(/\.pptx$/.test(dl.suggestedFilename()), `arquivo baixado: ${dl.suggestedFilename()}`, 'o download não é um .pptx');
+    checa(slides >= 20, `apresentação com ${slides} slides`, `apresentação com só ${slides} slides (esperava ≥ 20)`);
+    checa(errosG.length === 0, 'gerou sem erro de JavaScript', 'erros ao gerar: ' + errosG.slice(0, 3).join(' | '));
+    await ctxG.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

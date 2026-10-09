@@ -1387,7 +1387,7 @@ function renderIDOBPage() {
   html += `</select>`;
   html += `<table class="data-table" id="idobTable"><thead><tr>
     <th style="text-align:left" rowspan="2">Município</th>
-    <th colspan="5">${mesesLocais[mi]}</th><th colspan="5">Acumulado</th>
+    <th colspan="5" id="idobMesTh">${mesesLocais[mi]}</th><th colspan="5">Acumulado</th>
   </tr><tr>
     <th>Qtde Op</th><th>MV</th><th>CVPe</th><th>CVPa</th><th>IDOB</th>
     <th>Qtde Op</th><th>MV</th><th>CVPe</th><th>CVPa</th><th>IDOB</th>
@@ -1446,6 +1446,7 @@ function renderIDOBPage() {
   }
   document.getElementById('main').innerHTML = html;
   document.getElementById('idobMonthSel').addEventListener('change', (e) => {
+    document.getElementById('idobMesTh').textContent = mesesLocais[parseInt(e.target.value)]; // o cabeçalho ficava no mês atual (achado ao montar a apresentação de GDO)
     document.querySelector('#idobTable tbody').innerHTML = rows(parseInt(e.target.value));
   });
   if (bm) {
@@ -2498,6 +2499,331 @@ function renderAnaliseCiaBloco(ciaNome, mi) {
   return html;
 }
 
+// ============ Apresentação de GDO pronta (.pptx) — pedido de Eduardo em 2026-10-09 ============
+// Todo mês a apresentação da GDO era montada colando prints do painel. Agora o botão da página gera o
+// PowerPoint com as tabelas já montadas (tabelas nativas do PowerPoint, editáveis), na ordem da
+// apresentação de Setembro/2026: capa, MV, CVPE, CVPA, Furto Rural, esforço, POG, proximidade, ITVD,
+// armas, Cavalo de Aço, Boemia, Padrinhos, Saque Seguro, Rolezinho, análise por Cia, interação
+// comunitária (CGA — prints manuais) e encerramento. Biblioteca PptxGenJS carregada só no clique.
+const GDO_FONTE = 'FONTE: SiGOp, Gráficos e tabelas P3/70BPM';
+const GDO_COR = { verde: { f: '00B050', t: 'FFFFFF' }, amarelo: { f: 'FFFF00', t: '000000' }, vermelho: { f: 'FF0000', t: 'FFFFFF' } };
+const GDO_BG = 'F3F0E7', GDO_ESCURO = '231F20', GDO_OURO = '9B8A5C';
+const GDO_COMANDANTE = ['Alexandre Martins de Paiva, Ten Cel PM', 'Cmt do 70º BPM']; // igual à apresentação anterior
+
+function gdoCarregarBiblioteca() {
+  if (window.PptxGenJS) return Promise.resolve();
+  return new Promise((ok, erro) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
+    s.onload = ok; s.onerror = () => erro(new Error('Não consegui baixar a biblioteca do PowerPoint (sem internet?).'));
+    document.head.appendChild(s);
+  });
+}
+async function gdoBrasaoBase64() {
+  const ler = async (url) => {
+    try {
+      const blob = await (await fetch(url)).blob();
+      return await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(blob); });
+    } catch (e) { return null; }
+  };
+  // pequeno nos slides de conteúdo (um por slide: mantém o arquivo leve), grande na capa e no encerramento
+  return { peq: await ler('assets/gdo/brasao-pmmg-peq.png'), grande: await ler('assets/gdo/brasao-pmmg.png') };
+}
+const gdoNum = (v, c = 1) => Number(v).toFixed(c).replace('.', ',');
+function gdoVar(real, meta) {
+  if (!meta) return real > 0 ? '+∞' : '0,0%';
+  const v = ((real - meta) / meta) * 100;
+  return (v > 0 ? '+' : '') + gdoNum(v, 1) + '%';
+}
+function gdoCel(txt, o = {}) { return { text: String(txt), options: Object.assign({ align: 'center', valign: 'middle' }, o) }; }
+function gdoSem(txt, cor, o = {}) { const c = GDO_COR[cor]; return gdoCel(txt, Object.assign({ fill: { color: c.f }, color: c.t, bold: true }, o)); }
+const gdoCabec = (txt, o = {}) => gdoCel(txt, Object.assign({ fill: { color: '000000' }, color: 'FFFFFF', bold: true }, o));
+const gdoEsq = (txt, o = {}) => gdoCel(txt, Object.assign({ align: 'left', bold: true, fill: { color: 'FFFFFF' }, color: '000000' }, o));
+const gdoNor = (txt, o = {}) => gdoCel(txt, Object.assign({ fill: { color: 'FFFFFF' }, color: '000000' }, o));
+function gdoStatusIdx(v) { return v >= 95 ? 'verde' : (v >= 85 ? 'amarelo' : 'vermelho'); }
+
+function gdoSlide(pptx, brasao, titulo, opc = {}) {
+  const s = pptx.addSlide();
+  s.background = { color: GDO_BG };
+  if (brasao) s.addImage({ data: brasao, x: 0.3, y: 0.15, w: 0.72, h: 0.81 });
+  s.addText(titulo, { x: 1.2, y: 0.2, w: 11.8, h: 0.75, fontFace: 'Arial', fontSize: opc.tamTitulo || 24, bold: true, color: GDO_ESCURO, valign: 'middle' });
+  s.addShape(pptx.ShapeType.rect, { x: 0.3, y: 1.02, w: 12.73, h: 0.04, fill: { color: GDO_OURO }, line: { color: GDO_OURO, width: 0 } });
+  if (opc.fonte !== false) s.addText(opc.fonte || GDO_FONTE, { x: 0.3, y: 7.08, w: 8, h: 0.3, fontFace: 'Arial', fontSize: 10, color: '595959' });
+  if (opc.nota) s.addText(opc.nota, { x: 6.3, y: 7.08, w: 6.73, h: 0.3, fontFace: 'Arial', fontSize: 10, color: '595959', align: 'right' });
+  return s;
+}
+function gdoTabela(s, linhas, colW, opc = {}) {
+  const larg = colW.reduce((a, b) => a + b, 0);
+  s.addTable(linhas, Object.assign({ x: (13.333 - larg) / 2, y: 1.2, w: larg, colW, fontFace: 'Arial', fontSize: 11, rowH: 0.33, border: { type: 'solid', pt: 0.75, color: '000000' } }, opc));
+}
+
+// Linhas padrão: Município | mês (Meta, Real., X) | acumulado (Meta, Real., X) + total do batalhão
+function gdoLinhasPadrao(d, mi, avaliar, rotuloX, formatoX) {
+  const cab = [
+    [gdoCabec('Município', { rowspan: 2, align: 'left' }), gdoCabec('Mês', { colspan: 3 }), gdoCabec('Acumulado', { colspan: 3 })],
+    ['Meta', 'Real.', rotuloX, 'Meta', 'Real.', rotuloX].map(t => gdoCabec(t)),
+  ];
+  const corpo = [];
+  const linha = (nome, mM, rM, mA, rA, total) => {
+    const o = total ? { fill: { color: 'D9D9D9' }, bold: true } : {};
+    corpo.push([gdoEsq(nome, total ? { fill: { color: 'D9D9D9' } } : {}),
+      gdoNor(mM, o), gdoNor(rM, o), gdoSem(formatoX(rM, mM), avaliar(rM, mM)),
+      gdoNor(mA, o), gdoNor(rA, o), gdoSem(formatoX(rA, mA), avaliar(rA, mA))]);
+  };
+  d.municipios.forEach(m => linha(m.nome, m.meta_mes[mi], m.realizado_mes[mi], m.meta_acum[mi], m.realizado_acum[mi], false));
+  linha('70º BPM', d.total_meta_mes[mi], d.total_mes[mi], d.total_meta_acum[mi], d.total_acum[mi], true);
+  return cab.concat(corpo);
+}
+const gdoDesemp = (casas) => (r, m) => (m ? gdoNum(r / m * 100, casas) : '100') + '%';
+const gdoDesempNum = (r, m) => (m ? r / m * 100 : 100);
+
+function gdoSlidesGraficos(pptx, brasao, titulo, d, mi, meses) {
+  const s = gdoSlide(pptx, brasao, titulo);
+  const labels = meses.slice(0, mi + 1).map(m => m.slice(0, 3));
+  const base = { w: 6.2, h: 5.6, y: 1.25, showLegend: true, legendPos: 'b', legendFontSize: 12, showValue: true, dataLabelFontSize: 10, dataLabelPosition: 't',
+    catAxisLabelFontSize: 11, valAxisLabelFontSize: 11, lineDataSymbolSize: 7, chartColors: [GDO_ESCURO, GDO_OURO], showTitle: true, titleFontSize: 14, titleColor: GDO_ESCURO, lineSize: 3 };
+  s.addChart(pptx.charts.LINE, [
+    { name: 'Realizado', labels, values: d.total_mes.slice(0, mi + 1) },
+    { name: 'Meta', labels, values: d.total_meta_mes.slice(0, mi + 1) }], Object.assign({ x: 0.3, title: 'Mês a mês — 2026' }, base));
+  s.addChart(pptx.charts.LINE, [
+    { name: 'Realizado acumulado', labels, values: d.total_acum.slice(0, mi + 1) },
+    { name: 'Meta acumulada', labels, values: d.total_meta_acum.slice(0, mi + 1) }], Object.assign({ x: 6.75, title: 'Acumulado — 2026' }, base));
+}
+
+// Análise por Cia (mesma lógica da tela): problemas por severidade + destaque crítico
+function gdoSlidesCia(pptx, brasao, mi, nomeMes) {
+  Object.keys(CIA_MAP).forEach(cia => {
+    let issues = [];
+    CIA_MAP[cia].forEach(nome => issuesForMunicipio(nome, mi).forEach(i => issues.push(Object.assign({ municipio: nome }, i))));
+    issues.sort((a, b) => a.ordem - b.ordem);
+    const limpa = (t) => String(t).replace(/<[^>]+>/g, '').replace(/&rarr;/g, '→').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ');
+    const porPagina = 11;
+    const paginas = Math.max(1, Math.ceil(issues.length / porPagina));
+    for (let p = 0; p < paginas; p++) {
+      const s = gdoSlide(pptx, brasao, `Análise geral por Companhia — ${cia}` + (paginas > 1 ? ` (${p + 1}/${paginas})` : ''), { nota: `Acumulado Jan–${nomeMes}/2026` });
+      if (!issues.length) { s.addText('Nenhum problema relevante identificado nesta companhia no período.', { x: 0.6, y: 1.5, w: 12, h: 0.8, fontFace: 'Arial', fontSize: 20, color: GDO_ESCURO }); continue; }
+      const sevCor = { 'CRÍTICO': ['C0392B', 'FFFFFF'], 'RUIM': ['D2691E', '000000'], 'BAIXO': ['B8860B', '000000'], 'ATENÇÃO': ['C9A227', '000000'] };
+      const linhas = [['Indicador', 'Município', 'Severidade', 'Detalhe'].map((t, i) => gdoCabec(t, { align: i === 3 ? 'left' : 'center' }))];
+      issues.slice(p * porPagina, (p + 1) * porPagina).forEach(i => {
+        const c = sevCor[i.severidade] || ['666666', 'FFFFFF'];
+        linhas.push([gdoEsq(limpa(i.indicador)), gdoNor(i.municipio), gdoCel(i.severidade, { fill: { color: c[0] }, color: c[1], bold: true }), gdoNor(limpa(i.detalhe), { align: 'left' })]);
+      });
+      gdoTabela(s, linhas, [3.1, 2.2, 1.5, 5.9], { fontSize: 11, rowH: 0.38 });
+      if (p === paginas - 1) {
+        const porMuni = {};
+        issues.forEach(i => (porMuni[i.municipio] = porMuni[i.municipio] || []).push(i));
+        let pior = null, melhor = -1;
+        Object.keys(porMuni).forEach(m => { const sc = porMuni[m].reduce((a, i) => a + (4 - i.ordem), 0); if (sc > melhor) { melhor = sc; pior = m; } });
+        if (pior) {
+          const l = porMuni[pior], outros = l.slice(1).map(i => limpa(i.indicador));
+          const txt = `Destaque crítico: ${pior} é o principal vetor de problemas da ${cia} (${limpa(l[0].indicador)}: ${limpa(l[0].detalhe)})` +
+            (outros.length ? ` e apresenta baixo desempenho também em ${outros.join(', ')}.` : '.');
+          s.addText(txt, { x: 0.3, y: 6.15, w: 12.73, h: 0.8, fontFace: 'Arial', fontSize: 13, color: GDO_ESCURO, fill: { color: 'FFFFFF' }, line: { color: GDO_OURO, width: 1.5 }, valign: 'middle', margin: 8 });
+        }
+      }
+    }
+  });
+}
+
+// Formato "Realizado/Meta/% vs meta/Saldo" (Armas, Padrinhos da Escola, Saque Seguro) — igual aos prints anteriores
+function gdoLinhasSaldo(d, mi) {
+  const cab = [['Município', 'Realizado mês', 'Meta mês', 'Realizado acum.', 'Meta acum.', '% vs meta (acum.)', 'Saldo'].map((t, i) => gdoCabec(t, { align: i ? 'center' : 'left' }))];
+  const corpo = [];
+  const add = (nome, rm, mm, ra, ma, total) => {
+    const o = total ? { fill: { color: 'D9D9D9' }, bold: true } : {};
+    const v = ma ? ((ra - ma) / ma) * 100 : (ra > 0 ? 100 : 0), bom = ra >= ma;
+    const cor = { fill: { color: total ? 'D9D9D9' : 'FFFFFF' }, color: bom ? '00803A' : 'C00000', bold: true };
+    corpo.push([gdoEsq(nome, total ? { fill: { color: 'D9D9D9' } } : {}), gdoNor(rm, o), gdoNor(mm, o), gdoNor(ra, o), gdoNor(ma, o),
+      gdoCel((v > 0 ? '+' : '') + gdoNum(v, 1) + '%', cor), gdoCel((ra - ma > 0 ? '+' : '') + (ra - ma), cor)]);
+  };
+  d.municipios.forEach(m => add(m.nome, m.realizado_mes[mi], m.meta_mes[mi], m.realizado_acum[mi], m.meta_acum[mi], false));
+  add('TOTAL', d.total_mes[mi], d.total_meta_mes[mi], d.total_acum[mi], d.total_meta_acum[mi], true);
+  return cab.concat(corpo);
+}
+const GDO_COLS_SALDO = [3.2, 1.6, 1.6, 1.6, 1.6, 1.8, 1.4];
+
+async function gerarApresentacaoGdo(mi) {
+  const status = document.getElementById('gdoStatus');
+  const msg = (t, erro) => { if (status) { status.textContent = t; status.style.color = erro ? 'var(--alert-text)' : 'var(--muted)'; } };
+  try {
+    msg('Preparando a apresentação…');
+    await gdoCarregarBiblioteca();
+    const brasao = await gdoBrasaoBase64();
+    const meses = DATA.mv.meses || MESES;
+    const nomeMes = meses[mi];
+    const pptx = new window.PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+    pptx.title = `Apresentação GDO ${nomeMes}/2026 - 70º BPM`; pptx.author = '70º BPM — P3'; pptx.company = '70º BPM / 15ª RPM';
+    const periodo = `Janeiro a ${nomeMes}/2026`;
+
+    // 1) capa
+    let s = pptx.addSlide(); s.background = { color: GDO_BG };
+    if (brasao.grande) s.addImage({ data: brasao.grande, x: 5.9, y: 0.7, w: 1.55, h: 1.74 });
+    s.addText('70º BPM / 15ª RPM', { x: 0.5, y: 2.7, w: 12.3, h: 0.9, fontFace: 'Arial', fontSize: 40, bold: true, color: GDO_ESCURO, align: 'center' });
+    s.addText('Apresentação de GDO', { x: 0.5, y: 3.6, w: 12.3, h: 0.8, fontFace: 'Arial', fontSize: 32, color: GDO_OURO, bold: true, align: 'center' });
+    s.addText(`Período avaliado: ${periodo}`, { x: 0.5, y: 4.5, w: 12.3, h: 0.6, fontFace: 'Arial', fontSize: 22, color: GDO_ESCURO, align: 'center' });
+
+    // 2–4) crimes: tabela por município (teto: menor é melhor) + gráficos
+    [['mv', 'Mortes Violentas (MV)'], ['cvpe', 'Crimes Violentos Contra Pessoa (CVPE)'], ['cvpa', 'Crimes Violentos Contra o Patrimônio (CVPA)']].forEach(([k, nome]) => {
+      const d = DATA[k];
+      s = gdoSlide(pptx, brasao.peq, `${nome} — ${nomeMes}/2026`, { nota: 'Polaridade: quanto menor, melhor.' });
+      gdoTabela(s, gdoLinhasPadrao(d, mi, (r, m) => statusTeto(r, m), 'Var.%', gdoVar), [3.4, 1.35, 1.35, 1.55, 1.35, 1.35, 1.55]);
+      gdoSlidesGraficos(pptx, brasao.peq, `${nome} — evolução 2026`, d, mi, meses);
+    });
+    // detalhamento por natureza (foto fixa gravada no painel: avisa se o período não bate)
+    [['mv_detalhado', 'Mortes Violentas por natureza', [['homicidio', 'Homicídio'], ['roubo_fatal', 'Roubo c/ lesão fatal'], ['lesao', 'Lesão corporal'], ['femi', 'Feminicídio'], ['sequestro', 'Sequestro'], ['tortura', 'Tortura']]],
+      ['cvpe_detalhado', 'CVPE por natureza', [['civil', 'HT civil'], ['militar', 'HT PM'], ['tortura', 'Tortura'], ['sequestro', 'Sequestro'], ['femi', 'Feminicídio']]],
+      ['cvpa_detalhado', 'CVPA por natureza', [['roubo', 'Roubo'], ['extorsao', 'Extorsão'], ['extorsao_seq', 'Extorsão c/ seq.']]]].forEach(([k, nome, cols]) => {
+      const d = DATA[k]; if (!d) return;
+      const defasada = !String(d.periodo || '').includes(nomeMes);
+      s = gdoSlide(pptx, brasao.peq, `${nome} — ${d.periodo}`, { tamTitulo: 22 });
+      const linhas = [[gdoCabec('Cia', { align: 'left' }), gdoCabec('Fração', { align: 'left' })].concat(cols.map(c => gdoCabec(c[1])), [gdoCabec('Total')])];
+      d.cias.forEach(c => c.municipios.forEach((m, i) => linhas.push([gdoEsq(i === 0 ? c.nome : '', i === 0 ? {} : {}), gdoEsq(m.nome.toUpperCase(), { bold: false })].concat(cols.map(cc => gdoNor(m[cc[0]])), [gdoNor(m.total, { bold: true })]))));
+      linhas.push([gdoEsq('TOTAL', { fill: { color: 'D9D9D9' } }), gdoNor('', { fill: { color: 'D9D9D9' } })].concat(cols.map(cc => gdoNor(d.total[cc[0]], { fill: { color: 'D9D9D9' }, bold: true })), [gdoNor(d.total.total, { fill: { color: 'D9D9D9' }, bold: true })]));
+      gdoTabela(s, linhas, [1.4, 2.6].concat(cols.map(() => Math.max(1.1, 7.3 / cols.length)), [1.1]), { fontSize: 10.5, rowH: 0.3 });
+      if (defasada) s.addText(`ATENÇÃO: esta tabela detalhada está gravada no painel com o período "${d.periodo}" — não foi atualizada para ${nomeMes}. Atualize antes de apresentar (ou use o print do SiGOp).`, { x: 0.3, y: 6.55, w: 12.73, h: 0.45, fontFace: 'Arial', fontSize: 12, bold: true, color: '9C0006', fill: { color: 'FFC7CE' }, valign: 'middle', margin: 6 });
+    });
+
+    // 5) esforço: prisões de autores de furto
+    s = gdoSlide(pptx, brasao.peq, 'Indicadores de esforço: Prisões de autores de Furto', { nota: 'Polaridade: quanto maior, melhor.' });
+    {
+      const e = DATA.esforco_furto;
+      const des = (p, r) => (r ? p / r * 100 : 100);
+      const cor = (v) => (v >= 50 ? 'verde' : (v >= 25 ? 'amarelo' : 'vermelho'));
+      const linhas = [[gdoCabec('Município', { align: 'left' }), ...['REDS mês', 'Prisões mês', 'Des.% mês', 'REDS acum.', 'Prisões acum.', 'Des.% acum.'].map(t => gdoCabec(t))]];
+      const add = (nome, rm, pm, ra, pa, total) => {
+        const o = total ? { fill: { color: 'D9D9D9' }, bold: true } : {};
+        linhas.push([gdoEsq(nome, total ? { fill: { color: 'D9D9D9' } } : {}), gdoNor(rm, o), gdoNor(pm, o), gdoSem(gdoNum(des(pm, rm), 1) + '%', cor(des(pm, rm))), gdoNor(ra, o), gdoNor(pa, o), gdoSem(gdoNum(des(pa, ra), 1) + '%', cor(des(pa, ra)))]);
+      };
+      e.municipios.forEach(m => add(m.nome, m.reds_mes[mi], m.prisoes_mes[mi], m.reds_acum[mi], m.prisoes_acum[mi], false));
+      add('70º BPM', e.total_reds_mes[mi], e.total_prisoes_mes[mi], e.total_reds_acum[mi], e.total_prisoes_acum[mi], true);
+      gdoTabela(s, linhas, [3.2, 1.6, 1.6, 1.6, 1.6, 1.6, 1.6]);
+    }
+
+    // 6) POG (banda: 95–105 verde)
+    s = gdoSlide(pptx, brasao.peq, 'POG — Policiamento Ostensivo Geral');
+    gdoTabela(s, gdoLinhasPadrao(DATA.pog, mi, (r, m) => statusPog(gdoDesempNum(r, m)), 'Des.%', gdoDesemp(2)), [3.4, 1.35, 1.35, 1.55, 1.35, 1.35, 1.55]);
+
+    // 7) policiamento de proximidade (3 metas PPAG)
+    s = gdoSlide(pptx, brasao.peq, 'Policiamento de Proximidade', { nota: 'Y15001 Patrulha Escolar/Drogas · Y07012 Violência Doméstica · Y07014 Zona Rural' });
+    {
+      const ys = [DATA.ppag.y15001, DATA.ppag.y07012, DATA.ppag.y07014];
+      const cabs = [[gdoCabec('Município', { rowspan: 2, align: 'left' })], []];
+      ['Y15001', 'Y07012', 'Y07014'].forEach(n => { cabs[0].push(gdoCabec(n, { colspan: 6 })); ['Meta mês', 'Res.', 'Des.', 'Meta acum.', 'Res.', 'Des.'].forEach(t => cabs[1].push(gdoCabec(t, { fontSize: 8 }))); });
+      const cel = (r, m) => { const v = m ? r / m * 100 : 100; return gdoSem(Math.round(v) + '%', statusPiso(r, m), { fontSize: 9 }); };
+      const mapa = (d) => { const o = {}; d.municipios.forEach(m => { o[normKey(m.nome)] = m; }); return o; };
+      const maps = ys.map(mapa);
+      const corpo = ys[0].municipios.map(m1 => {
+        const l = [gdoEsq(m1.nome, { fontSize: 9 })];
+        ys.forEach((d, i) => { const m = maps[i][normKey(m1.nome)];
+          l.push(gdoNor(m.meta_mes[mi], { fontSize: 9 }), gdoNor(m.realizado_mes[mi], { fontSize: 9 }), cel(m.realizado_mes[mi], m.meta_mes[mi]),
+                 gdoNor(m.meta_acum[mi], { fontSize: 9 }), gdoNor(m.realizado_acum[mi], { fontSize: 9 }), cel(m.realizado_acum[mi], m.meta_acum[mi])); });
+        return l;
+      });
+      const t = [gdoEsq('70º BPM', { fill: { color: 'D9D9D9' }, fontSize: 9 })];
+      ys.forEach(d => t.push(gdoNor(d.total_meta_mes[mi], { fontSize: 9, bold: true, fill: { color: 'D9D9D9' } }), gdoNor(d.total_mes[mi], { fontSize: 9, bold: true, fill: { color: 'D9D9D9' } }), cel(d.total_mes[mi], d.total_meta_mes[mi]),
+        gdoNor(d.total_meta_acum[mi], { fontSize: 9, bold: true, fill: { color: 'D9D9D9' } }), gdoNor(d.total_acum[mi], { fontSize: 9, bold: true, fill: { color: 'D9D9D9' } }), cel(d.total_acum[mi], d.total_meta_acum[mi])));
+      gdoTabela(s, cabs.concat(corpo, [t]), [1.9].concat(Array(18).fill(0.6)), { fontSize: 9, rowH: 0.3 });
+    }
+
+    // 8) ITVD
+    s = gdoSlide(pptx, brasao.peq, 'ITVD — Combate ao tráfico e à violência relacionada às drogas', { tamTitulo: 22, nota: 'ITVD = [REDS Tráfico/Uso − (MV+CVPe+CVPa)×2] ÷ REDS Tráfico/Uso × 100' });
+    {
+      const d = DATA.itvd; const idx = (t, v) => (t ? ((t - v * 2) / t) * 100 : 100);
+      const linhas = [[gdoCabec('Município', { align: 'left' }), ...['REDS Tráf./Uso mês', 'Vítimas mês', 'ITVD mês', 'REDS Tráf./Uso acum.', 'Vítimas acum.', 'ITVD acum.'].map(t => gdoCabec(t, { fontSize: 10 }))]];
+      const add = (nome, tm, vm, ta, va, total) => { const o = total ? { fill: { color: 'D9D9D9' }, bold: true } : {};
+        linhas.push([gdoEsq(nome, total ? { fill: { color: 'D9D9D9' } } : {}), gdoNor(tm, o), gdoNor(vm, o), gdoSem(gdoNum(idx(tm, vm), 1), gdoStatusIdx(idx(tm, vm))), gdoNor(ta, o), gdoNor(va, o), gdoSem(gdoNum(idx(ta, va), 1), gdoStatusIdx(idx(ta, va)))]); };
+      d.municipios.forEach(m => add(m.nome, m.trafico_mes[mi], m.vit_mes[mi], m.trafico_acum[mi], m.vit_acum[mi], false));
+      add('70º BPM', d.total_trafico_mes[mi], d.total_vit_mes[mi], d.total_trafico_acum[mi], d.total_vit_acum[mi], true);
+      gdoTabela(s, linhas, [3.2, 1.6, 1.6, 1.6, 1.6, 1.6, 1.6]);
+    }
+
+    // 9) armas
+    s = gdoSlide(pptx, brasao.peq, 'Armas de fogo e simulacros apreendidos', { nota: 'Polaridade: quanto maior, melhor.' });
+    gdoTabela(s, gdoLinhasSaldo(DATA.armas, mi), GDO_COLS_SALDO);
+
+    // 10) interação comunitária: dados do painel da CGA (fora deste painel) — espaço pros prints
+    s = gdoSlide(pptx, brasao.peq, 'Interação comunitária realizada no 70º BPM', { fonte: 'FONTE: CGA » Painel de interação comunitária' });
+    s.addText('Colar aqui os prints do Painel de Interação Comunitária (CGA) do mês — esses dados não estão no painel do 70º BPM.', { x: 1.5, y: 2.6, w: 10.3, h: 1.6, fontFace: 'Arial', fontSize: 22, color: '595959', align: 'center', valign: 'middle', fill: { color: 'FFFFFF' }, line: { color: GDO_OURO, width: 2, dashType: 'dash' }, margin: 12 });
+
+    // 11) Cavalo de Aço (+ texto da meta, igual à apresentação anterior)
+    s = gdoSlide(pptx, brasao.peq, 'Op. Cavalo de Aço');
+    {
+      const d = DATA.cavaloaco;
+      const linhas = [['Município', 'Meta op. mês', 'Op. mês', 'Cumpriu mês?', 'Meta op. acum.', 'Op. acum.', 'Desemp.'].map((t, i) => gdoCabec(t, { align: i ? 'center' : 'left' }))];
+      const add = (nome, mm, om, ma, oa, total) => {
+        const o = total ? { fill: { color: 'D9D9D9' }, bold: true } : {};
+        const v = ma ? oa / ma * 100 : 100;
+        linhas.push([gdoEsq(nome, total ? { fill: { color: 'D9D9D9' } } : {}), gdoNor(mm, o), gdoNor(om, o), om >= mm ? gdoSem('CUMPRIU', 'verde') : gdoSem('NÃO CUMPRIU', 'vermelho'),
+          gdoNor(ma, o), gdoNor(oa, o), gdoCel(Math.round(v) + '%', { fill: { color: total ? 'D9D9D9' : 'FFFFFF' }, color: v >= 100 ? '00803A' : 'C00000', bold: true })]);
+      };
+      d.municipios.forEach(m => add(m.nome, m.meta_mes[mi], m.realizado_mes[mi], m.meta_acum[mi], m.realizado_acum[mi], false));
+      add('70º BPM', d.total_meta_mes[mi], d.total_mes[mi], d.total_meta_acum[mi], d.total_acum[mi], true);
+      gdoTabela(s, linhas, [3.2, 1.5, 1.5, 1.9, 1.6, 1.5, 1.5], { rowH: 0.3 });
+    }
+    s.addText([
+      { text: 'Meta semanal (mínima): 01 por Destacamento, 02 por Pelotão, 04 para Pelotão sede de Companhia. ', options: { bold: true } },
+      { text: 'Registro obrigatório: CAD: Nome da Operação → CAVALO DE AÇO · Natureza Y01.003 · Alvo: Motocicleta. Obrigatório vincular o nº do REDS de prisão/apreensão para obtenção de toda a produtividade no RAT; coletar as placas e lançar no histórico do RAT, com a quantidade de motocicletas fiscalizadas no campo próprio.', options: {} }],
+      { x: 0.3, y: 6.15, w: 12.73, h: 0.85, fontFace: 'Arial', fontSize: 10.5, color: GDO_ESCURO, valign: 'top' });
+
+    // 12) Boemia: IDOB (Qtde Op + vítimas)
+    s = gdoSlide(pptx, brasao.peq, 'Operação Boemia — IDOB', { nota: 'IDOB = (operações − vítimas×10) ÷ operações × 100' });
+    {
+      const d = DATA.idob;
+      const idxB = (q, v) => (!q ? (v ? 0 : 100) : ((q - v * 10) / q) * 100);
+      const cab1 = [gdoCabec('Município', { rowspan: 2, align: 'left' }), gdoCabec(nomeMes, { colspan: 5 }), gdoCabec('Acumulado', { colspan: 5 })];
+      const cab2 = [];
+      for (let i = 0; i < 2; i++) ['Qtde Op', 'MV', 'CVPE', 'CVPA', 'IDOB'].forEach(t => cab2.push(gdoCabec(t)));
+      const corpo = [];
+      const add = (nome, q1, a1, b1, c1, q2, a2, b2, c2, total) => {
+        const o = total ? { fill: { color: 'D9D9D9' }, bold: true } : {};
+        const i1 = idxB(q1, a1 + b1 + c1), i2 = idxB(q2, a2 + b2 + c2);
+        corpo.push([gdoEsq(nome, total ? { fill: { color: 'D9D9D9' } } : {}), gdoNor(q1, o), gdoNor(a1, o), gdoNor(b1, o), gdoNor(c1, o), gdoSem(gdoNum(i1, 1), gdoStatusIdx(i1)),
+          gdoNor(q2, o), gdoNor(a2, o), gdoNor(b2, o), gdoNor(c2, o), gdoSem(gdoNum(i2, 1), gdoStatusIdx(i2))]);
+      };
+      d.municipios.forEach(m => add(m.nome, m.qop_mes[mi], m.mv_mes[mi], m.cvpe_mes[mi], m.cvpa_mes[mi], m.qop_acum[mi], m.mv_acum[mi], m.cvpe_acum[mi], m.cvpa_acum[mi], false));
+      add('70º BPM', d.total_qtdeop_mes[mi], d.total_mv_mes[mi], d.total_cvpe_mes[mi], d.total_cvpa_mes[mi], d.total_qtdeop_acum[mi], d.total_mv_acum[mi], d.total_cvpe_acum[mi], d.total_cvpa_acum[mi], true);
+      gdoTabela(s, [cab1, cab2].concat(corpo), [2.8].concat(Array(10).fill(1.0)), { rowH: 0.31 });
+    }
+
+    // 13) Padrinhos da Escola e 14) Saque Seguro (Realizado/Meta/% vs meta/Saldo)
+    [['padesc', 'Padrinhos da Escola'], ['saque_seguro', 'Op. Saque Seguro']].forEach(([k, nome]) => {
+      s = gdoSlide(pptx, brasao.peq, nome, { nota: 'Polaridade: quanto maior, melhor.' });
+      gdoTabela(s, gdoLinhasSaldo(DATA[k], mi), GDO_COLS_SALDO);
+    });
+
+    // 15) Rolezinho (Meta/Op. — verde cumpriu, vermelho não cumpriu)
+    s = gdoSlide(pptx, brasao.peq, 'Operação Rolezinho', { nota: 'Verde = cumpriu a meta · vermelho = não cumpriu' });
+    {
+      const d = DATA.rolezinho;
+      const linhas = [['Município', 'Meta mês', 'Op. mês', 'Meta acum.', 'Op. acum.'].map((t, i) => gdoCabec(t, { align: i ? 'center' : 'left' }))];
+      const add = (nome, mm, om, ma, oa, total) => {
+        const o = total ? { fill: { color: 'D9D9D9' }, bold: true } : {};
+        linhas.push([gdoEsq(nome, total ? { fill: { color: 'D9D9D9' } } : {}), gdoNor(mm, o), gdoSem(om, om >= mm ? 'verde' : 'vermelho'), gdoNor(ma, o), gdoSem(oa, oa >= ma ? 'verde' : 'vermelho')]);
+      };
+      d.municipios.forEach(m => add(m.nome, m.meta_mes[mi], m.realizado_mes[mi], m.meta_acum[mi], m.realizado_acum[mi], false));
+      add('70º BPM', d.total_meta_mes[mi], d.total_mes[mi], d.total_meta_acum[mi], d.total_acum[mi], true);
+      gdoTabela(s, linhas, [3.6, 1.8, 1.8, 1.8, 1.8]);
+    }
+
+    // 16) análise por Cia
+    gdoSlidesCia(pptx, brasao.peq, mi, nomeMes);
+
+    // 17) encerramento
+    s = pptx.addSlide(); s.background = { color: GDO_BG };
+    if (brasao.grande) s.addImage({ data: brasao.grande, x: 5.9, y: 0.9, w: 1.55, h: 1.74 });
+    s.addText('OBRIGADO!', { x: 0.5, y: 3.0, w: 12.3, h: 1, fontFace: 'Arial', fontSize: 44, bold: true, color: GDO_ESCURO, align: 'center' });
+    s.addText(GDO_COMANDANTE.join('\n'), { x: 0.5, y: 4.2, w: 12.3, h: 1, fontFace: 'Arial', fontSize: 20, color: GDO_OURO, bold: true, align: 'center' });
+
+    msg('Gerando o arquivo…');
+    await pptx.writeFile({ fileName: `Apresentação GDO ${nomeMes}_2026 - 70º BPM.pptx` });
+    msg(`Pronto: "Apresentação GDO ${nomeMes}_2026 - 70º BPM.pptx" foi baixada.`);
+  } catch (e) {
+    console.error('Erro ao gerar a apresentação de GDO:', e);
+    msg('Não foi possível gerar a apresentação: ' + e.message, true);
+  }
+}
+
 function renderApresentacaoGdoPage() {
   const y1 = DATA.ppag.y15001, y2 = DATA.ppag.y07012, y3 = DATA.ppag.y07014;
   const mesesLocais = y1.meses || MESES.slice(0, y1.total_mes.length);
@@ -2537,7 +2863,20 @@ function renderApresentacaoGdoPage() {
     return rows;
   }
 
-  let html = `<div class="page-title" style="color:var(--amber)">Policiamento de Proximidade | Dados de ${mesesLocais[mi]}</div>`;
+  const mesesDeck = DATA.mv.meses || MESES;
+  const miDeck = Math.max(0, Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length - 1) - 1); // GDO apresenta o último mês fechado
+  let html = `<div class="page-title">Apresentação de GDO</div>`;
+  html += `<div class="ppvd-card" id="gdoPronta" style="margin-bottom:22px;border-color:var(--amber)">
+    <b style="color:var(--amber)">Apresentação pronta — PowerPoint do mês</b>
+    <div style="margin:8px 0 12px;color:var(--muted);font-size:12.5px;line-height:1.55">Gera o arquivo .pptx já com as tabelas montadas (editáveis no PowerPoint) na ordem da apresentação anterior: MV, CVPE e CVPA (tabela, gráficos e detalhamento por natureza), prisões de furto, POG, proximidade, ITVD, armas, Cavalo de Aço, Boemia/IDOB, Padrinhos, Saque Seguro, Rolezinho e análise por Companhia. Os números são os do painel.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <select class="month-select" id="gdoMes" style="width:auto">${mesesDeck.slice(0, Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length - 1) + 1).map((m, i) => `<option value="${i}" ${i === miDeck ? 'selected' : ''}>Janeiro a ${m}/2026</option>`).join('')}</select>
+      <button class="ppvd-btn ppvd-btn-primary" id="gdoGerar">⬇ Baixar PowerPoint (.pptx)</button>
+      <span id="gdoStatus" style="font-size:12.5px;color:var(--muted)"></span>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--muted);line-height:1.55"><b style="color:var(--text)">Continua manual:</b> prints do Painel de Interação Comunitária (CGA) e, se quiser, os prints oficiais do SiGOp com taxa por 100 mil, PLR e comparativo 2025 (não existem no painel). Atenção: se o detalhamento por natureza de MV/CVPE/CVPA estiver com período antigo, o próprio slide avisa.</div>
+  </div>`;
+  html += `<div class="page-title" style="color:var(--amber);font-size:20px">Policiamento de Proximidade | Dados de ${mesesLocais[mi]}</div>`;
   html += `<div class="def-box">Quadro-resumo de apresentação (estilo GDO) com as 3 metas do Policiamento de Proximidade: Y15001 (Patrulha Escolar/Prevenção às Drogas), Y07012 (Prevenção à Violência Doméstica), Y07014 (Ação/Operação em Zona Rural).</div>`;
   html += `<select class="month-select" id="apresGdoMonthSel">`;
   mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
@@ -2579,6 +2918,11 @@ function renderApresentacaoGdoPage() {
   html += `</div>`;
 
   document.getElementById('main').innerHTML = html;
+  document.getElementById('gdoGerar').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    await gerarApresentacaoGdo(parseInt(document.getElementById('gdoMes').value));
+    e.target.disabled = false;
+  });
   document.getElementById('apresGdoMonthSel').addEventListener('change', (e) => {
     document.querySelector('#apresGdoTable tbody').innerHTML = slide(parseInt(e.target.value));
   });
