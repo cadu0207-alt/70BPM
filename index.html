@@ -1812,6 +1812,7 @@ function renderAnalisePreditivaPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
+    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); document.getElementById('apMuniPanel').innerHTML = h; return; }
     h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th></tr></thead><tbody>`;
     if (lista.length === 0) {
       h += `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhuma ocorrência grave no período selecionado.</td></tr>`;
@@ -1849,7 +1850,7 @@ function renderViolenciaDomesticaPage() {
   const tentGeral = sum(d.panorama.tent_hom_mes || []);
   const popTotal = municipiosData.reduce((s, m) => s + (m.pop || 0), 0);
   const taxaGeral = popTotal ? (totalGeral / popTotal * 100000) : 0;
-  const totalEnderecos = Object.values(d.enderecos_reincidentes).reduce((s, arr) => s + arr.length, 0);
+  const totalEnderecos = municipiosData.reduce((s, m) => s + (m.enderecos_reincidentes || 0), 0); // contagem pública (por município)
 
   let html = `<div class="page-title">Violência Doméstica</div>`;
   html += `<div class="def-box">${DEFS.violencia_domestica}</div>`;
@@ -1923,6 +1924,7 @@ function renderViolenciaDomesticaPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
+    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); document.getElementById('vdMuniPanel').innerHTML = h; return; }
     const redsDaLista = lista.map(o => o.r).filter(Boolean);
     const casosMap = await ppvdBuscarCasosVD(redsDaLista);
     h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th><th>FONAR</th><th style="text-align:left">Responsável</th><th>V. Autor</th><th>V. Vítima</th><th>GUT Inicial</th><th>GUT Final</th><th>Status</th><th>Retornos</th><th>Ação</th></tr></thead><tbody>`;
@@ -2056,6 +2058,7 @@ function renderCrimesViolentosPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
+    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); document.getElementById('cvMuniPanel').innerHTML = h; return; }
     h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Arma</th><th>Prisão</th><th>Caso PPVD</th></tr></thead><tbody>`;
     if (lista.length === 0) {
       h += `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
@@ -2132,6 +2135,7 @@ function renderReincidenciaPage() {
     h += `<div class="kpi-card kpi-neutral"><div class="val">${fmtBr(m.pop, 0)}</div><div class="lbl">População</div></div>`;
     h += `</div>`;
 
+    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); document.getElementById('reMuniPanel').innerHTML = h; return; }
     h += `<table class="data-table"><thead><tr><th style="text-align:left">Bairro/Logradouro</th><th>Nº chamados</th><th>Intervalo mín. (dias)</th><th>Dias desde o último</th><th style="text-align:left">Naturezas</th><th>Arma de fogo</th><th>Caso PPVD</th></tr></thead><tbody>`;
     if (enderecos.length === 0) {
       h += `<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
@@ -2803,6 +2807,8 @@ async function renderAuditoriaPage() {
     return h;
   }
 
+  await ppvdCarregarDadosRestritos();
+  if (!ppvdDadosRestritosLiberados()) { body.innerHTML = ppvdAvisoRestrito(); return; }
   const vdData = DATA.violencia_domestica;
   const ocorrenciasPorMunicipio = {};
   MUNICIPIOS_CANONICAL.forEach(nome => {
@@ -3500,6 +3506,40 @@ function ppvdIniciais(nome) {
   return nome.trim().split(/\s+/).map(p => p[0] ? p[0].toUpperCase() + '.' : '').join('');
 }
 
+// ---------- Dados RESTRITOS (nº do REDS, data, bairro, rua e número da casa) ----------
+// Antes iam no data.json público (repo público + GitHub Pages). Desde 2026-10-09 ficam só na
+// tabela `dados_restritos` do Supabase, que só PPVD aprovado lê (RLS eh_aprovado()). O data.json
+// público traz esses blocos vazios; aqui eles são preenchidos depois do login e esvaziados no logout.
+let ppvdRestritoCarregado = false;
+const PPVD_RESTRITO_VAZIO = () => ({
+  violencia_domestica: { ocorrencias: {}, enderecos_reincidentes: {} },
+  analise_preditiva: { ocorrencias_graves: {}, enderecos_reincidentes: {} },
+  reincidencia: { enderecos: {} },
+  crimes_violentos: { ocorrencias: {} },
+});
+function ppvdDadosRestritosLiberados() { return ppvdRestritoCarregado; }
+function ppvdAvisoRestrito() {
+  const motivo = !ppvdUser ? 'Entre com sua conta pelo botão "Entrar (PPVD)" no topo da página.'
+    : (!ppvdPerfil ? 'Complete seu cadastro PPVD (formulário no topo).' : 'Seu cadastro PPVD ainda não foi aprovado pelo administrador.');
+  return `<div class="def-box" style="border-color:var(--amber)"><b>🔒 Detalhe restrito</b><br>O detalhe por ocorrência (nº do REDS, data, bairro e endereço) é restrito a usuários PPVD aprovados — os totais acima continuam públicos. ${motivo}</div>`;
+}
+async function ppvdCarregarDadosRestritos() {
+  if (ppvdRestritoCarregado) return true;
+  if (!ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) return false;
+  const { data, error } = await ppvdSupa.from('dados_restritos').select('chave, conteudo');
+  if (error || !data || !data.length) { console.error('Falha ao carregar dados restritos', error); return false; }
+  data.forEach(r => { if (DATA[r.chave] && r.conteudo) Object.assign(DATA[r.chave], r.conteudo); });
+  ppvdRestritoCarregado = true;
+  return true;
+}
+function ppvdLimparDadosRestritos() {
+  const vazio = PPVD_RESTRITO_VAZIO();
+  Object.keys(vazio).forEach(k => { if (DATA[k]) Object.assign(DATA[k], vazio[k]); });
+  window.ppvdOcorrenciaLookup = {}; window.ppvdCVLookup = {}; window.ppvdReincLookup = {};
+  ppvdRestritoCarregado = false;
+}
+const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia'];
+
 async function ppvdInit() {
   if (!ppvdSupa) return;
   ppvdCheckVisitaPublica();
@@ -3550,20 +3590,22 @@ async function ppvdOnSession(session, event) {
     ppvdPerfil = data || null;
   }
   ppvdRenderAuthWidget();
+  const restritoAntes = ppvdRestritoCarregado;
+  if (ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) await ppvdCarregarDadosRestritos();
+  else ppvdLimparDadosRestritos();
+  const restritoMudou = restritoAntes !== ppvdRestritoCarregado;
   const casoRestaurado = await ppvdTentarRestaurarCaso();
   const identidadeIgual = userIdAntes === (ppvdUser ? ppvdUser.id : null);
   const aprovacaoIgual = aprovadoAntes === (ppvdPerfil ? ppvdPerfil.aprovado : null);
-  if (event === 'TOKEN_REFRESHED' && identidadeIgual && aprovacaoIgual) return;
+  if (event === 'TOKEN_REFRESHED' && identidadeIgual && aprovacaoIgual && !restritoMudou) return;
   // Se acabou de restaurar um caso aberto (aba descartada/recarregada), não sobrescreve com a
   // lista de novo — achado por Eduardo em 2026-09-09, o caso restaurado acima estava sendo
   // apagado na mesma passada por este mesmo bloco de re-render.
   if (casoRestaurado) return;
   if (ppvdUser && !ppvdPerfil) {
     ppvdRenderCadastroForm();
-  } else if (currentPageKey === 'violencia_domestica' && pages.violencia_domestica) {
-    pages.violencia_domestica();
-  } else if (currentPageKey === 'auditoria' && pages.auditoria) {
-    pages.auditoria();
+  } else if (PPVD_PAGINAS_RESTRITAS.includes(currentPageKey) && pages[currentPageKey]) {
+    pages[currentPageKey]();
   }
 }
 

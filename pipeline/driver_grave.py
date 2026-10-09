@@ -46,6 +46,7 @@ USO: python3 driver_grave.py  (roda a partir da pasta onde está data.json)
 """
 import csv, json, os, glob, datetime
 import aggregate_grave as ag
+import publicar_restrito as pr
 
 _here = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.join(_here, "entrada")
@@ -382,7 +383,7 @@ def run_reincidencia(data, rows, report):
 
 
 def main():
-    data = json.load(open(DATA_PATH, encoding='utf-8'))
+    data = pr.carregar()  # data_completo.json (com blocos restritos); ver publicar_restrito.py
     report = {}
     run_esforco_furto(data, report)
     run_idob_boemia(data, report)
@@ -427,7 +428,7 @@ def main():
     # indent=2 desde 2026-09-08: antes gravava compacto e alguém tinha que reformatar na
     # mão antes de levar pro repo "pra bater o padrão" (ver CONTEXTO_DASHBOARD_70BPM.md,
     # entrada de 04/09) -- grava já formatado, elimina esse passo manual.
-    json.dump(data, open(DATA_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    report['publicacao_restrita'] = pr.salvar(data)
     json.dump(report, open(os.path.join(_here, 'report_grave.json'), 'w', encoding='utf-8'),
                ensure_ascii=False, default=str, indent=1)
     print("DONE", {k: 'ok' for k in report})

@@ -13,6 +13,21 @@ python pipeline/sincronizar_do_drive.py
 git add pipeline && git commit -m "Atualiza pipeline"
 ```
 
+## ⚠ Dados públicos x restritos (desde 09/10/2026)
+
+O repositório e o site são **públicos**. Nº do REDS, data, bairro, **rua e número da casa** das ocorrências (violência doméstica, crimes violentos, ocorrências graves, endereços reincidentes) **não podem ir no `data.json`**. O fluxo é:
+
+| Arquivo | Onde fica | O que tem |
+|---|---|---|
+| `data_completo.json` | só na pasta do Drive | tudo; é o arquivo de trabalho da rotina (o `ocorrencias_graves` é append-only e precisa do histórico) |
+| `data.json` | vai pro repositório | só agregados; os blocos restritos viram `{}` |
+| `data_restrito.json` | só na pasta do Drive | só os blocos restritos (conferência local) |
+| Supabase `dados_restritos` | banco | os blocos restritos; **só PPVD aprovado lê** (RLS `eh_aprovado()`) |
+
+`publicar_restrito.py` faz a separação e envia o restrito ao Supabase pela função `publicar_dados_restritos`, que exige um **token só de escrita** (o banco guarda apenas o hash). O token fica **fora do repositório e do Drive**: `~/.70bpm/pipeline_token.txt` (ou a variável `PIPELINE_TOKEN_70BPM`). Sem o token a rotina ainda gera o `data.json` público, mas avisa em `report.json → publicacao_restrita` que o restrito do Supabase ficou desatualizado.
+
+**Trava:** `node verificar-publico.js` falha se o `data.json` tiver REDS ou campo de endereço, e um hook de `pre-commit` local o executa antes de qualquer commit do `data.json`. (Hooks não vão pro repositório: em outro computador, copie `.git/hooks/pre-commit` ou rode o verificador na mão.)
+
 ## Scripts
 
 | Arquivo | O que faz |
@@ -20,16 +35,17 @@ git add pipeline && git commit -m "Atualiza pipeline"
 | `aggregate.py` | 11 indicadores por município e mês (MV, CVPE, CVPa, Furto Rural, Armas, Cavalo de Aço, Rolezinho, Padrinhos, Saque Seguro, POG, PPAG). Sobrescreve célula a célula e relata quedas. |
 | `aggregate_grave.py` | Funções de reconstrução completa (Análise Preditiva, Violência Doméstica, Crimes Violentos, Reincidência, ITVD, IDOB, Esforço-Furto). Só funções, não roda sozinho. |
 | `driver_grave.py` | Chama as funções acima na ordem certa, aplica as proteções (Jan/Fev do IDOB preservados), sincroniza a Meta Boemia e carimba `atualizado_em`. |
+| `publicar_restrito.py` | Separa público/restrito, grava os 3 arquivos e envia o restrito ao Supabase. Usado ao final de `aggregate.py` e `driver_grave.py`. |
 
-Ordem de execução: `aggregate.py` e depois `driver_grave.py`. Ambos leem e gravam o `data.json` da própria pasta.
+Ordem de execução: `aggregate.py` e depois `driver_grave.py`. Ambos leem `data_completo.json` e, ao terminar, regravam `data_completo.json` + `data.json` (público) + `data_restrito.json` e enviam o restrito.
 
 ## Regras que não são óbvias
 
 - Queda sistemática não é aplicada sem conferir no SiGOp (ver histórico de ITVD, IDOB e Padrinhos no `CONTEXTO_DASHBOARD_70BPM.md`, que fica no Drive).
 - Arquivo na pasta errada é o erro mais comum: confira `n_matched` no relatório antes de aceitar (zero casos = pasta trocada).
-- `data.json` é **público** (GitHub Pages). Não coloque nesta pasta nada com dado pessoal além do que já está no site.
+- Se `data_completo.json` sumir, **não** rode a rotina com o `data.json` público: ela se recusa (para não apagar o histórico). Restaure de `data.json.bak_*` ou da tabela `dados_restritos`.
 
 ## O que não está aqui de propósito
 
 - `dashboard_gen.py` — gera exatamente o `index.html` que já está no repositório; ter os dois só duplicaria 280 KB. Fica no Drive.
-- Os CSV de `entrada/` e o `CONTEXTO_DASHBOARD_70BPM.md` — contêm dado operacional e histórico interno; o repositório é público.
+- Os CSV de `entrada/`, `data_completo.json`, `data_restrito.json` e o `CONTEXTO_DASHBOARD_70BPM.md` — contêm dado operacional e histórico interno; o repositório é público.

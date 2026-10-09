@@ -1,4 +1,5 @@
 import csv, json, unicodedata, glob, os, sys, datetime
+import publicar_restrito as pr
 
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entrada")
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.json")
@@ -271,7 +272,9 @@ def agg_rat_natureza(rows, codes, mun_col='MUNICIPIO', mes_col='MES_NUMERICO', n
     return d
 
 def main():
-    data = json.load(open(DATA_PATH, encoding='utf-8'))
+    # Trabalha no data_completo.json (com os blocos restritos); ao final grava o data.json PÚBLICO
+    # sem endereço/REDS e envia o restrito ao Supabase (ver publicar_restrito.py).
+    data = pr.carregar()
     report = {}
 
     f = latest_csv('MV')
@@ -375,7 +378,7 @@ def main():
         data['ppag'][key]['atualizado_em'] = HOJE
 
     out_dir = os.path.dirname(os.path.abspath(__file__))
-    json.dump(data, open(DATA_PATH, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+    report['publicacao_restrita'] = pr.salvar(data)
     json.dump(report, open(os.path.join(out_dir, 'report.json'), 'w', encoding='utf-8'), ensure_ascii=False, default=str, indent=1)
     print("DONE")
 

@@ -9,3 +9,8 @@ index.html.bak*
 *.bak
 *.bak_*
 __pycache__/
+
+# Dados restritos (REDS/endereço) — nunca vão pro repositório público; ficam só no Supabase
+data_completo.json
+data_restrito.json
+_test_restrito.json
