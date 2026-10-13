@@ -1674,6 +1674,10 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     if (redsMes) { const nR = somaA(redsMes, ultimoIdx); h += `<div class="kpi-card kpi-neutral"><div class="val">${nR}</div><div class="lbl">Ocorrências (REDS)</div><div class="sub">${reais[ultimoIdx]} ${unidade}${nR && reais[ultimoIdx] !== nR ? ' — algumas ocorrências têm mais de uma' : ''}</div></div>`; }
     if (redsMes && prisMes) { const nR = somaA(redsMes, ultimoIdx), nP = somaA(prisMes, ultimoIdx); h += `<div class="kpi-card ${nR && nP < nR ? 'kpi-neutral' : 'kpi-green'}"><div class="val">${nP}</div><div class="lbl">Ocorrências com autor preso</div><div class="sub">de ${nR}${nR ? ' (' + fmtBr(nP / nR * 100, 0) + '%)' : ''}</div></div>`; }
     if (key === 'cvpe' && DATA.cvpe_detalhado && DATA.cvpe_detalhado.total) { const pm = DATA.cvpe_detalhado.total.militar || 0; h += `<div class="kpi-card ${pm > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${pm}</div><div class="lbl">Policial militar vítima</div><div class="sub">homicídio tentado contra PM no ano</div></div>`; }
+    const tcCons = d.tentado_consumado;
+    if (tcCons && (tcCons.tentado > 0 || key !== 'mv')) h += `<div class="kpi-card kpi-neutral"><div class="val">${tcCons.tentado} × ${tcCons.consumado}</div><div class="lbl">Tentados × consumados (${unidade || 'vítimas'})</div><div class="sub">${tcCons.tentado + tcCons.consumado ? fmtBr(tcCons.tentado / (tcCons.tentado + tcCons.consumado) * 100, 0) + '% tentados' : ''}</div></div>`;
+    const vpo = d.vitimas_por_ocorrencia;
+    if (vpo && (vpo['2'] + vpo['3+']) > 0) h += `<div class="kpi-card kpi-neutral"><div class="val">${vpo['2'] + vpo['3+']}</div><div class="lbl">Ocorrências com mais de uma vítima</div><div class="sub">${vpo['2']} com 2${vpo['3+'] ? ' · ' + vpo['3+'] + ' com 3 ou mais' : ''}</div></div>`;
     h += `</div>`;
     h += svgAcumuladoAno(reais, limites, proj, `Acumulado do ano contra o ${rotLim.toLowerCase()}, com projeção até dezembro`);
     h += `<div class="ano-leg"><span><i></i>realizado acumulado</span><span><i class="l"></i>${rotLim.toLowerCase()} acumulado</span><span><i class="p"></i>projeção linear (realizado ÷ meses decorridos × ${nAno})</span></div></div>`;
@@ -1718,6 +1722,19 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     });
     h += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">TOTAL</td>` + d.total_mes.slice(0, ultimoIdx + 1).map((v, i) => cel(v, limMes(d.total_meta_mes[i], fDe(i)))).join('') + `<td class="col-divider">${d.total_acum[ultimoIdx]}</td></tr>`;
     return h + `</tbody></table></div></div>`;
+  }
+
+  // ---- causa presumida e meio utilizado (MV, CVPE, CVPa): mesmas barras do local/faixa; aviso se não cobrirem o total ----
+  function causaMeioHtml() {
+    const causa = DATA[key + '_causa'], meio = DATA[key + '_meio'];
+    if (!Array.isArray(causa) || !Array.isArray(meio)) return '';
+    const esperado = d.total_acum[ultimoIdx];
+    const bloco = (lista, rot, classe) => {
+      const soma = lista.reduce((a, x) => a + x[1], 0);
+      const nota = soma !== esperado ? `<div class="vd-recorte">Cobre ${soma} de ${esperado} ${unidade || 'ocorrência(s)'} do ano — a lista está desatualizada em relação ao total.</div>` : '';
+      return `<div class="chart-box"><h3>${rot}</h3>${barrasHtml(lista, false, classe)}${nota}</div>`;
+    };
+    return `<div class="ind-sec charts-row" style="gap:16px">${bloco(causa, 'Causa presumida', '')}${bloco(meio, 'Meio utilizado', 'verde')}</div>`;
   }
 
   // ---- local imediato / faixa horária (ou causa / logradouro): barras legíveis, com aviso se não cobrem o total ----
@@ -1782,6 +1799,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   html += cidadeHtml();
   html += quadroHtml();
   if (showCharts) html += localFaixaHtml();
+  html += causaMeioHtml();
   const detCfg = DETALHADO_CONFIG[key];
   if (detCfg && DATA[detCfg.dataKey]) {
     html += detalhadoPorNaturezaHtml(DATA[detCfg.dataKey], detCfg.titulo, detCfg.colunas.concat(((DATA[detCfg.dataKey].total || {}).outros || 0) > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []), detCfg.defHtml, detCfg.fonteHtml, mesesLocais.slice(0, ultimoIdx + 1));
