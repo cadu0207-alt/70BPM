@@ -975,7 +975,8 @@ function bannerAcompanhamentoDiario(itens) {
     const refTxt = s.semRegistro
       ? `<span style="color:var(--amber)">sem data de atualização registrada — assumindo hoje</span>`
       : (s.diaRef === 0 ? `<span style="color:var(--amber)">nenhum lançamento neste mês ainda</span>` : `atualizado até o dia ${s.diaRef}`);
-    linhas += `<div>${it.label}: ${s.rotuloMeta} (${refTxt}) <b>${fmtBr(s.metaAjustada, 1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${s.cls}">${s.statusTxt}</span></div>`;
+    const ritmoTxt = (it.higherIsBetter === false && s.atrasado) ? `<span class="${s.cls}">acima do ritmo do mês</span>${it.realizado <= it.meta ? ' &middot; mas ainda dentro do teto do mês (' + it.meta + ')' : ' &middot; <span class="pos">e já acima do teto do mês (' + it.meta + ')</span>'}` : `<span class="${s.cls}">${it.higherIsBetter === false ? 'dentro do ritmo do mês' : s.statusTxt}</span>`;
+    linhas += `<div>${it.label}: ${s.rotuloMeta} (${refTxt}) <b>${fmtBr(s.metaAjustada, 1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; ${ritmoTxt}</div>`;
   });
   return `<div class="def-box" style="border-color:var(--amber);margin-bottom:14px">
     <b>📅 Acompanhamento diário</b> — cada indicador é ponderado pela sua própria data de atualização, não por "hoje" fixo.
@@ -1609,6 +1610,10 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   const showCharts = !!(localKey && faixaKey && DATA[localKey] && DATA[faixaKey]);
   const comTaxa = ['mv', 'cvpe', 'cvpa'].includes(key); // indicadores de crime têm taxa por 100 mil habitantes
   const rotLim = higherIsBetter ? 'Meta' : 'Teto'; // MV/CVPE/CVPa/Furto são TETO (menor é melhor); Armas/Padrinhos/Saque são META
+  const unidade = ({ mv: 'mortes', cvpe: 'vítimas', cvpa: 'vítimas' })[key] || ''; // MV/CVPE/CVPa contam vítimas (1 ocorrência pode ter várias)
+  const redsMes = Array.isArray(d.reds_mes) ? d.reds_mes : null, prisMes = Array.isArray(d.reds_prisao_mes) ? d.reds_prisao_mes : null;
+  const somaA = (arr, n) => (arr || []).slice(0, n + 1).reduce((a, b) => a + b, 0);
+  const fRitmo = !higherIsBetter && MES_ATUAL_IDX < (d.meses || MESES).length ? fatorMesEmAndamento(d, MES_ATUAL_IDX) : 1; // fração fechada do mês corrente (ritmo do teto)
   const munFiltro = normMun(getMunFiltro());
   const fMesAtual = higherIsBetter ? fatorMesEmAndamento(d, ultimoIdx) : 1; // fração do mês corrente já fechada (só pesa na META de piso)
 
@@ -1636,7 +1641,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
       const lMes = limMes(m.meta_mes[mi], f), lAcum = limAcum(m.meta_acum[mi], m.meta_mes[mi], f);
       rows += `<tr class="rank-clic${normMun(m.nome) === munFiltro ? ' sel' : ''}" data-mun="${m.nome}" title="Filtrar por ${m.nome}">
         <td style="text-align:left">${m.nome}</td>
-        <td>${par(m.realizado_mes[mi], lMes)}</td>
+        <td>${par(m.realizado_mes[mi], lMes)}${!higherIsBetter && mi === MES_ATUAL_IDX && m.meta_mes[mi] > 0 && fRitmo < 1 ? `<br><span class="ind-lim">esperado até hoje ${fmtBr(m.meta_mes[mi] * fRitmo, 1)}</span>` : ''}</td>
         <td class="col-divider">${par(m.realizado_acum[mi], lAcum)}</td>
         <td>${comTaxa ? taxa(m.realizado_acum[mi], pop) : pctMeta(m.realizado_acum[mi], lAcum)}</td>
         <td style="text-align:left">${situacao(m.realizado_acum[mi], lAcum)}</td>
@@ -1663,9 +1668,12 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     const ruim = proj !== null && (higherIsBetter ? proj < anual : proj > anual);
     let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">O ano contra o ${rotLim.toLowerCase()} — 70º BPM</h3>`;
     h += `<div class="kpi-grid">`;
-    h += `<div class="kpi-card ${(higherIsBetter ? reais[ultimoIdx] >= lAte : reais[ultimoIdx] <= lAte) ? 'kpi-green' : 'kpi-red'}"><div class="val">${reais[ultimoIdx]}</div><div class="lbl">Acumulado até ${mesesLocais[ultimoIdx]}</div><div class="sub">${rotLim.toLowerCase()} até aqui: ${lAte} · ${situacao(reais[ultimoIdx], lAte)}</div></div>`;
+    h += `<div class="kpi-card ${(higherIsBetter ? reais[ultimoIdx] >= lAte : reais[ultimoIdx] <= lAte) ? 'kpi-green' : 'kpi-red'}"><div class="val">${reais[ultimoIdx]}</div><div class="lbl">Acumulado até ${mesesLocais[ultimoIdx]}${unidade ? ' (' + unidade + ')' : ''}</div><div class="sub">${rotLim.toLowerCase()} até aqui: ${lAte} · ${situacao(reais[ultimoIdx], lAte)}</div></div>`;
     h += `<div class="kpi-card ${ruim ? 'kpi-red' : 'kpi-green'}"><div class="val">${proj === null ? '—' : fmtBr(proj, 0)}</div><div class="lbl">Projeção para o ano (ritmo atual)</div><div class="sub">${rotLim.toLowerCase()} do ano: ${anual}${proj === null ? '' : ' · ' + (ruim ? (higherIsBetter ? 'abaixo da meta' : 'acima do teto') : (higherIsBetter ? 'meta alcançada no ritmo atual' : 'dentro do teto no ritmo atual'))}</div></div>`;
     if (comTaxa) { const pt = d.municipios.reduce((a, m) => a + popMunicipio(m.nome), 0); h += `<div class="kpi-card kpi-neutral"><div class="val">${taxa(reais[ultimoIdx], pt)}</div><div class="lbl">Taxa por 100 mil hab. (acumulado)</div></div>`; }
+    if (redsMes) { const nR = somaA(redsMes, ultimoIdx); h += `<div class="kpi-card kpi-neutral"><div class="val">${nR}</div><div class="lbl">Ocorrências (REDS)</div><div class="sub">${reais[ultimoIdx]} ${unidade}${nR && reais[ultimoIdx] !== nR ? ' — algumas ocorrências têm mais de uma' : ''}</div></div>`; }
+    if (redsMes && prisMes) { const nR = somaA(redsMes, ultimoIdx), nP = somaA(prisMes, ultimoIdx); h += `<div class="kpi-card ${nR && nP < nR ? 'kpi-neutral' : 'kpi-green'}"><div class="val">${nP}</div><div class="lbl">Ocorrências com autor preso</div><div class="sub">de ${nR}${nR ? ' (' + fmtBr(nP / nR * 100, 0) + '%)' : ''}</div></div>`; }
+    if (key === 'cvpe' && DATA.cvpe_detalhado && DATA.cvpe_detalhado.total) { const pm = DATA.cvpe_detalhado.total.militar || 0; h += `<div class="kpi-card ${pm > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${pm}</div><div class="lbl">Policial militar vítima</div><div class="sub">homicídio tentado contra PM no ano</div></div>`; }
     h += `</div>`;
     h += svgAcumuladoAno(reais, limites, proj, `Acumulado do ano contra o ${rotLim.toLowerCase()}, com projeção até dezembro`);
     h += `<div class="ano-leg"><span><i></i>realizado acumulado</span><span><i class="l"></i>${rotLim.toLowerCase()} acumulado</span><span><i class="p"></i>projeção linear (realizado ÷ meses decorridos × ${nAno})</span></div></div>`;
@@ -1765,7 +1773,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     html += bannerAcompanhamentoDiario([{ label: title, meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], higherIsBetter, dataAtualizacao: dataAtualizacaoIndicador(d) }]);
   }
   html += `<div class="pills-vd" id="indMeses" role="group" aria-label="Mês">` + mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<button type="button" data-p="${i}">${m}</button>`).join('') + `</div>`;
-  html += `<div class="vd-recorte">Mês e acumulado mostram realizado / ${rotLim.toLowerCase()}; a situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). ${higherIsBetter ? 'Meta: quanto mais, melhor; no mês em andamento a meta é proporcional aos dias já fechados.' : 'Teto: quanto menos, melhor — o realizado não deve passar do teto.'}</div>`;
+  html += `<div class="vd-recorte">Mês e acumulado mostram realizado / ${rotLim.toLowerCase()}${unidade ? ', contados em ' + unidade + (redsMes ? ' (uma ocorrência pode ter mais de uma)' : '') : ''}; a situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). ${higherIsBetter ? 'Meta: quanto mais, melhor; no mês em andamento a meta é proporcional aos dias já fechados.' : 'Teto: quanto menos, melhor — o realizado não deve passar do teto.'}</div>`;
   html += `<div class="table-wrap"><table class="data-table ind-tab" id="dataTable"><thead><tr>
     <th style="text-align:left">Município</th><th>Mês</th>
     <th class="col-divider">Acumulado</th><th>${comTaxa ? 'Taxa/100 mil' : '% da meta'}</th><th style="text-align:left">Situação</th>

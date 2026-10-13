@@ -1172,6 +1172,46 @@ function auditar() {
     await ctxM.close();
   }
 
+  // ---------- 28) MV / CVPE / CVPa: unidade (vítimas), ocorrências, autor preso, PM vítima e ritmo do mês ----------
+  console.log('\n[28] MV, CVPE e CVPa: vítimas x ocorrências, autor preso, policial vítima e faixa de ritmo coerente');
+  {
+    const ctxK = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pk = await ctxK.newPage();
+    const errosK = []; pk.on('pageerror', (e) => errosK.push(e.message));
+    await pk.goto(base);
+    await pk.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pk.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      setMunFiltro('');
+      const out = {}, ult = MES_ATUAL_IDX;
+      const soma = (a) => a.slice(0, ult + 1).reduce((x, y) => x + y, 0);
+      const cartoes = () => [...document.querySelectorAll('#main .kpi-card')].map(c => ({ lbl: (c.querySelector('.lbl') || {}).textContent || '', val: (c.querySelector('.val') || {}).textContent || '', cls: c.className, sub: (c.querySelector('.sub') || {}).textContent || '' }));
+      for (const [pg, k] of [['imv', 'mv'], ['cvpe', 'cvpe'], ['cvpa', 'cvpa']]) {
+        goToPage(pg); await esp(500);
+        const cs = cartoes();
+        out[k] = { temReds: Array.isArray(DATA[k].reds_mes), reds: String(soma(DATA[k].reds_mes || [])), preso: String(soma(DATA[k].reds_prisao_mes || [])), cartaoReds: (cs.find(c => /Ocorrências \(REDS\)/.test(c.lbl)) || {}).val, cartaoPreso: (cs.find(c => /autor preso/.test(c.lbl)) || {}).val, unidadeNoCartao: /\((mortes|vítimas)\)/.test(cs[0] ? cs.map(c => c.lbl).join(' ') : ''), recorte: (document.querySelector('#main .vd-recorte') || {}).textContent || '', pm: (cs.find(c => /Policial militar/.test(c.lbl)) || {}) };
+      }
+      goToPage('armas'); await esp(500);
+      out.armasSem = !cartoes().some(c => /Ocorrências \(REDS\)|autor preso|Policial/.test(c.lbl));
+      // faixa de ritmo: teto com ritmo estourado mas teto do mês ainda longe => "acima do ritmo", sem "já passou do teto esperado"
+      diasCorridosAteOntem = () => ({ diasNoMes: 30, diaRef: 11, diasDecorridos: 10, semRegistro: false });
+      DATA.cvpe.total_meta_mes[ult] = 4; DATA.cvpe.total_mes[ult] = 2; DATA.cvpe.atualizado_em = new Date().toISOString().slice(0, 10);
+      DATA.cvpe.municipios.forEach(m => { m.meta_mes[ult] = 1; });
+      goToPage('cvpe'); await esp(500);
+      const banner = (document.querySelector('#main .def-box') || {}).textContent || '';
+      out.banner = { texto: banner.replace(/\s+/g, ' '), esperadoHoje: /esperado até hoje/.test(document.querySelector('#dataTable').textContent) };
+      return out;
+    });
+    const ok3 = ['mv', 'cvpe', 'cvpa'].every(k => r[k].temReds && r[k].cartaoReds === r[k].reds && r[k].cartaoPreso === r[k].preso && r[k].unidadeNoCartao);
+    checa(ok3, 'MV, CVPE e CVPa mostram a unidade (mortes/vítimas), as ocorrências (REDS) e as com autor preso', 'cartões: ' + JSON.stringify([r.mv, r.cvpe, r.cvpa].map(x => [x.temReds, x.reds, x.cartaoReds, x.preso, x.cartaoPreso, x.unidadeNoCartao])));
+    checa(/mortes/.test(r.mv.recorte) && /vítimas/.test(r.cvpe.recorte) && /vítimas/.test(r.cvpa.recorte), 'a linha de legenda diz em que unidade o painel conta', 'legenda: ' + [r.mv.recorte, r.cvpe.recorte].join(' // ').slice(0, 220));
+    checa(/Policial militar/.test(r.cvpe.pm.lbl || '') && /kpi-red/.test(r.cvpe.pm.cls || '') && !r.mv.pm.lbl && !r.cvpa.pm.lbl, 'CVPE: cartão vermelho de policial militar vítima (só no CVPE)', 'PM: ' + JSON.stringify(r.cvpe.pm));
+    checa(r.armasSem, 'Armas não ganha cartões de ocorrência/preso/PM', 'Armas com cartões indevidos');
+    checa(/acima do ritmo do mês/.test(r.banner.texto) && /ainda dentro do teto do mês \(4\)/.test(r.banner.texto) && !/já passou do teto esperado/.test(r.banner.texto) && r.banner.esperadoHoje, 'faixa diária em linguagem de ritmo (não de estouro) e coluna do mês mostra o esperado até hoje', 'faixa: ' + JSON.stringify(r.banner));
+    checa(errosK.length === 0, 'MV/CVPE/CVPa (onda 1) sem erro de JavaScript', 'erros: ' + errosK.slice(0, 3).join(' | '));
+    await ctxK.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
