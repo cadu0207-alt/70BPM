@@ -692,6 +692,7 @@ function auditar() {
       const posEnd = painel.innerHTML.indexOf('Endereços com Reincidência'), posTab = painel.innerHTML.indexOf('<table');
       const cabec = [...painel.querySelectorAll('thead th')].map(t => t.textContent.trim());
       return {
+        historicoVerde: hist ? hist.querySelectorAll('tbody tr.vd-row-verde').length : 0, historicoObs: hist ? [...hist.querySelectorAll('tbody tr')].filter(t => /visitas feitas sem o registro no sistema/.test(t.textContent)).length : 0,
         grids: main.querySelectorAll(':scope > .kpi-grid').length, kpis: main.querySelectorAll(':scope > .kpi-grid .kpi-card').length,
         metodoFechado: !!main.querySelector('details.vd-metodo, details.aud-como') && !main.querySelector('details.aud-como').open,
         linhas, historicoLinhas: hist ? hist.querySelectorAll('tbody tr').length : 0, historicoVazioAntes: antes === 0 || antes === -1 ? antes : antes,
@@ -703,8 +704,8 @@ function auditar() {
     });
     checa(r.grids === 1 && r.kpis === 5, 'os 5 KPIs ficam num grid só (sem cartão sobrando)', `grids=${r.grids}, kpis=${r.kpis}`);
     checa(r.metodoFechado, 'metodologia começa recolhida', 'a metodologia está aberta no topo');
-    checa(r.linhas.join() === 'V2,V3,V4' || ['V2', 'V3', 'V4'].every(x => r.linhas.includes(x)) && !r.linhas.includes('V1'), `tabela mostra casos e recentes (${r.linhas.join(', ')}); a antiga sem caso (V1) vai pro histórico`, 'linhas da tabela: ' + r.linhas.join(', '));
-    checa(r.historicoLinhas === 1, 'histórico anterior ao PPVD abre com a ocorrência antiga sem caso', `linhas no histórico: ${r.historicoLinhas}`);
+    checa(r.linhas.join() === 'V2,V4', `tabela conta só de Setembro em diante (${r.linhas.join(', ')}); V1 e V3 (antes de Setembro) vão pro histórico`, 'linhas da tabela: ' + r.linhas.join(', '));
+    checa(r.historicoLinhas === 2 && r.historicoVerde === 2 && r.historicoObs === 2, 'histórico anterior ao PPVD: tudo finalizado (verde) com a observação de visitas sem registro no sistema', `histórico: ${JSON.stringify({ l: r.historicoLinhas, v: r.historicoVerde, o: r.historicoObs })}`);
     checa(r.enderecosAntesDaTabela, 'endereços com reincidência aparecem antes da tabela', 'endereços reincidentes continuam depois da tabela');
     checa(r.temEmAbertoHa && r.atraso, '"aberto há" na coluna Situação, com destaque de atraso (>72h)', 'sem o "aberto há" / atraso');
     checa(/Sd Antigo/.test(r.sugerido || '') && /sugerido/.test(r.sugerido || ''), 'responsável sugerido identificado e, entre duplicados, o mais antigo', 'responsável sugerido: ' + r.sugerido);
@@ -762,6 +763,55 @@ function auditar() {
     checa(r.depoisDoClique.filtro.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase() === r.depoisDoClique.c2.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase() && r.depoisDoClique.titulo.includes(r.depoisDoClique.c2), 'clicar no ranking abre os casos da cidade', 'clique no ranking: ' + JSON.stringify(r.depoisDoClique));
     checa(errosW.length === 0, 'Violência Doméstica (onda 2) sem erro de JavaScript', 'erros: ' + errosW.slice(0, 3).join(' | '));
     await ctxW.close();
+  }
+
+  // ---------- 21) Violência Doméstica, onda 3: página do caso ----------
+  console.log('\n[21] Página do caso de VD: próxima ação, etapas, prazo e salvamento único');
+  {
+    const ctxX = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const px = await ctxX.newPage();
+    const errosX = []; px.on('pageerror', (e) => errosX.push(e.message));
+    await px.goto(base);
+    await px.waitForFunction(() => typeof goToPage === 'function');
+    const r = await px.evaluate(async () => {
+      const gravados = [];
+      const hh = (x) => new Date(Date.now() - x * 36e5).toISOString();
+      let visitas = [];
+      const cad = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, single: () => o, update: (d) => { gravados.push({ t, d }); return o; }, then: (ok) => ok({ data: t === 'ppvd_visitas' ? visitas : { id: 'c1', modalidade: 'violencia_domestica', status: 'aberto' }, error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, pode_abrir_caso: true, nome: 'A' }; ppvdRestritoCarregado = true; ppvdMilitaresCache = [];
+      const base = { id: 'c1', modalidade: 'violencia_domestica', municipio: 'Araçuaí', reds_numero: 'X1', reds_data: new Date(Date.now() - 30 * 36e5).toISOString().slice(0, 10), natureza: 'Ameaça', status: 'aberto' };
+      const ver = async (caso, vis) => { visitas = vis || []; await ppvdRenderCaso(caso); const m = document.getElementById('main'); return { titulo: (m.querySelector('#casoProxAcao .tit') || {}).textContent, det: (m.querySelector('#casoProxAcao .det') || {}).textContent, cor: (m.querySelector('#casoProxAcao') || {}).className, ok: m.querySelectorAll('ol.caso-passos li.ok').length, atual: (m.querySelector('ol.caso-passos li.atual') || {}).textContent, dadosAberto: !!(m.querySelector('#casoDados') || {}).open, ordem: [...m.querySelectorAll('#casoDados, #casoAcaoDespachar, #casoAcaoPendente, #casoAcaoDecisao')].map(e => e.id).join(), botoesSalvar: m.querySelectorAll('#casoDados button.ppvd-btn-primary').length }; };
+      const out = {};
+      out.novo = await ver(base);
+      out.pendente = await ver({ ...base, status: 'em_visita', gravidade: 3, urgencia: 3, tendencia: 3 }, [{ id: 'v1', despachado_em: hh(80), guarnicao: 'Sd Fulano', token: 't' }]);
+      out.decisao = await ver({ ...base, status: 'decisao_cmd', gravidade: 3, urgencia: 3, tendencia: 3, qtd_retornos: 1 }, [{ id: 'v1', despachado_em: hh(60), visita_realizada_em: hh(20), guarnicao: 'Sd Fulano' }]);
+      out.estab = await ver({ ...base, status: 'estabilizada', gravidade: 3, urgencia: 3, tendencia: 3 }, []);
+      out.velho = await ver({ ...base, reds_data: '2026-05-10', status: 'em_visita', gravidade: 3, urgencia: 3, tendencia: 3 }, []);
+      out.velhoSemAcao = !document.getElementById('casoAcaoDespachar');
+      // salvamento único: classificação parcial é recusada; completa grava GUT + identificação numa chamada só
+      await ver({ ...base, gravidade: null }, []);
+      const alertas = []; window.alert = (m) => alertas.push(m);
+      document.getElementById('ppvdG').value = document.getElementById('ppvdG').options[1].value;
+      await ppvdSalvarCaso('c1');
+      out.parcial = { alertas: alertas.length, gravou: gravados.length };
+      ['ppvdG', 'ppvdU', 'ppvdT'].forEach(id => { const sel = document.getElementById(id); sel.value = sel.options[1].value; });
+      document.getElementById('ppvdVitNome').value = 'M.A.S.';
+      await ppvdSalvarCaso('c1');
+      const g = gravados.filter(x => x.t === 'ppvd_casos').map(x => x.d);
+      out.completo = { n: g.length, campos: g[0] ? Object.keys(g[0]).sort().join() : '', vit: g[0] && g[0].vitima_nome };
+      return out;
+    });
+    checa(/Classifique/.test(r.novo.titulo) && /Fato há/.test(r.novo.det) && /caso-prox v/.test(r.novo.cor) && r.novo.ok === 1 && /Visita despachada/.test(r.novo.atual), `caso novo: "${r.novo.titulo}", etapa atual "${r.novo.atual}"`, 'caso novo: ' + JSON.stringify(r.novo));
+    checa(r.novo.dadosAberto && r.novo.ordem.indexOf('casoDados') < r.novo.ordem.indexOf('casoAcaoDespachar'), 'sem classificação: os dados abrem primeiro, antes de despachar', 'ordem: ' + r.novo.ordem);
+    checa(/Aguardando Sd Fulano/.test(r.pendente.titulo) && /atrasada/.test(r.pendente.det) && /caso-prox v/.test(r.pendente.cor) && r.pendente.ok === 2, 'visita pendente há 80h: em atraso (prazo de 72h), com o nome do militar', 'pendente: ' + JSON.stringify(r.pendente));
+    checa(/Decida/.test(r.decisao.titulo) && /caso-prox z/.test(r.decisao.cor) && /Decisão do comandante/.test(r.decisao.atual) && r.decisao.ordem.startsWith('casoAcaoDespachar') && r.decisao.ordem.includes('casoAcaoDecisao'), 'decisão do comandante: azul (há retorno), ação antes dos dados', 'decisão: ' + JSON.stringify(r.decisao));
+    checa(/estabilizado/i.test(r.estab.titulo) && r.estab.ok === 5 && /caso-prox g/.test(r.estab.cor), 'caso estabilizado: tudo concluído e em verde', 'estabilizado: ' + JSON.stringify(r.estab));
+    checa(/anterior ao PPVD/.test(r.velho.titulo) && /sem o registro no sistema/.test(r.velho.det) && r.velho.ok === 5 && r.velhoSemAcao, 'caso anterior a Setembro: finalizado, com a observação, sem botão de despachar', 'caso antigo: ' + JSON.stringify(r.velho));
+    checa(r.novo.botoesSalvar === 1, 'um botão só salva classificação e identificação', `botões de salvar: ${r.novo.botoesSalvar}`);
+    checa(r.parcial.alertas === 1 && r.parcial.gravou === 0, 'classificação pela metade é recusada com aviso', 'parcial: ' + JSON.stringify(r.parcial));
+    checa(r.completo.n === 1 && /gravidade/.test(r.completo.campos) && /vitima_nome/.test(r.completo.campos) && r.completo.vit === 'M.A.S.', 'salvar grava GUT e identificação numa chamada só', 'salvamento: ' + JSON.stringify(r.completo));
+    checa(errosX.length === 0, 'Página do caso sem erro de JavaScript', 'erros: ' + errosX.slice(0, 3).join(' | '));
+    await ctxX.close();
   }
 
   await browser.close();

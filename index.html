@@ -317,6 +317,27 @@
   details.vd-historico { margin-top:14px; font-size:12.5px; color:var(--muted); }
   details.vd-historico summary { cursor:pointer; padding:6px 0; }
   .vd-recorte { font-size:12.5px; color:var(--muted); margin:0 0 8px; }
+  /* Página do caso de VD, onda 3 (2026-10-13) */
+  .caso-prox { border:1px solid var(--panel-border); border-left:5px solid var(--alert); border-radius:6px; background:var(--panel); padding:14px 18px; margin:14px 0 12px; }
+  .caso-prox.a { border-left-color:var(--amber); } .caso-prox.z { border-left-color:#5b9bd5; } .caso-prox.g { border-left-color:var(--signal); }
+  .caso-prox .rot { font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .caso-prox .tit { font-size:17px; font-weight:700; line-height:1.3; }
+  .caso-prox .det { color:var(--muted); font-size:13px; margin-top:4px; line-height:1.5; }
+  .caso-prox .det.atraso { color:var(--alert-text); font-weight:600; }
+  ol.caso-passos { list-style:none; display:flex; gap:0; padding:0; margin:0 0 16px; }
+  ol.caso-passos li { flex:1; position:relative; text-align:center; font-size:12px; color:var(--muted-dim); padding-top:30px; }
+  ol.caso-passos li::before { content:attr(data-n); position:absolute; top:0; left:50%; transform:translateX(-50%); width:24px; height:24px; line-height:22px; border-radius:50%; border:2px solid var(--panel-border); background:var(--bg-2); font-family:var(--mono); font-size:12px; z-index:1; }
+  ol.caso-passos li::after { content:''; position:absolute; top:11px; left:-50%; width:100%; height:2px; background:var(--panel-border); }
+  ol.caso-passos li:first-child::after { display:none; }
+  ol.caso-passos li.ok { color:var(--text); } ol.caso-passos li.ok::before { content:'✓'; background:var(--signal); border-color:var(--signal); color:#04140d; font-weight:700; } ol.caso-passos li.ok::after { background:var(--signal); }
+  ol.caso-passos li.atual { color:var(--amber); font-weight:700; } ol.caso-passos li.atual::before { border-color:var(--amber); color:var(--amber); } ol.caso-passos li.atual::after { background:var(--signal); }
+  .caso-resumo { font-size:13px; line-height:1.7; }
+  details.caso-dados > summary { cursor:pointer; font-weight:700; } details.caso-dados > summary small { font-weight:400; color:var(--muted); margin-left:8px; }
+  @media (max-width: 760px) {
+    ol.caso-passos { flex-direction:column; gap:6px; } ol.caso-passos li { text-align:left; padding:2px 0 2px 34px; min-height:24px; }
+    ol.caso-passos li::before { left:0; transform:none; top:0; } ol.caso-passos li::after { display:none; }
+    .caso-prox .tit { font-size:16px; }
+  }
   /* Violência Doméstica, onda 2 (2026-10-13) */
   .pills-vd { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px; }
   .pills-vd button { background:var(--bg-2); border:1px solid var(--panel-border); color:#b6c6d6; border-radius:999px; padding:5px 13px; font-size:12px; cursor:pointer; font-family:var(--sans); }
@@ -2433,9 +2454,10 @@ function renderViolenciaDomesticaPage() {
     // Recorte padrão (acumulado): casos do PPVD + ocorrências recentes. As ocorrências SEM caso anteriores a Setembro
     // ficam num histórico recolhido (o PPVD só existe desde Ago/Set).
     const casoDe = (o) => (o.r ? (casosMap[o.r] || null) : null);
-    const semDe = (o) => { const c = casoDe(o); return c ? ppvdSemaforoVD(c) : 'sem'; };
-    const principais = periodo === 'acum' ? lista.filter(o => casoDe(o) || o.m >= HOME_VD_MES_INICIO) : lista;
-    const historico = periodo === 'acum' ? lista.filter(o => !(casoDe(o) || o.m >= HOME_VD_MES_INICIO)) : [];
+    const antes = (o) => o.m < HOME_VD_MES_INICIO; // anterior ao PPVD: finalizado (verde), visitas sem registro no sistema
+    const semDe = (o) => { if (antes(o)) return 'verde'; const c = casoDe(o); return c ? ppvdSemaforoVD(c) : 'sem'; };
+    const principais = periodo === 'acum' ? lista.filter(o => !antes(o)) : lista;
+    const historico = periodo === 'acum' ? lista.filter(antes) : [];
     // mais urgente primeiro: vermelho (novos/atrasados), amarelo, azul, verde; dentro de cada grupo, o mais antigo em aberto
     const ordemSem = { vermelho: 0, sem: 0, amarelo: 1, azul: 2, verde: 3 };
     const horasDe = (o) => { const x = auditoriaHorasDesde(o.d); return x === null ? 0 : Math.max(0, x); };
@@ -2450,14 +2472,15 @@ function renderViolenciaDomesticaPage() {
         window.ppvdOcorrenciaLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, fonar_feito: !!o.fonar_feito };
       }
       const caso = casoDe(o);
-      const sem = ppvdSemaforoVD(caso);
-      const sugestao = !caso ? ppvdSugerirResponsavel(nome) : null;
+      const velho = antes(o);
+      const sem = velho ? 'verde' : ppvdSemaforoVD(caso);
+      const sugestao = !caso && !velho ? ppvdSugerirResponsavel(nome) : null;
       const respNome = caso ? (caso.militar_responsavel || '—') : (sugestao ? `<span class="sugerido" title="Sugestão do cadastro de militares — ainda não foi designado">${msgEsc(sugestao.nome)} (sugerido)</span>` : '—');
       const gutIni = caso && caso.gut_score ? caso.gut_score : null, gutFin = caso && caso.gut_final_score ? caso.gut_final_score : null;
       const gut = gutIni || gutFin ? `<span title="${caso.gravidade ? 'Inicial ' + caso.gravidade + '×' + caso.urgencia + '×' + caso.tendencia : ''}${gutFin ? ' · Final ' + caso.gut_final_gravidade + '×' + caso.gut_final_urgencia + '×' + caso.gut_final_tendencia : ''}">${gutIni || '—'}${gutFin ? ' → ' + gutFin : ''}</span>` : '—';
-      const statusTxt = caso ? ppvdStatusLabelVD(caso.status) : 'Sem caso';
+      const statusTxt = velho ? 'Finalizado' : (caso ? ppvdStatusLabelVD(caso.status) : 'Sem caso');
       const statusBadgeClass = sem === 'verde' ? 'ppvd-badge-verde' : (sem === 'azul' ? 'ppvd-badge-azul' : (sem === 'amarelo' ? 'ppvd-badge-alta' : 'ppvd-badge-critica'));
-      const retornos = caso && caso.qtd_retornos > 0 ? `<br><small>${caso.qtd_retornos} retorno(s)</small>` : '';
+      const retornos = velho ? `<br><small>${PPVD_OBS_ANTERIOR}</small>` : (caso && caso.qtd_retornos > 0 ? `<br><small>${caso.qtd_retornos} retorno(s)</small>` : '');
       const horasBruto = sem === 'verde' ? null : auditoriaHorasDesde(o.d);
       const horas = horasBruto === null ? null : Math.max(0, horasBruto); // fato de hoje/futuro não fica negativo
       const abertoHa = horas === null ? '' : `<br><span class="aberto-ha ${sem === 'vermelho' && horas > 72 ? 'atraso' : ''}" title="Tempo desde o fato, enquanto o caso não está estabilizado">aberto há ${horas >= 24 ? (horas / 24).toFixed(1) + 'd' : horas.toFixed(0) + 'h'}</span>`;
@@ -2465,21 +2488,21 @@ function renderViolenciaDomesticaPage() {
       const acomp = [o.fonar_feito ? mk('FONAR ✓', 'FONAR preenchido', 'ok') : '', caso && caso.visita_autor_feita ? mk('Autor ✓', 'Visita ao autor feita', 'ok') : '', caso && caso.visita_vitima_feita ? mk('Vítima ✓', 'Visita à vítima feita', 'ok') : ''].join('') || '—';
       const podeAbrir = ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_abrir_caso);
       let acaoBtn = '—';
-      if (o.r) {
+      if (o.r && !(velho && !caso)) {
         if (!caso) acaoBtn = podeAbrir ? `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Abrir Caso ▸</button>` : `<span class="ppvd-badge ppvd-badge-semcaso">sem caso</span>`;
         else acaoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Ver Caso ▸</button>`;
       }
-      return `<tr class="vd-row-${sem}" data-sem="${caso ? sem : 'sem'}" data-busca="${msgEsc((o.r || '') + ' ' + end + ' ' + (o.n || '')).toLowerCase()}"><td data-l="Situação"><span class="ppvd-badge ${statusBadgeClass}">${statusTxt}</span>${retornos}${abertoHa}</td><td data-l="REDS / Data">${o.r || '—'}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${natLabel}<br>${gravBadge(o.g)}${o.c ? `<br><small>${msgEsc(o.c)}</small>` : ''}</td><td data-l="Endereço">${msgEsc(end) || '—'}</td><td data-l="Ocorrência">${ocorr}</td><td data-l="Acompanhamento">${acomp}</td><td data-l="Responsável">${respNome}</td><td data-l="GUT">${gut}</td><td class="acao">${acaoBtn}</td></tr>`;
+      return `<tr class="vd-row-${sem}" data-sem="${caso || velho ? sem : 'sem'}" data-busca="${msgEsc((o.r || '') + ' ' + end + ' ' + (o.n || '')).toLowerCase()}"><td data-l="Situação"><span class="ppvd-badge ${statusBadgeClass}">${statusTxt}</span>${retornos}${abertoHa}</td><td data-l="REDS / Data">${o.r || '—'}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${natLabel}<br>${gravBadge(o.g)}${o.c ? `<br><small>${msgEsc(o.c)}</small>` : ''}</td><td data-l="Endereço">${msgEsc(end) || '—'}</td><td data-l="Ocorrência">${ocorr}</td><td data-l="Acompanhamento">${acomp}</td><td data-l="Responsável">${respNome}</td><td data-l="GUT">${gut}</td><td class="acao">${acaoBtn}</td></tr>`;
     };
     const cont = { todos: principais.length, vermelho: 0, amarelo: 0, azul: 0, verde: 0, sem: 0 };
     principais.forEach(o => { const x = semDe(o); cont[x === 'vermelho' ? 'vermelho' : x]++; });
-    if (periodo === 'acum') h += `<div class="vd-recorte">Mostrando ${principais.length} ocorrência(s) com caso no PPVD ou desde ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]}${historico.length ? ` · ${historico.length} mais antiga(s), sem caso, no histórico abaixo` : ''}.</div>`;
+    if (periodo === 'acum') h += `<div class="vd-recorte">Contando só a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]}: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao PPVD ficam finalizadas (verde), no histórico abaixo` : ''}.</div>`;
     const chipF = (f, rot) => `<button type="button" data-f="${f}" class="${f === 'todos' ? 'on' : ''}">${rot} <b>${cont[f]}</b></button>`;
     h += `<div class="vd-filtros" id="vdFiltros">${chipF('todos', 'Todos')}${chipF('vermelho', '✕ Novos/atraso')}${chipF('amarelo', '! Iniciado')}${chipF('azul', '◆ Acompanhamento')}${chipF('verde', '✓ Estabilizado')}${chipF('sem', 'Sem caso')}<input type="search" id="vdBusca" placeholder="Buscar REDS, rua ou natureza" aria-label="Buscar na tabela"></div>`;
     h += `<div style="overflow-x:auto" id="vdTabelaBox">${cabecalho}`;
     h += principais.length ? principais.map(linhaCaso).join('') : `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
     h += `</tbody></table></div>`;
-    if (historico.length) h += `<details class="vd-historico" id="vdHistorico"><summary>Histórico anterior ao PPVD — ${historico.length} ocorrência(s) sem caso</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
+    if (historico.length) h += `<details class="vd-historico" id="vdHistorico"><summary>Histórico anterior ao PPVD — ${historico.length} ocorrência(s) finalizadas (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
     document.getElementById('vdMuniPanel').innerHTML = h;
     const aplicarFiltro = () => {
       const f = (document.querySelector('#vdFiltros button.on') || {}).dataset ? document.querySelector('#vdFiltros button.on').dataset.f : 'todos';
@@ -4877,6 +4900,13 @@ function ppvdRenderAguardando() {
 // Atraso: visita despachada (1ª ou retorno) sem resposta há mais de 72h (prazo máximo da mensagem de
 // despacho) volta a vermelho; `_pendenteDesde` vem de ppvdBuscarCasosVD.
 const PPVD_PRAZO_RETORNO_HORAS = 72;
+// O PPVD só passou a valer em Setembro/2026: o que aconteceu antes conta como finalizado (verde), com a ressalva de que
+// as visitas daquele período foram feitas sem registro no sistema (pedido de Eduardo em 2026-10-13).
+const PPVD_VD_DESDE_ISO = '2026-09-01';
+const PPVD_OBS_ANTERIOR = 'anterior ao PPVD — visitas feitas sem o registro no sistema';
+function ppvdAnteriorAoPpvdVD(caso) {
+  return !!(caso && caso.reds_data && String(caso.reds_data).slice(0, 10) < PPVD_VD_DESDE_ISO);
+}
 function ppvdEmAcompanhamentoVD(caso) {
   return !!caso && caso.status !== 'estabilizada' && ((caso.qtd_retornos || 0) >= 1 || caso.status === 'retorno' || caso.status === 'em_acompanhamento');
 }
@@ -4885,7 +4915,7 @@ function ppvdVisitaAtrasadaVD(caso) {
 }
 function ppvdSemaforoVD(caso) {
   if (!caso) return 'vermelho';
-  if (caso.status === 'estabilizada') return 'verde';
+  if (caso.status === 'estabilizada' || ppvdAnteriorAoPpvdVD(caso)) return 'verde';
   if (ppvdEmAcompanhamentoVD(caso)) return ppvdVisitaAtrasadaVD(caso) ? 'vermelho' : 'azul';
   if (caso.status === 'em_visita') return ppvdVisitaAtrasadaVD(caso) ? 'vermelho' : 'amarelo';
   if (caso.status === 'decisao_cmd') return 'amarelo';
@@ -5027,6 +5057,56 @@ async function ppvdAbrirCaso(redsNumero) {
   await ppvdRenderCaso(caso);
 }
 
+// O que falta fazer num caso de VD, quem precisa fazer e até quando (prazo máximo de 72h da visita despachada).
+function ppvdProximaAcaoVD(caso, visitas) {
+  const lista = visitas || [];
+  const pend = lista.find(v => v.despachado_em && !v.visita_realizada_em);
+  const ultima = lista.find(v => v.visita_realizada_em);
+  const horas = (iso) => (iso ? Math.max(0, (Date.now() - new Date(iso).getTime()) / 3600000) : null);
+  const fmtH = (h) => (h >= 48 ? (h / 24).toFixed(1).replace('.', ',') + ' dias' : Math.round(h) + 'h');
+  const retorno = (caso.qtd_retornos || 0) >= 1;
+  const gutOk = !!(caso.gravidade && caso.urgencia && caso.tendencia);
+  if (ppvdAnteriorAoPpvdVD(caso) && caso.status !== 'estabilizada') {
+    return { cor: 'g', rotulo: 'Situação do caso', titulo: 'Caso finalizado — anterior ao PPVD', detalhe: 'Fato de ' + caso.reds_data + ', antes do PPVD (Setembro/2026): ' + PPVD_OBS_ANTERIOR + '.' };
+  }
+  if (caso.status === 'estabilizada') {
+    return { cor: 'g', rotulo: 'Situação do caso', titulo: 'Caso estabilizado', detalhe: caso.estabilizado_em ? 'Estabilizado em ' + ppvdFmtDT(caso.estabilizado_em) + (caso.estabilizado_por ? ' por ' + caso.estabilizado_por : '') + '.' : 'Nenhuma ação pendente.' };
+  }
+  if (pend) {
+    const resta = PPVD_PRAZO_RETORNO_HORAS - horas(pend.despachado_em);
+    const limite = new Date(new Date(pend.despachado_em).getTime() + PPVD_PRAZO_RETORNO_HORAS * 3600000);
+    const atraso = resta < 0;
+    return {
+      cor: atraso ? 'v' : (retorno ? 'z' : 'a'), rotulo: atraso ? 'Em atraso' : 'No prazo', atraso,
+      titulo: 'Aguardando ' + (pend.guarnicao || 'o militar') + ' registrar ' + (retorno ? 'o retorno' : 'a visita'),
+      detalhe: atraso ? 'O prazo máximo de ' + PPVD_PRAZO_RETORNO_HORAS + 'h venceu em ' + ppvdFmtDT(limite) + ' (atrasada há ' + fmtH(-resta) + '). Cobre o militar pelo WhatsApp.' : 'Despachada em ' + ppvdFmtDT(pend.despachado_em) + '. Prazo máximo até ' + ppvdFmtDT(limite) + ' (faltam ' + fmtH(resta) + ').'
+    };
+  }
+  if (caso.status === 'decisao_cmd') {
+    const h = ultima ? horas(ultima.visita_realizada_em) : null;
+    return { cor: retorno ? 'z' : 'a', rotulo: 'Decisão do comandante', titulo: 'Decida: estabilizar o caso ou despachar um retorno', detalhe: (h !== null ? 'Visita registrada há ' + fmtH(h) + '. ' : '') + 'Leia o BOS e o GUT final antes de decidir.' };
+  }
+  const hf = caso.reds_data ? horas(caso.reds_data) : null;
+  return {
+    cor: 'v', rotulo: 'Caso novo',
+    titulo: gutOk ? 'Despache a ' + (retorno ? 'visita de retorno' : '1ª visita') : 'Classifique o caso (GUT) e despache a 1ª visita',
+    detalhe: (hf !== null ? 'Fato há ' + fmtH(hf) + '. ' : '') + 'Prazo preferencial de 24h para a visita (máximo de ' + PPVD_PRAZO_RETORNO_HORAS + 'h).' + (ppvdOrientacao(caso.gravidade, caso.urgencia, caso.tendencia).nivel === 'critica' ? ' GUT crítico: visita em até 24h.' : '')
+  };
+}
+
+// Etapas do fluxo do caso de VD (o retorno repete as etapas 2–4 até o comandante estabilizar).
+function ppvdPassosVD(caso, visitas) {
+  const lista = visitas || [];
+  const pend = lista.some(v => v.despachado_em && !v.visita_realizada_em);
+  let atual;
+  if (caso.status === 'estabilizada' || ppvdAnteriorAoPpvdVD(caso)) atual = 5;
+  else if (pend) atual = 2;
+  else if (caso.status === 'decisao_cmd') atual = 3;
+  else atual = 1;
+  const nomes = ['Caso aberto', 'Visita despachada', 'Visita registrada pelo militar', 'Decisão do comandante', 'Estabilizado'];
+  return `<ol class="caso-passos" aria-label="Etapas do caso">` + nomes.map((n, i) => `<li class="${i < atual ? 'ok' : (i === atual ? 'atual' : '')}" data-n="${i + 1}"${i === atual ? ' aria-current="step"' : ''}>${n}${i === 3 && (caso.qtd_retornos || 0) ? '<br><small>' + caso.qtd_retornos + ' retorno(s) feito(s)</small>' : ''}</li>`).join('') + `</ol>`;
+}
+
 async function ppvdRenderCaso(caso) {
   if (!window.ppvdRestaurando) estadoUI.limparCampos(); // re-render depois de salvar: rascunho já virou dado
   window.ppvdCasoAtual = caso;
@@ -5035,131 +5115,151 @@ async function ppvdRenderCaso(caso) {
   const orient = ppvdOrientacao(caso.gravidade, caso.urgencia, caso.tendencia);
   const orientFinal = ppvdOrientacao(caso.gut_final_gravidade, caso.gut_final_urgencia, caso.gut_final_tendencia);
   const podeGerenciar = ehVD && ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_abrir_caso);
+  const prox = ehVD ? ppvdProximaAcaoVD(caso, visitas) : null;
+  const gutOk = !!(caso.gravidade && caso.urgencia && caso.tendencia);
 
   let html = `<div class="page-title">Caso PPVD — ${caso.municipio || ''}</div>`;
   html += `<button class="ppvd-btn" onclick="goToPage('${ppvdModalidadeVoltarPage(caso.modalidade)}')">← Voltar</button>`;
 
-  html += `<div class="ppvd-card" style="margin-top:16px">`;
-  html += `<b>REDS:</b> ${caso.reds_numero || '—'} &nbsp; <b>Data:</b> ${caso.reds_data || '—'} &nbsp; <b>Natureza:</b> ${caso.natureza || '—'} &nbsp; <b>Causa:</b> ${caso.causa || '—'}<br>`;
-  html += `<b>Endereço:</b> ${caso.bairro || ''}${caso.logradouro ? (' - ' + caso.logradouro) : ''}${caso.numero && caso.numero !== '0' ? (', ' + caso.numero) : ''}<br><br>`;
   if (ehVD) {
-    if (caso.fonar_feito && caso.fonar_dados) {
-      const fd = caso.fonar_dados;
-      const perguntas = Object.keys(fd.respostas || {}).filter(k => !/e-?mail/i.test(k));
-      html += `<b>FONAR:</b> <span class="vd-check-ok">✓ preenchido</span> — vítima ${ppvdIniciais(fd.nome_vitima)}, respondido em ${ppvdFmtDT(fd.carimbo)} `;
-      html += `<details style="display:inline"><summary style="cursor:pointer;color:var(--accent)">ver respostas</summary><div style="margin-top:8px;font-size:12px;line-height:1.6">`;
-      html += perguntas.map(k => `<div><b>${k}</b><br>${fd.respostas[k] || '—'}</div>`).join('<hr style="border-color:var(--border);margin:6px 0">');
-      html += `</div></details><br>`;
-    } else {
-      html += `<b>FONAR:</b> <span class="vd-check-no">não localizado ainda</span><br>`;
-      if (podeGerenciar) {
-        html += `<div id="ppvdFonarBusca" style="margin-top:6px;max-width:520px">`;
-        html += `<input id="ppvdFonarQuery" type="text" placeholder="Buscar resposta do FONAR pelo nome da vítima..." oninput="ppvdBuscarFonarCandidatos('${caso.id}')" style="width:100%;padding:6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text)">`;
-        html += `<div id="ppvdFonarResultados" style="margin-top:6px"></div>`;
-        html += `</div>`;
-      }
-    }
-    html += `<b>Status:</b> <select id="ppvdStatusSel">${['aberto', 'em_visita', 'decisao_cmd', 'retorno', 'estabilizada'].map(s => `<option value="${s}" ${s === caso.status ? 'selected' : ''}>${ppvdStatusLabelVD(s)}</option>`).join('')}</select> `;
-  } else {
-    html += `<b>Status:</b> <select id="ppvdStatusSel">${['novo', 'em_acompanhamento', 'recusa', 'encerrado'].map(s => `<option value="${s}" ${s === caso.status ? 'selected' : ''}>${s}</option>`).join('')}</select> `;
+    // 1) o que fazer agora e em que etapa o caso está
+    html += `<div class="caso-prox ${prox.cor}" id="casoProxAcao"><div class="rot">Próxima ação${prox.rotulo ? ' · ' + prox.rotulo : ''}</div><div class="tit">${prox.titulo}</div><div class="det${prox.atraso ? ' atraso' : ''}">${prox.detalhe}</div></div>`;
+    html += ppvdPassosVD(caso, visitas);
   }
-  html += `<button class="ppvd-btn" onclick="ppvdSalvarStatus('${caso.id}')">Salvar status</button>`;
-  if (podeGerenciar) {
-    html += ppvdPerfil.is_admin
-      ? ` <button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdReiniciarCaso('${caso.id}')">⟲ Reiniciar Caso</button>`
-      : ` <button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdSolicitarAoAdmin('reiniciar_caso','${caso.id}',null)">⟲ Solicitar reinício ao admin</button>`;
-  }
-  html += `</div>`;
 
-  html += `<div class="kpi-grid">`;
-  html += `<div class="kpi-card ${orient.nivel === 'critica' ? 'kpi-red' : (orient.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${orient.score || '—'}</div><div class="lbl">GUT Inicial (G×U×T)</div></div>`;
-  html += `<div class="kpi-card ${orientFinal.nivel === 'critica' ? 'kpi-red' : (orientFinal.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${caso.gut_final_score || '—'}</div><div class="lbl">GUT Final (última visita)</div></div>`;
-  html += `</div>`;
-
-  html += `<div class="ppvd-card"><b>Classificação GUT Inicial</b> <span style="color:var(--muted);font-size:12px">(preenchida pelo comandante ao abrir o caso, com base no REDS + FONAR)</span><br><br>`;
-  html += `<div class="ppvd-field"><label>Gravidade</label>${ppvdSelectGUT('ppvdG', 'gravidade', caso.gravidade)}</div>`;
-  html += `<div class="ppvd-field"><label>Urgência</label>${ppvdSelectGUT('ppvdU', 'urgencia', caso.urgencia)}</div>`;
-  html += `<div class="ppvd-field"><label>Tendência</label>${ppvdSelectGUT('ppvdT', 'tendencia', caso.tendencia)}</div>`;
-  html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSalvarGUT('${caso.id}')">Salvar classificação</button>`;
-  html += `</div>`;
-
-  html += `<div class="ppvd-card"><b>Identificação (somente iniciais — sem nome completo, RG ou telefone)</b><br><br>`;
-  html += `<div class="ppvd-field"><label>Iniciais da vítima</label><input id="ppvdVitNome" placeholder="Ex: M.A.S." value="${caso.vitima_nome || ''}"></div>`;
-  html += `<div class="ppvd-field"><label>Iniciais do autor</label><input id="ppvdAutNome" placeholder="Ex: J.P.O." value="${caso.autor_nome || ''}"></div>`;
-  html += `<div class="ppvd-field"><label>Tem mandado?</label><select id="ppvdMandado"><option value="false" ${!caso.tem_mandado ? 'selected' : ''}>Não</option><option value="true" ${caso.tem_mandado ? 'selected' : ''}>Sim</option></select></div>`;
-  html += `<div class="ppvd-field"><label>Medida protetiva?</label><select id="ppvdMP"><option value="false" ${!caso.medida_protetiva ? 'selected' : ''}>Não</option><option value="true" ${caso.medida_protetiva ? 'selected' : ''}>Sim</option></select></div>`;
-  html += `<div class="ppvd-field"><label>Pelotão responsável</label><input id="ppvdPelotao" value="${caso.pelotao || ''}"></div>`;
-  html += `<div class="ppvd-field"><label>Destacamento responsável</label><input id="ppvdDestacamento" value="${caso.destacamento || ''}"></div>`;
-  html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdSalvarDados('${caso.id}')">Salvar dados</button>`;
-  html += `</div>`;
-
+  // 2) a ação em si vem logo abaixo (despachar / aguardar / decidir) — antes dos dados
+  let acoes = '';
   const semVisitaPendente = !visitas || visitas.every(v => v.visita_realizada_em);
-  if (ehVD && semVisitaPendente && caso.status !== 'estabilizada') {
+  const velho = ehVD && ppvdAnteriorAoPpvdVD(caso);
+  if (ehVD && semVisitaPendente && caso.status !== 'estabilizada' && !velho) {
     const sugestao = ppvdSugerirResponsavel(caso.municipio);
     const ehRetorno = caso.status === 'decisao_cmd';
-    html += `<div class="ppvd-card"><b>Despachar visita — ${ehRetorno ? 'Retorno' : 'Visita inicial'}</b><br><br>`;
-    html += `<div class="ppvd-field"><label>Militar responsável (nome)</label><input id="ppvdRespNome" value="${caso.militar_responsavel || (sugestao ? sugestao.nome : '')}"></div>`;
-    html += `<div class="ppvd-field"><label>WhatsApp (com DDD)</label><input id="ppvdRespWhats" value="${caso.militar_responsavel_whatsapp || (sugestao ? sugestao.whatsapp : '')}"></div>`;
-    html += `<div style="color:var(--muted);font-size:12.5px;margin-bottom:10px">Ao despachar, abre o WhatsApp com a mensagem já pronta e o link da página de registro da visita. Dá pra trocar o nome/WhatsApp aqui sem alterar o cadastro fixo.</div>`;
-    html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdDespacharVD('${caso.id}', ${ehRetorno})">Despachar${ehRetorno ? ' Retorno' : ''} (WhatsApp)</button>`;
-    html += `</div>`;
+    acoes += `<div class="ppvd-card" id="casoAcaoDespachar"><b>Despachar visita — ${ehRetorno ? 'Retorno' : 'Visita inicial'}</b><br><br>`;
+    acoes += `<div class="ppvd-field"><label>Militar responsável (nome)</label><input id="ppvdRespNome" value="${msgEsc(caso.militar_responsavel || (sugestao ? sugestao.nome : ''))}"></div>`;
+    acoes += `<div class="ppvd-field"><label>WhatsApp (com DDD)</label><input id="ppvdRespWhats" value="${msgEsc(caso.militar_responsavel_whatsapp || (sugestao ? sugestao.whatsapp : ''))}"></div>`;
+    acoes += `<div style="color:var(--muted);font-size:12.5px;margin-bottom:10px">Ao despachar, abre o WhatsApp com a mensagem já pronta e o link da página de registro da visita (prazo preferencial de 24h, máximo de ${PPVD_PRAZO_RETORNO_HORAS}h). Dá pra trocar o nome/WhatsApp aqui sem alterar o cadastro fixo.</div>`;
+    acoes += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdDespacharVD('${caso.id}', ${ehRetorno})">Despachar${ehRetorno ? ' Retorno' : ''} (WhatsApp)</button>`;
+    acoes += `</div>`;
   }
 
   const pendente = (visitas || []).find(v => v.despachado_em && !v.visita_realizada_em);
   if (pendente) {
-    html += `<div class="ppvd-card" style="border-color:var(--amber)"><b>⏳ Visita pendente de resposta do militar</b> — despachada em ${ppvdFmtDT(pendente.despachado_em)} por ${pendente.despachado_por || '—'} pra ${pendente.guarnicao || '—'}<br>`;
-    html += `<div style="color:var(--muted);font-size:12.5px;margin:8px 0">Link enviado: <code>${ppvdLinkVisitaPublica(pendente.token)}</code></div>`;
-    html += `<details><summary style="cursor:pointer;color:var(--amber)">Registrar manualmente (se o militar não conseguiu usar o link)</summary><br>`;
-    html += `<div class="ppvd-field"><label>Visita ao autor realizada?</label><select id="ppvdManAutorFeita"><option value="false">Não</option><option value="true">Sim</option></select></div>`;
-    html += `<div class="ppvd-field"><label>Visita à vítima realizada?</label><select id="ppvdManVitimaFeita"><option value="false">Não</option><option value="true">Sim</option></select></div>`;
-    html += `<div class="ppvd-field"><label>Situação encontrada</label><textarea id="ppvdSituacao"></textarea></div>`;
-    html += `<div class="ppvd-field"><label>Vítima presente?</label><select id="ppvdVitPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
-    html += `<div class="ppvd-field"><label>Autor presente?</label><select id="ppvdAutPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
-    html += `<div class="ppvd-field"><label>Reclassificação — Gravidade</label>${ppvdSelectGUT('ppvdNovaG', 'gravidade', '')}</div>`;
-    html += `<div class="ppvd-field"><label>Reclassificação — Urgência</label>${ppvdSelectGUT('ppvdNovaU', 'urgencia', '')}</div>`;
-    html += `<div class="ppvd-field"><label>Reclassificação — Tendência</label>${ppvdSelectGUT('ppvdNovaT', 'tendencia', '')}</div>`;
-    html += `<div class="ppvd-field"><label>Observações</label><textarea id="ppvdObsVisita"></textarea></div>`;
-    html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdRegistrarResultado('${pendente.id}', '${caso.id}')">Registrar resultado da visita</button>`;
-    html += `</details></div>`;
+    acoes += `<div class="ppvd-card" style="border-color:var(--amber)" id="casoAcaoPendente"><b>⏳ Visita pendente de resposta do militar</b> — despachada em ${ppvdFmtDT(pendente.despachado_em)} por ${pendente.despachado_por || '—'} pra ${pendente.guarnicao || '—'}<br>`;
+    acoes += `<div style="color:var(--muted);font-size:12.5px;margin:8px 0">Link enviado: <code>${ppvdLinkVisitaPublica(pendente.token)}</code></div>`;
+    acoes += `<details><summary style="cursor:pointer;color:var(--amber)">Registrar manualmente (se o militar não conseguiu usar o link)</summary><br>`;
+    acoes += `<div class="ppvd-field"><label>Visita ao autor realizada?</label><select id="ppvdManAutorFeita"><option value="false">Não</option><option value="true">Sim</option></select></div>`;
+    acoes += `<div class="ppvd-field"><label>Visita à vítima realizada?</label><select id="ppvdManVitimaFeita"><option value="false">Não</option><option value="true">Sim</option></select></div>`;
+    acoes += `<div class="ppvd-field"><label>Situação encontrada</label><textarea id="ppvdSituacao"></textarea></div>`;
+    acoes += `<div class="ppvd-field"><label>Vítima presente?</label><select id="ppvdVitPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
+    acoes += `<div class="ppvd-field"><label>Autor presente?</label><select id="ppvdAutPresente"><option value="true">Sim</option><option value="false">Não</option></select></div>`;
+    acoes += `<div class="ppvd-field"><label>Reclassificação — Gravidade</label>${ppvdSelectGUT('ppvdNovaG', 'gravidade', '')}</div>`;
+    acoes += `<div class="ppvd-field"><label>Reclassificação — Urgência</label>${ppvdSelectGUT('ppvdNovaU', 'urgencia', '')}</div>`;
+    acoes += `<div class="ppvd-field"><label>Reclassificação — Tendência</label>${ppvdSelectGUT('ppvdNovaT', 'tendencia', '')}</div>`;
+    acoes += `<div class="ppvd-field"><label>Observações</label><textarea id="ppvdObsVisita"></textarea></div>`;
+    acoes += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdRegistrarResultado('${pendente.id}', '${caso.id}')">Registrar resultado da visita</button>`;
+    acoes += `</details></div>`;
   }
 
-  if (ehVD && caso.status === 'decisao_cmd') {
+  if (ehVD && caso.status === 'decisao_cmd' && !velho) {
     const ultima = (visitas || []).find(v => v.visita_realizada_em);
-    html += `<div class="ppvd-card" style="border-color:var(--amber)"><b>⚠ Decisão do Comandante</b><br><br>`;
+    acoes += `<div class="ppvd-card" style="border-color:var(--amber)" id="casoAcaoDecisao"><b>⚠ Decisão do Comandante</b><br><br>`;
     if (ultima) {
-      html += `<b>BOS anexados:</b> `;
-      html += ultima.bos_autor_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${ultima.bos_autor_url}')">Ver BOS autor</button> ` : 'sem BOS autor ';
-      html += ultima.bos_vitima_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${ultima.bos_vitima_url}')">Ver BOS vítima</button>` : 'sem BOS vítima';
-      html += `<br><br>`;
+      acoes += `<b>BOS anexados:</b> `;
+      acoes += ultima.bos_autor_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${ultima.bos_autor_url}')">Ver BOS autor</button> ` : 'sem BOS autor ';
+      acoes += ultima.bos_vitima_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${ultima.bos_vitima_url}')">Ver BOS vítima</button>` : 'sem BOS vítima';
+      acoes += `<br><br>`;
     }
-    html += `<div style="color:var(--muted);font-size:12px;margin-bottom:10px">Leia o BOS e o GUT final acima e decida: estabilizar o caso ou despachar mais um retorno (card "Despachar visita — Retorno" acima).</div>`;
-    html += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdEstabilizarVD('${caso.id}')">✓ Marcar como Estabilizada</button>`;
-    html += `</div>`;
+    acoes += `<div style="color:var(--muted);font-size:12px;margin-bottom:10px">Leia o BOS e o GUT final e decida: estabilizar o caso ou despachar mais um retorno (cartão "Despachar visita — Retorno" acima).</div>`;
+    acoes += `<button class="ppvd-btn ppvd-btn-primary" onclick="ppvdEstabilizarVD('${caso.id}')">✓ Marcar como Estabilizada</button>`;
+    acoes += `</div>`;
   }
+
+  // 3) dados do fato (REDS, endereço, FONAR) e GUT dos dois momentos
+  let fato = `<div class="ppvd-card"><div class="caso-resumo"><b>REDS:</b> ${caso.reds_numero || '—'} &nbsp; <b>Data:</b> ${caso.reds_data || '—'} &nbsp; <b>Natureza:</b> ${caso.natureza || '—'} &nbsp; <b>Causa:</b> ${caso.causa || '—'}<br>`;
+  fato += `<b>Endereço:</b> ${caso.bairro || ''}${caso.logradouro ? (' - ' + caso.logradouro) : ''}${caso.numero && caso.numero !== '0' ? (', ' + caso.numero) : ''}`;
+  if (ehVD) {
+    fato += `<br>`;
+    if (caso.fonar_feito && caso.fonar_dados) {
+      const fd = caso.fonar_dados;
+      const perguntas = Object.keys(fd.respostas || {}).filter(k => !/e-?mail/i.test(k));
+      fato += `<b>FONAR:</b> <span class="vd-check-ok">✓ preenchido</span> — vítima ${ppvdIniciais(fd.nome_vitima)}, respondido em ${ppvdFmtDT(fd.carimbo)} `;
+      fato += `<details style="display:inline"><summary style="cursor:pointer;color:var(--accent)">ver respostas</summary><div style="margin-top:8px;font-size:12px;line-height:1.6">`;
+      fato += perguntas.map(k => `<div><b>${k}</b><br>${fd.respostas[k] || '—'}</div>`).join('<hr style="border-color:var(--border);margin:6px 0">');
+      fato += `</div></details>`;
+    } else {
+      fato += `<b>FONAR:</b> <span class="vd-check-no">não localizado ainda</span>`;
+      if (podeGerenciar) {
+        fato += `<div id="ppvdFonarBusca" style="margin-top:6px;max-width:520px">`;
+        fato += `<input id="ppvdFonarQuery" type="text" placeholder="Buscar resposta do FONAR pelo nome da vítima..." oninput="ppvdBuscarFonarCandidatos('${caso.id}')" style="width:100%;padding:6px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;color:var(--text)">`;
+        fato += `<div id="ppvdFonarResultados" style="margin-top:6px"></div>`;
+        fato += `</div>`;
+      }
+    }
+  }
+  fato += `</div>`;
+  if (ehVD) {
+    fato += `<div class="kpi-grid" style="margin-top:12px">`;
+    fato += `<div class="kpi-card ${orient.nivel === 'critica' ? 'kpi-red' : (orient.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${orient.score || '—'}</div><div class="lbl">GUT Inicial (G×U×T)</div></div>`;
+    fato += `<div class="kpi-card ${orientFinal.nivel === 'critica' ? 'kpi-red' : (orientFinal.nivel === 'alta' ? 'kpi-neutral' : 'kpi-green')}"><div class="val">${caso.gut_final_score || '—'}</div><div class="lbl">GUT Final (última visita)</div></div>`;
+    fato += `</div>`;
+  }
+  fato += `</div>`;
+
+  // Status (manual) — corrige o que o fluxo automático não pegou; recolhido pra não competir com a próxima ação
+  const statusOpts = ehVD ? ['aberto', 'em_visita', 'decisao_cmd', 'retorno', 'estabilizada'] : ['novo', 'em_acompanhamento', 'recusa', 'encerrado'];
+  let statusBloco = `<div class="ppvd-field" style="max-width:340px"><label>Status do caso</label><select id="ppvdStatusSel">${statusOpts.map(s => `<option value="${s}" ${s === caso.status ? 'selected' : ''}>${ehVD ? ppvdStatusLabelVD(s) : s}</option>`).join('')}</select></div>`;
+  statusBloco += `<button class="ppvd-btn" onclick="ppvdSalvarStatus('${caso.id}')">Salvar status</button>`;
+  if (podeGerenciar) {
+    statusBloco += ppvdPerfil.is_admin
+      ? ` <button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdReiniciarCaso('${caso.id}')">⟲ Reiniciar Caso</button>`
+      : ` <button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdSolicitarAoAdmin('reiniciar_caso','${caso.id}',null)">⟲ Solicitar reinício ao admin</button>`;
+  }
+
+  // 4) classificação + identificação num cartão só, com UM botão de salvar. Abre sozinho quando falta classificar.
+  const resumoDados = [gutOk ? 'GUT ' + orient.score : 'GUT pendente', caso.vitima_nome ? 'vítima ' + msgEsc(caso.vitima_nome) : '', caso.autor_nome ? 'autor ' + msgEsc(caso.autor_nome) : '', caso.medida_protetiva ? 'medida protetiva' : '', caso.tem_mandado ? 'mandado' : ''].filter(Boolean).join(' · ');
+  let dados = `<details class="ppvd-card caso-dados" id="casoDados" ${gutOk ? '' : 'open'}><summary>Classificação e identificação <small>${resumoDados}</small></summary><br>`;
+  dados += `<b>Classificação GUT inicial</b> <span style="color:var(--muted);font-size:12px">(feita pelo comandante ao abrir o caso, com base no REDS + FONAR)</span><br><br>`;
+  dados += `<div class="ppvd-field"><label>Gravidade</label>${ppvdSelectGUT('ppvdG', 'gravidade', caso.gravidade)}</div>`;
+  dados += `<div class="ppvd-field"><label>Urgência</label>${ppvdSelectGUT('ppvdU', 'urgencia', caso.urgencia)}</div>`;
+  dados += `<div class="ppvd-field"><label>Tendência</label>${ppvdSelectGUT('ppvdT', 'tendencia', caso.tendencia)}</div>`;
+  dados += `<b>Identificação</b> <span style="color:var(--muted);font-size:12px">(somente iniciais — sem nome completo, RG ou telefone)</span><br><br>`;
+  dados += `<div class="ppvd-field"><label>Iniciais da vítima</label><input id="ppvdVitNome" placeholder="Ex: M.A.S." value="${msgEsc(caso.vitima_nome)}"></div>`;
+  dados += `<div class="ppvd-field"><label>Iniciais do autor</label><input id="ppvdAutNome" placeholder="Ex: J.P.O." value="${msgEsc(caso.autor_nome)}"></div>`;
+  dados += `<div class="ppvd-field"><label>Tem mandado?</label><select id="ppvdMandado"><option value="false" ${!caso.tem_mandado ? 'selected' : ''}>Não</option><option value="true" ${caso.tem_mandado ? 'selected' : ''}>Sim</option></select></div>`;
+  dados += `<div class="ppvd-field"><label>Medida protetiva?</label><select id="ppvdMP"><option value="false" ${!caso.medida_protetiva ? 'selected' : ''}>Não</option><option value="true" ${caso.medida_protetiva ? 'selected' : ''}>Sim</option></select></div>`;
+  dados += `<div class="ppvd-field"><label>Pelotão responsável</label><input id="ppvdPelotao" value="${msgEsc(caso.pelotao)}"></div>`;
+  dados += `<div class="ppvd-field"><label>Destacamento responsável</label><input id="ppvdDestacamento" value="${msgEsc(caso.destacamento)}"></div>`;
+  dados += `<button class="ppvd-btn ppvd-btn-primary" id="ppvdSalvarCasoBtn" onclick="ppvdSalvarCaso('${caso.id}')">Salvar classificação e dados</button>`;
+  dados += `</details>`;
+
+  // Caso novo sem classificação: classificar vem antes de despachar. Nos demais, a ação vem antes dos dados.
+  html += !gutOk && ehVD && caso.status !== 'estabilizada' && !velho ? dados + acoes : acoes + dados;
+  html += fato;
+  html += `<details class="ppvd-card caso-dados"><summary>Status e correções <small>${ehVD ? ppvdStatusLabelVD(caso.status) : caso.status}</small></summary><br>${statusBloco}</details>`;
 
   html += `<div class="page-title" style="margin-top:24px;font-size:16px">Histórico de Visitas${caso.qtd_retornos ? (' — ' + caso.qtd_retornos + ' retorno(s)') : ''}</div>`;
   if (!visitas || visitas.length === 0) {
     html += `<div class="pending-box">Nenhuma visita registrada ainda.</div>`;
   } else {
-    html += `<table class="data-table"><thead><tr><th style="text-align:left">Despachada em</th><th style="text-align:left">Militar</th><th style="text-align:left">Visita realizada em</th><th style="text-align:left">Situação</th><th>Reclassificação GUT</th><th>BOS</th>${podeGerenciar ? '<th>Ações</th>' : ''}</tr></thead><tbody>`;
+    html += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Despachada em</th><th style="text-align:left">Militar</th><th style="text-align:left">Visita realizada em</th><th style="text-align:left">Situação</th><th>Reclassificação GUT</th><th>BOS</th>${podeGerenciar ? '<th>Ações</th>' : ''}</tr></thead><tbody>`;
     visitas.forEach(v => {
       const reclass = (v.nova_gravidade && v.nova_urgencia && v.nova_tendencia) ? `${v.nova_gravidade}×${v.nova_urgencia}×${v.nova_tendencia}=${v.nova_gravidade * v.nova_urgencia * v.nova_tendencia}` : '—';
       const bosLinks = [
         v.bos_autor_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${v.bos_autor_url}')">Autor</button>` : '',
         v.bos_vitima_url ? `<button class="ppvd-btn" onclick="ppvdAbrirBos('${v.bos_vitima_url}')">Vítima</button>` : '',
       ].filter(Boolean).join(' ') || '—';
-      let acoes = '';
+      let acoesV = '';
       if (podeGerenciar) {
-        acoes = ppvdPerfil.is_admin
+        acoesV = ppvdPerfil.is_admin
           ? `<button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdApagarVisita('${v.id}','${caso.id}')">🗑 Apagar</button>`
           : `<button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert)" onclick="ppvdSolicitarAoAdmin('apagar_visita','${caso.id}','${v.id}')">🗑 Solicitar exclusão ao admin</button>`;
         if (v.visita_realizada_em) {
-          acoes += ` <button class="ppvd-btn" onclick="ppvdSolicitarNovoPreenchimento('${v.id}','${caso.id}')">↺ Solicitar novo preenchimento</button>`;
+          acoesV += ` <button class="ppvd-btn" onclick="ppvdSolicitarNovoPreenchimento('${v.id}','${caso.id}')">↺ Solicitar novo preenchimento</button>`;
         }
       }
-      html += `<tr><td style="text-align:left">${ppvdFmtDT(v.despachado_em)}</td><td style="text-align:left">${v.guarnicao || '—'}</td><td style="text-align:left">${ppvdFmtDT(v.visita_realizada_em)}</td><td style="text-align:left">${v.situacao_encontrada || '—'}</td><td>${reclass}</td><td>${bosLinks}</td>${podeGerenciar ? `<td>${acoes}</td>` : ''}</tr>`;
+      html += `<tr><td style="text-align:left">${ppvdFmtDT(v.despachado_em)}</td><td style="text-align:left">${v.guarnicao || '—'}</td><td style="text-align:left">${ppvdFmtDT(v.visita_realizada_em)}</td><td style="text-align:left">${v.situacao_encontrada || '—'}</td><td>${reclass}</td><td>${bosLinks}</td>${podeGerenciar ? `<td>${acoesV}</td>` : ''}</tr>`;
     });
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
   }
 
   document.getElementById('main').innerHTML = html;
@@ -5414,24 +5514,20 @@ async function ppvdSalvarStatus(casoId) {
   await ppvdRenderCaso(caso);
 }
 
-async function ppvdSalvarGUT(casoId) {
-  const g = parseInt(document.getElementById('ppvdG').value) || null;
-  const u = parseInt(document.getElementById('ppvdU').value) || null;
-  const t = parseInt(document.getElementById('ppvdT').value) || null;
-  const { error } = await ppvdSupa.from('ppvd_casos').update({ gravidade: g, urgencia: u, tendencia: t }).eq('id', casoId);
-  if (error) { alert('Erro: ' + error.message); return; }
-  const { data: caso } = await ppvdSupa.from('ppvd_casos').select('*').eq('id', casoId).single();
-  await ppvdRenderCaso(caso);
-}
-
-async function ppvdSalvarDados(casoId) {
+// Classificação GUT + identificação num salvamento só (antes eram dois botões, e quem salvava um perdia o que digitou no outro).
+async function ppvdSalvarCaso(casoId) {
+  const num = (id) => parseInt(document.getElementById(id).value) || null;
+  const g = num('ppvdG'), u = num('ppvdU'), t = num('ppvdT');
+  const preenchidos = [g, u, t].filter(Boolean).length;
+  if (preenchidos > 0 && preenchidos < 3) { alert('Preencha Gravidade, Urgência e Tendência — ou deixe as três em branco.'); return; }
   const upd = {
-    vitima_nome: document.getElementById('ppvdVitNome').value || null,
-    autor_nome: document.getElementById('ppvdAutNome').value || null,
+    gravidade: g, urgencia: u, tendencia: t,
+    vitima_nome: document.getElementById('ppvdVitNome').value.trim() || null,
+    autor_nome: document.getElementById('ppvdAutNome').value.trim() || null,
     tem_mandado: document.getElementById('ppvdMandado').value === 'true',
     medida_protetiva: document.getElementById('ppvdMP').value === 'true',
-    pelotao: document.getElementById('ppvdPelotao').value || null,
-    destacamento: document.getElementById('ppvdDestacamento').value || null,
+    pelotao: document.getElementById('ppvdPelotao').value.trim() || null,
+    destacamento: document.getElementById('ppvdDestacamento').value.trim() || null,
   };
   const { error } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', casoId);
   if (error) { alert('Erro: ' + error.message); return; }
