@@ -244,6 +244,35 @@
   details.como-pontua { margin-top:10px; font-size:12px; color:var(--muted); font-family:var(--mono); }
   details.como-pontua summary { cursor:pointer; padding:4px 0; }
   details.como-pontua div { padding:4px 0; line-height:1.5; }
+  /* Home, onda 3 (2026-10-13): atalhos fixos + ações, cartão de Violência Doméstica, impressão */
+  #home-atencao, #home-kpis, #homeVD, #home-quadro { scroll-margin-top: 64px; }
+  .home-barra { position:sticky; top:-1px; z-index:20; display:flex; justify-content:space-between; align-items:center; gap:8px 14px; flex-wrap:wrap; padding:8px 0; margin:0 0 12px; background:rgba(8,14,22,0.94); backdrop-filter: blur(4px); border-bottom:1px solid var(--panel-border); }
+  .home-barra .atalhos { display:flex; gap:6px; overflow-x:auto; max-width:100%; scrollbar-width:none; }
+  .home-barra .atalho { flex:0 0 auto; background:var(--bg-2); border:1px solid var(--panel-border); color:#b6c6d6; border-radius:999px; padding:5px 13px; font-size:12px; cursor:pointer; font-family:var(--sans); }
+  .home-barra .atalho:hover { color:var(--text); border-color:var(--muted-dim); }
+  .home-barra .atalho.on { background:rgba(232,168,60,.15); border-color:var(--amber); color:var(--amber); font-weight:600; }
+  .home-barra .atalho[hidden] { display:none; }
+  .home-barra .acoes { display:flex; gap:8px; flex-wrap:wrap; }
+  .vd-card { background:var(--panel); border:1px solid var(--panel-border); border-left:4px solid var(--amber); border-radius:10px; padding:14px 16px; margin-bottom:20px; }
+  .vd-card[hidden] { display:none; }
+  .vd-card .hd { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .vd-card .hd b { font-size:15px; } .vd-card .hd span { color:var(--muted); font-size:12px; }
+  .vd-barra { display:flex; height:10px; border-radius:5px; overflow:hidden; background:var(--bg-2); margin-bottom:12px; }
+  .vd-barra i { display:block; height:100%; }
+  .vd-contadores { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+  @media (max-width: 760px) { .vd-contadores { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+  .vd-cont { background:var(--bg-2); border:1px solid var(--panel-border); border-left:3px solid; border-radius:8px; padding:9px 12px; }
+  .vd-cont .n { font-family:var(--mono); font-size:24px; font-weight:600; }
+  .vd-cont .t { font-size:12px; color:var(--text); margin-top:2px; }
+  .vd-cont .s { font-size:11px; color:var(--muted); margin-top:2px; line-height:1.35; }
+  .vd-cont.v { border-left-color:var(--alert); } .vd-cont.v .n { color:var(--alert-text); }
+  .vd-cont.a { border-left-color:var(--caution); } .vd-cont.a .n { color:var(--caution); }
+  .vd-cont.z { border-left-color:var(--blue, #5b9bd5); } .vd-cont.z .n { color:#8ec5ff; }
+  .vd-cont.g { border-left-color:var(--signal); } .vd-cont.g .n { color:var(--signal); }
+  .vd-cidades { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; font-size:12px; color:var(--muted); }
+  .vd-cidades button { background:var(--bg-2); border:1px solid rgba(230,72,79,.5); color:var(--text); border-radius:999px; padding:4px 11px; font-size:12px; cursor:pointer; font-family:var(--sans); }
+  .vd-cidades button:hover { background:#15283d; }
+  .vd-acoes { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
   table.data-table tr.linha-total td { border-top: 2px solid rgba(234,241,248,0.32); font-weight:700; }
   .posicao-dados { display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center; margin:2px 0 14px; font-family:var(--mono); font-size:12.5px; color:var(--muted); }
   .posicao-dados b { color:var(--text); font-weight:600; }
@@ -423,6 +452,28 @@
     input, select, textarea, .ppvd-field input, .ppvd-field select, .ppvd-field textarea { font-size:16px !important; }
     select.month-select { width:100%; max-width:100%; }
     #sigopGate .sg-box { padding:22px 18px; }
+  }
+
+  /* impressão / PDF da Home: tema claro, sem menu nem botões, as duas abas do quadro */
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print {
+    :root { --bg-0:#fff; --bg-1:#fff; --bg-2:#f3f3f3; --panel:#fff; --panel-border:#b5b5b5; --line:#cfcfcf; --text:#111; --muted:#444; --muted-dim:#555; --amber:#8a5a00; --signal:#0b7a4b; --alert:#b00020; --alert-text:#b00020; --caution:#7a6a00; }
+    html, body { background:#fff !important; color:#111 !important; display:block !important; height:auto !important; min-height:0 !important; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sidebar, .topbar, .mun-strip, .tabbar, .folha, .menu-toggle, .nav-backdrop, .home-barra, .ap-cta, .abas, .dica-rolagem, .atn-mais, #sigopGate, .vd-acoes, details.fontes-home, details.como-pontua { display:none !important; }
+    .app-col { height:auto !important; display:block !important; }
+    .main { overflow:visible !important; padding:0 !important; }
+    [data-painel][hidden] { display:block !important; }
+    .atn-extra[hidden] { display:none !important; }
+    table.matriz-home td { color:#000 !important; font-size:8.5px !important; padding:3px 1px !important; }
+    table.matriz-home th { background:#e6e6e6 !important; color:#000 !important; font-size:7.5px !important; padding:4px 1px !important; letter-spacing:0 !important; }
+    table.matriz-home td::before { display:none; }
+    .table-wrap { overflow:visible !important; border-color:#bbb !important; }
+    table.data-table th { background:#e6e6e6 !important; color:#000 !important; }
+    table.matriz-home tbody td:first-child { background:#fff !important; }
+    .kpi-card, .chart-box, .atencao, .vd-card, .atn-cidade { break-inside: avoid; }
+    .kpi-card .val { color:#111 !important; }
+    .home-linha { grid-template-columns: 1.9fr 1fr; }
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -834,6 +885,77 @@ function legendaCumprimentoHtml() {
   return `<div class="updated" style="border:none;margin:4px 0 22px;padding:0">Verde (&#10003;) = cumpriu a meta · Amarelo (!) = próximo (tolerância) · Vermelho (&#10005;) = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Armas/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro: quanto maior, melhor — no mês em andamento a cor usa a meta proporcional aos dias já fechados (passe o mouse na célula pra ver); meses fechados usam a meta cheia. Prisões de furto: prisões ÷ REDS de furto (≥50% verde, ≥25% amarelo). IDOB/ITVD: índice de qualidade (não é meta numérica); sem operação/ocorrência = 100%. Linha 70º BPM = total do batalhão.</div>`;
 }
 
+// ---- Home, onda 3 ----
+const HOME_VD_MES_INICIO = 9; // igual à Auditoria: ocorrências de Violência Doméstica a partir de Setembro/2026
+function homeBarraHtml() {
+  return `<div class="home-barra" id="homeBarra"><div class="atalhos" role="navigation" aria-label="Seções da Home">
+    <button type="button" class="atalho on" data-alvo="home-atencao">Atenção agora</button>
+    <button type="button" class="atalho" data-alvo="home-kpis">Indicadores</button>
+    <button type="button" class="atalho" data-alvo="homeVD" hidden>Violência Doméstica</button>
+    <button type="button" class="atalho" data-alvo="home-quadro">Quadro por cidade</button></div>
+    <div class="acoes"><button type="button" class="ppvd-btn" id="homeGdo" title="Abrir a página da apresentação de GDO (gera o PowerPoint do mês)">📊 Apresentação GDO</button>
+    <button type="button" class="ppvd-btn" id="homePdf" title="Imprimir ou salvar a Home em PDF (A4 paisagem, tema claro)">🖨 Imprimir / PDF</button></div></div>`;
+}
+function ligarBarraHome() {
+  const main = document.getElementById('main'), barra = document.getElementById('homeBarra'); if (!main || !barra) return;
+  barra.addEventListener('click', (e) => {
+    const a = e.target.closest('.atalho');
+    if (a) { const alvo = document.getElementById(a.dataset.alvo); if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    if (e.target.closest('#homeGdo')) { goToPage('apresentacao_gdo'); return; }
+    if (e.target.closest('#homePdf')) { window.print(); }
+  });
+  const marcar = () => {
+    const atalhos = [...barra.querySelectorAll('.atalho:not([hidden])')];
+    let ativo = atalhos[0];
+    atalhos.forEach(a => { const el = document.getElementById(a.dataset.alvo); if (el && el.getBoundingClientRect().top - main.getBoundingClientRect().top <= 90) ativo = a; });
+    atalhos.forEach(a => a.classList.toggle('on', a === ativo));
+  };
+  if (main._homeScroll) main.removeEventListener('scroll', main._homeScroll);
+  main._homeScroll = marcar; main.addEventListener('scroll', marcar, { passive: true });
+}
+// cartão de Violência Doméstica (só para PPVD aprovado): situação dos casos desde Setembro pelo semáforo vermelho/amarelo/azul/verde
+async function homeVdCarregar() {
+  const alvo = document.getElementById('homeVD'); if (!alvo) return;
+  const atalho = document.querySelector('#homeBarra .atalho[data-alvo="homeVD"]');
+  const esconde = () => { alvo.hidden = true; if (atalho) atalho.hidden = true; };
+  if (!ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) { esconde(); return; }
+  if (!ppvdDadosRestritosLiberados()) { try { await ppvdCarregarDadosRestritos(); } catch (e) {} }
+  if (!ppvdDadosRestritosLiberados()) { esconde(); return; }
+  alvo.hidden = false; if (atalho) atalho.hidden = false;
+  alvo.innerHTML = `<div class="hd"><b>Violência Doméstica</b><span>carregando os casos…</span></div>`;
+  const vd = DATA.violencia_domestica, lista = [];
+  MUNICIPIOS_CANONICAL.forEach(nome => {
+    const k = Object.keys(vd.ocorrencias || {}).find(x => normMun(x) === normMun(nome));
+    (k ? vd.ocorrencias[k] : []).filter(o => o.m >= HOME_VD_MES_INICIO).forEach(o => lista.push({ mun: nome, o }));
+  });
+  const casos = await ppvdBuscarCasosVD(lista.map(x => x.o.r).filter(Boolean));
+  if (document.getElementById('homeVD') !== alvo) return; // saiu da Home enquanto carregava
+  const c = { v: 0, a: 0, z: 0, g: 0, semCaso: 0, atrasados: 0 }, porCidade = {};
+  lista.forEach(({ mun, o }) => {
+    const caso = o.r ? (casos[o.r] || null) : null, sem = ppvdSemaforoVD(caso);
+    if (sem === 'vermelho') { c.v++; porCidade[mun] = (porCidade[mun] || 0) + 1; if (!caso) c.semCaso++; else if (ppvdVisitaAtrasadaVD(caso)) c.atrasados++; }
+    else if (sem === 'amarelo') c.a++; else if (sem === 'azul') c.z++; else c.g++;
+  });
+  const total = lista.length || 1, pc = (n) => (n / total * 100).toFixed(1);
+  const topo = Object.entries(porCidade).sort((x, y) => y[1] - x[1]).slice(0, 5);
+  const mesIni = (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1];
+  alvo.innerHTML = `<div class="hd"><b>Violência Doméstica</b><span>${lista.length} ocorrência(s) de contexto VD desde ${mesIni} · situação dos casos no PPVD</span></div>
+    <div class="vd-barra" aria-hidden="true"><i style="width:${pc(c.v)}%;background:var(--alert)"></i><i style="width:${pc(c.a)}%;background:var(--caution)"></i><i style="width:${pc(c.z)}%;background:#5b9bd5"></i><i style="width:${pc(c.g)}%;background:var(--signal)"></i></div>
+    <div class="vd-contadores">
+      <div class="vd-cont v"><div class="n">${c.v}</div><div class="t">✕ Novos ou em atraso</div><div class="s">${c.semCaso} sem caso aberto · ${c.atrasados} com visita sem resposta há mais de 72h</div></div>
+      <div class="vd-cont a"><div class="n">${c.a}</div><div class="t">! Atendimento iniciado</div><div class="s">visita despachada ou feita, aguardando decisão do comandante</div></div>
+      <div class="vd-cont z"><div class="n">${c.z}</div><div class="t">◆ Em acompanhamento</div><div class="s">retornos decididos pelo comandante, dentro do prazo</div></div>
+      <div class="vd-cont g"><div class="n">${c.g}</div><div class="t">✓ Estabilizados</div><div class="s">caso encerrado com êxito</div></div>
+    </div>
+    ${topo.length ? `<div class="vd-cidades">Mais casos em vermelho: ${topo.map(([m, n]) => `<button type="button" data-mun="${m}" title="Abrir Violência Doméstica em ${m}">${m} · ${n}</button>`).join('')}</div>` : ''}
+    <div class="vd-acoes"><button type="button" class="ppvd-btn" data-ir="violencia_domestica">Abrir Violência Doméstica</button><button type="button" class="ppvd-btn" data-ir="auditoria">Painel de Auditoria</button></div>`;
+  alvo.onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.mun) { setMunFiltro(b.dataset.mun); goToPage('violencia_domestica'); }
+    else if (b.dataset.ir) goToPage(b.dataset.ir);
+  };
+}
+
 function renderHome() {
   const miMv = Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length-1), miCvpe = Math.min(MES_ATUAL_IDX, DATA.cvpe.total_acum.length-1), miCvpa = Math.min(MES_ATUAL_IDX, DATA.cvpa.total_acum.length-1);
   const miFurto = Math.min(MES_ATUAL_IDX, DATA.furto.total_acum.length-1), miArmas = Math.min(MES_ATUAL_IDX, DATA.armas.total_acum.length-1);
@@ -854,6 +976,7 @@ function renderHome() {
   const pogPct = (pogMeta ? (pogAcum/pogMeta*100) : 0) - 100; // aqui >0 é bom (ao contrário de MV/CVPE/CVPa)
 
   let html = `<div class="page-title">Dashboard 70º BPM</div>`;
+  html += homeBarraHtml();
   html += `<div class="ap-cta" id="apCtaHome">
     <div class="ap-cta-icon">&#9888;</div>
     <div style="flex:1">
@@ -869,8 +992,8 @@ function renderHome() {
   const idobQop = DATA.idob.total_qtdeop_acum[miIdob];
   const idobVit = DATA.idob.total_mv_acum[miIdob]+DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
   const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
-  html += atencaoAgoraHtml();
-  html += `<div class="home-linha"><div class="kpi-grid kpi-grid-home">`;
+  html += `<div id="home-atencao">${atencaoAgoraHtml()}</div>`;
+  html += `<div class="home-linha" id="home-kpis"><div class="kpi-grid kpi-grid-home">`;
   html += kpiCard('Mortes Violentas (Acum)', mvPct, true, subSpark(DATA.mv, miMv, `${mvAcum} no ano · meta ${mvMeta}`));
   html += kpiCard('CVpe Acum', cvpePct, true, subSpark(DATA.cvpe, miCvpe, `${cvpeAcum} no ano · meta ${cvpeMeta}`));
   html += kpiCard('CVpa Acum', cvpaPct, true, subSpark(DATA.cvpa, miCvpa, `${cvpaAcum} no ano · meta ${cvpaMeta}`));
@@ -882,10 +1005,11 @@ function renderHome() {
   html += kpiPisoEf('Pad. Escolar acum (res/meta)', DATA.padesc, miPadesc, 'piso');
   html += kpiPisoEf('Saque Seguro acum (res/meta)', DATA.saque_seguro, miSaque, 'piso');
   html += `</div><div class="rank-lateral">${renderRankingTable('acum', true)}</div></div>`;
+  html += `<div class="vd-card" id="homeVD" hidden></div>`;
   const qMes = renderCumprimentoMatrix('mes', true), qAcum = renderCumprimentoMatrix('acum', true);
   let abaQuadro = 'mes'; try { if (localStorage.getItem('homeAbaQuadro') === 'acum') abaQuadro = 'acum'; } catch (e) {}
   const mesRef = MESES[miMv];
-  html += `<div class="chart-box quadro-unico"><h3>Quadro de cumprimento por cidade</h3>
+  html += `<div class="chart-box quadro-unico" id="home-quadro"><h3>Quadro de cumprimento por cidade</h3>
     <div class="abas" role="tablist" aria-label="Período do quadro">
       <button type="button" role="tab" class="aba${abaQuadro === 'mes' ? ' on' : ''}" data-aba="mes" aria-selected="${abaQuadro === 'mes'}">Mês · ${mesRef}</button>
       <button type="button" role="tab" class="aba${abaQuadro === 'acum' ? ' on' : ''}" data-aba="acum" aria-selected="${abaQuadro === 'acum'}">Acumulado · Jan–${mesRef}</button>
@@ -897,6 +1021,8 @@ function renderHome() {
   document.getElementById('main').innerHTML = html;
   atencaoAgoraLigar();
   ligarQuadroHome();
+  ligarBarraHome();
+  homeVdCarregar();
   document.querySelectorAll('#main .rank-lateral .rank-row').forEach(r => r.addEventListener('click', () => {
     setMunFiltro(normMun(getMunFiltro()) === normMun(r.dataset.mun) ? '' : r.dataset.mun);
     const at = document.querySelector('#main .atencao'); if (at) { at.outerHTML = atencaoAgoraHtml(); atencaoAgoraLigar(); }
@@ -4325,6 +4451,8 @@ async function ppvdOnSession(session, event) {
     ppvdRenderCadastroForm();
   } else if (PPVD_PAGINAS_RESTRITAS.includes(currentPageKey) && pages[currentPageKey]) {
     pages[currentPageKey]();
+  } else if (currentPageKey === 'home') {
+    homeVdCarregar();
   }
 }
 

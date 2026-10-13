@@ -479,6 +479,40 @@ function auditar() {
     await ctx2.close();
   }
 
+  // ---------- 15) Home, onda 3: atalhos fixos, GDO/PDF e cartão de Violência Doméstica ----------
+  console.log('\n[15] Home: atalhos, GDO/PDF e cartão de Violência Doméstica');
+  {
+    const ctx3 = await novoContexto(browser, { viewport: { width: 1440, height: 900 } });
+    const p3 = await ctx3.newPage();
+    const erros3 = []; p3.on('pageerror', (e) => erros3.push(e.message));
+    await p3.goto(base);
+    await p3.waitForFunction(() => typeof goToPage === 'function');
+    await p3.evaluate(() => goToPage('home'));
+    await p3.waitForTimeout(300);
+    const a = await p3.evaluate(() => ({ atalhos: [...document.querySelectorAll('#homeBarra .atalho:not([hidden])')].map(x => x.dataset.alvo), vdEscondido: document.getElementById('homeVD').hidden, tem: !!document.getElementById('homePdf') && !!document.getElementById('homeGdo') }));
+    checa(a.atalhos.length === 3 && a.tem, `barra fixa com ${a.atalhos.length} atalhos e botões de GDO e PDF`, 'barra da Home incompleta: ' + JSON.stringify(a));
+    checa(a.vdEscondido, 'visitante anônimo não vê o cartão de Violência Doméstica', 'o cartão de VD apareceu para anônimo');
+    const s1 = await p3.evaluate(() => { document.querySelector('#homeBarra .atalho[data-alvo="home-quadro"]').click(); return new Promise(r => setTimeout(() => r(Math.round(document.getElementById('main').scrollTop)), 900)); });
+    checa(s1 > 300, `atalho "Quadro por cidade" rola a página (${s1}px)`, 'o atalho não rolou a página');
+    const pdf = await p3.evaluate(() => { let chamou = false; const o = window.print; window.print = () => { chamou = true; }; document.getElementById('homePdf').click(); window.print = o; return chamou; });
+    checa(pdf, 'botão Imprimir / PDF chama a impressão', 'o botão de PDF não chamou window.print');
+    // cartão de VD com um cliente de mentira (PPVD aprovado, 5 casos nos 4 estados)
+    const vd = await p3.evaluate(async () => {
+      ppvdSupa = {}; ppvdUser = { id: 'u1' }; ppvdPerfil = { aprovado: true, is_admin: false, nome: 'T', cargo: 'C', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true;
+      const agora = Date.now(), h = (x) => new Date(agora - x * 3600000).toISOString();
+      DATA.violencia_domestica.ocorrencias = { 'Araçuaí': [{ r: 'R1', m: 9 }, { r: 'R2', m: 9 }, { r: 'R3', m: 10 }, { r: 'R4', m: 10 }, { r: 'R5', m: 10 }, { r: 'R0', m: 3 }] };
+      ppvdBuscarCasosVD = async () => ({ R1: { status: 'estabilizada' }, R2: { status: 'decisao_cmd', qtd_retornos: 1 }, R3: { status: 'em_visita', qtd_retornos: 0, _pendenteDesde: h(10) }, R4: { status: 'em_visita', qtd_retornos: 0, _pendenteDesde: h(100) } });
+      await homeVdCarregar();
+      const el = document.getElementById('homeVD');
+      return { visivel: !el.hidden, atalho: !document.querySelector('#homeBarra .atalho[data-alvo="homeVD"]').hidden, n: [...el.querySelectorAll('.vd-cont .n')].map(x => x.textContent), cidade: !!el.querySelector('.vd-cidades button') };
+    });
+    // R1 verde, R2 azul (retorno), R3 amarelo (1ª visita no prazo), R4 vermelho (atrasada), R5 vermelho (sem caso); R0 é de março e fica fora
+    checa(vd.visivel && vd.atalho && vd.n.join() === '2,1,1,1', `cartão de VD para aprovado: vermelho/amarelo/azul/verde = ${vd.n.join('/')}`, 'cartão de VD: ' + JSON.stringify(vd));
+    checa(vd.cidade, 'cartão de VD lista a cidade com mais casos em vermelho', 'sem a cidade no cartão de VD');
+    checa(erros3.length === 0, 'Home onda 3 sem erro de JavaScript', 'erros: ' + erros3.slice(0, 3).join(' | '));
+    await ctx3.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
