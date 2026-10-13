@@ -660,6 +660,59 @@ function auditar() {
     await ctxC.close();
   }
 
+  // ---------- 19) Violência Doméstica, onda 1: KPIs, metodologia recolhida, recorte padrão e responsável sugerido ----------
+  console.log('\n[19] Violência Doméstica: recorte padrão, "em aberto há" e responsável sugerido');
+  {
+    const ctxV = await novoContexto(browser, { viewport: { width: 1440, height: 900 } });
+    const pv = await ctxV.newPage();
+    const errosV = []; pv.on('pageerror', (e) => errosV.push(e.message));
+    await pv.goto(base);
+    await pv.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pv.evaluate(async () => {
+      const cad = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, pode_abrir_caso: true, nome: 'A', cargo: 'P3', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true;
+      ppvdMilitaresCache = [{ id: 1, nome: 'Sd Novo (inventado)', whatsapp: '5533999990001', municipio: 'Itaobim', created_at: '2026-09-02' }, { id: 2, nome: 'Sd Antigo (inventado)', whatsapp: '5533999990002', municipio: 'ITAOBIM - MG', created_at: '2026-08-01' }];
+      const nomeCidade = DATA.violencia_domestica.municipios[0].nome; setMunFiltro(nomeCidade);
+      const hrs = (x) => { const dt = new Date(Date.now() - x * 36e5); return String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0') + '/' + dt.getFullYear(); };
+      DATA.violencia_domestica.ocorrencias = { [nomeCidade]: [
+        { r: 'V1', d: '10/03/2026', m: 3, n: 'Ameaça', g: 'media' },   // antiga, sem caso -> histórico
+        { r: 'V2', d: '15/09/2026', m: 9, n: 'Ameaça', g: 'media' },   // recente, sem caso -> principal
+        { r: 'V3', d: '20/05/2026', m: 5, n: 'Ameaça', g: 'alta' },    // antiga, COM caso -> principal
+        { r: 'V4', d: hrs(100), m: 10, n: 'Lesão', g: 'alta' },        // recente, com caso aberto
+      ] };
+      DATA.violencia_domestica.enderecos_reincidentes = { [nomeCidade]: [{ b: 'Bairro X', l: 'Rua Y', nu: '5', q: 2, meses: [9, 10] }] };
+      ppvdBuscarCasosVD = async () => ({ V3: { status: 'estabilizada' }, V4: { status: 'aberto' } });
+      goToPage('violencia_domestica');
+      await new Promise(ok => setTimeout(ok, 700));
+      const painel = document.getElementById('vdMuniPanel'), main = document.getElementById('main');
+      const linhas = [...painel.querySelectorAll('table:first-of-type tbody tr')].map(t => t.firstElementChild.textContent.trim());
+      const hist = document.getElementById('vdHistorico');
+      const antes = hist ? hist.querySelector('.vd-historico-corpo').innerHTML.length : -1;
+      if (hist) { hist.open = true; await new Promise(ok => setTimeout(ok, 100)); }
+      const posEnd = painel.innerHTML.indexOf('Endereços com Reincidência'), posTab = painel.innerHTML.indexOf('<table');
+      const cabec = [...painel.querySelectorAll('thead th')].map(t => t.textContent.trim());
+      return {
+        grids: main.querySelectorAll(':scope > .kpi-grid').length, kpis: main.querySelectorAll(':scope > .kpi-grid .kpi-card').length,
+        metodoFechado: !!main.querySelector('details.vd-metodo, details.aud-como') && !main.querySelector('details.aud-como').open,
+        linhas, historicoLinhas: hist ? hist.querySelectorAll('tbody tr').length : 0, historicoVazioAntes: antes === 0 || antes === -1 ? antes : antes,
+        enderecosAntesDaTabela: posEnd >= 0 && posEnd < posTab, temEmAbertoHa: cabec.includes('Em aberto há'),
+        sugerido: painel.querySelector('.sugerido') ? painel.querySelector('.sugerido').textContent : null,
+        serie: [...main.querySelectorAll('table.data-table')].find(t => t.querySelector('th') && /Mês/.test(t.querySelector('th').textContent)).querySelectorAll('tbody tr').length,
+        atraso: !!painel.querySelector('.aberto-ha.atraso'),
+      };
+    });
+    checa(r.grids === 1 && r.kpis === 5, 'os 5 KPIs ficam num grid só (sem cartão sobrando)', `grids=${r.grids}, kpis=${r.kpis}`);
+    checa(r.metodoFechado, 'metodologia começa recolhida', 'a metodologia está aberta no topo');
+    checa(r.linhas.join() === 'V2,V3,V4' || ['V2', 'V3', 'V4'].every(x => r.linhas.includes(x)) && !r.linhas.includes('V1'), `tabela mostra casos e recentes (${r.linhas.join(', ')}); a antiga sem caso (V1) vai pro histórico`, 'linhas da tabela: ' + r.linhas.join(', '));
+    checa(r.historicoLinhas === 1, 'histórico anterior ao PPVD abre com a ocorrência antiga sem caso', `linhas no histórico: ${r.historicoLinhas}`);
+    checa(r.enderecosAntesDaTabela, 'endereços com reincidência aparecem antes da tabela', 'endereços reincidentes continuam depois da tabela');
+    checa(r.temEmAbertoHa && r.atraso, 'coluna "Em aberto há" com destaque de atraso (>72h)', 'sem a coluna Em aberto há / atraso');
+    checa(/Sd Antigo/.test(r.sugerido || '') && /sugerido/.test(r.sugerido || ''), 'responsável sugerido identificado e, entre duplicados, o mais antigo', 'responsável sugerido: ' + r.sugerido);
+    checa(r.serie <= 10, `série mensal sem meses futuros (${r.serie} linhas)`, `série mensal com ${r.serie} linhas`);
+    checa(errosV.length === 0, 'Violência Doméstica sem erro de JavaScript', 'erros: ' + errosV.slice(0, 3).join(' | '));
+    await ctxV.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
