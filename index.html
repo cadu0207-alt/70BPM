@@ -252,7 +252,7 @@
   .resp-linha .fone { color:var(--muted); font-family:var(--mono); font-size:12px; }
   /* Auditoria, etapa 2 (2026-10-13): resumo por cidade no topo + detalhe recolhido */
   .aud-resumo { background:var(--panel); border:1px solid var(--panel-border); border-radius:8px; overflow:hidden; margin-bottom:14px; }
-  .aud-linha { display:grid; grid-template-columns: minmax(140px,1.7fr) repeat(5, minmax(46px,.55fr)) 70px minmax(110px,1fr); gap:6px; align-items:center; width:100%; padding:8px 12px; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--text); text-align:left; font-family:var(--sans); font-size:13px; }
+  .aud-linha { display:grid; grid-template-columns: minmax(140px,1.6fr) repeat(5, minmax(44px,.5fr)) 66px minmax(100px,.9fr) minmax(120px,1fr); gap:6px; align-items:center; width:100%; padding:8px 12px; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--text); text-align:left; font-family:var(--sans); font-size:13px; }
   button.aud-linha { cursor:pointer; }
   button.aud-linha:hover { background:#15283d; }
   .aud-linha.cab { font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); background:#142236; }
@@ -278,6 +278,14 @@
   details.aud-como { margin:0 0 12px; font-size:12.5px; color:var(--muted); }
   details.aud-como summary { cursor:pointer; padding:5px 0; }
   details.aud-como div { padding:4px 0 8px; line-height:1.5; }
+  .aud-linha .lemb { font-size:12px; color:var(--muted); }
+  .aud-linha .lemb.ok { color:var(--signal); } .aud-linha .lemb.cobrar { color:var(--caution); font-weight:600; }
+  .resp-linha .ultimo { font-size:11.5px; color:var(--muted); }
+  .resp-linha .ultimo.hoje { color:var(--signal); }
+  .aud-hist { margin-top:8px; font-size:12.5px; color:var(--muted); }
+  .aud-hist summary { cursor:pointer; padding:3px 0; }
+  .aud-hist .h { display:flex; gap:8px 12px; flex-wrap:wrap; padding:4px 0; border-bottom:1px solid var(--line); font-size:12px; }
+  .aud-hist .h b { color:var(--text); font-weight:600; }
   details.aud-emdia { margin-top:8px; font-size:12.5px; color:var(--muted); }
   details.aud-emdia summary { cursor:pointer; padding:4px 0; }
   @media (max-width: 760px) {
@@ -287,6 +295,7 @@
     .aud-linha .num::before { content: attr(data-l); display:block; font-family:var(--sans); font-size:11px; color:var(--muted); font-weight:400; }
     .aud-linha .tt { grid-column: 1; text-align:left; } .aud-linha .tt::before { content:'Total'; display:block; font-size:11px; color:var(--muted); }
     .aud-linha .rr { grid-column: 2 / -1; }
+    .aud-linha .lemb { grid-column: 1 / -1; }
     details.aud-cidade > summary .chips { display:none; } /* o resumo acima já mostra os números */
   }
   .resp-linha .acoes { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
@@ -3501,18 +3510,28 @@ function auditoriaCriminaisCompacto(qtdMv, qtdCvpe, qtdCvpa, nome, mesNome) {
   return `<div class="aud-crim"><b>MV, CVPE e CVPa em ${mesNome}/2026</b><span class="chips">${chip('MV', qtdMv, 'imv')}${chip('CVPE', qtdCvpe, 'cvpe')}${chip('CVPa', qtdCvpa, 'cvpa')}</span>
     ${algum ? `<div class="nota">Só há a contagem por município e mês — o endereço de cada ocorrência ainda não está disponível nesta auditoria. Clique no indicador pra ver o detalhe ou consulte o SiGOp.</div>` : `<div class="nota">Nenhuma ocorrência no mês.</div>`}</div>`;
 }
+function auditoriaLembreteCelula(c) {
+  const ls = auditoriaLembretesDe(c.nome);
+  if (!ls.length) return c.total > 0 && auditoriaRespDe(c.nome).length ? `<span class="lemb cobrar">⚠ nunca enviado</span>` : `<span class="lemb">—</span>`;
+  const ult = ls[0], hoje = auditoriaMesmoDia(ult.created_at);
+  return `<span class="lemb ${hoje ? 'ok' : (c.total > 0 ? 'cobrar' : '')}" title="${msgEsc(ult.responsavel_nome || 'grupo')} · por ${msgEsc(ult.enviado_por_nome || '—')}">${hoje ? '✓ ' : (c.total > 0 ? '⚠ ' : '')}${auditoriaQuando(ult.created_at)}</span>`;
+}
+function auditoriaResumoRepintar() {
+  const box = document.getElementById('audResumoBox');
+  if (box && window.auditoriaCidades) box.innerHTML = auditoriaResumoHtml(window.auditoriaCidades);
+}
 function auditoriaResumoHtml(cidades) {
   const soma = (k) => cidades.reduce((s, c) => s + c[k], 0);
   const num = (v, rot) => `<span class="num ${v > 0 ? 'p' : 'z'}" data-l="${rot}">${v}</span>`;
   const rf = (c) => { const tem = new Set(auditoriaRespDe(c.nome).map(r => r.funcao)); return Object.keys(AUDIT_FUNCOES).map(k => `<span class="rf ${tem.has(k) ? 'on' : ''}" title="${AUDIT_FUNCOES[k]}${tem.has(k) ? '' : ' — não cadastrado'}">${({ cmt_destacamento: 'D', cmt_pelotao: 'P', sargenteante: 'S' })[k]}</span>`).join(''); };
   let h = `<div class="aud-resumo" role="table" aria-label="Resumo da auditoria por cidade">
-    <div class="aud-linha cab" role="row"><span>Cidade</span><span class="num">VD</span><span class="num">MV</span><span class="num">CVPE</span><span class="num">CVPa</span><span class="num">Metas</span><span class="num">Total</span><span>Responsáveis</span></div>`;
+    <div class="aud-linha cab" role="row"><span>Cidade</span><span class="num">VD</span><span class="num">MV</span><span class="num">CVPE</span><span class="num">CVPa</span><span class="num">Metas</span><span class="num">Total</span><span>Responsáveis</span><span>Último lembrete</span></div>`;
   cidades.forEach(c => {
     h += `<button type="button" class="aud-linha" role="row" data-ir="aud-c-${c.muniIdx}" title="Abrir o detalhe de ${c.nome}"><span class="c">${c.nome}</span>${num(c.vd, 'VD')}${num(c.mv, 'MV')}${num(c.cvpe, 'CVPE')}${num(c.cvpa, 'CVPa')}${num(c.metas, 'Metas')}
       <span class="tt"><span class="ppvd-badge ${c.total > 0 ? 'ppvd-badge-critica' : 'ppvd-badge-verde'}">${c.total}</span></span>
-      <span class="rr">${auditoriaRespDe(c.nome).length ? rf(c) : '<span class="semresp">⚠ nenhum cadastrado</span>'}</span></button>`;
+      <span class="rr">${auditoriaRespDe(c.nome).length ? rf(c) : '<span class="semresp">⚠ nenhum cadastrado</span>'}</span>${auditoriaLembreteCelula(c)}</button>`;
   });
-  h += `<div class="aud-linha tot" role="row"><span class="c">Batalhão</span>${num(soma('vd'), 'VD')}${num(soma('mv'), 'MV')}${num(soma('cvpe'), 'CVPE')}${num(soma('cvpa'), 'CVPa')}${num(soma('metas'), 'Metas')}<span class="tt"><span class="ppvd-badge ${soma('total') > 0 ? 'ppvd-badge-critica' : 'ppvd-badge-verde'}">${soma('total')}</span></span><span class="rr"></span></div></div>`;
+  h += `<div class="aud-linha tot" role="row"><span class="c">Batalhão</span>${num(soma('vd'), 'VD')}${num(soma('mv'), 'MV')}${num(soma('cvpe'), 'CVPE')}${num(soma('cvpa'), 'CVPa')}${num(soma('metas'), 'Metas')}<span class="tt"><span class="ppvd-badge ${soma('total') > 0 ? 'ppvd-badge-critica' : 'ppvd-badge-verde'}">${soma('total')}</span></span><span class="rr"></span><span class="lemb"></span></div></div>`;
   return h;
 }
 
@@ -3562,9 +3581,7 @@ async function renderAuditoriaPage() {
   // Editor da frase pré-pronta do lembrete de WhatsApp — visível só pro Thomaz
   // (seuthomaz@gmail.com), a pedido de Eduardo em 2026-09-09. Fica salvo só no
   // navegador dele (localStorage), não afeta o texto que os outros militares veem.
-  if (ppvdUser && ppvdUser.email === 'seuthomaz@gmail.com') {
-    html += ppvdTemplateLembreteEditorHtml();
-  }
+  html += `<div id="audTemplateBox"></div>`;
 
   html += `<div id="auditoriaBody"></div>`;
   document.getElementById('main').innerHTML = html;
@@ -3625,7 +3642,9 @@ async function renderAuditoriaPage() {
 
   await ppvdCarregarDadosRestritos();
   if (!ppvdDadosRestritosLiberados()) { body.innerHTML = ppvdAvisoRestrito(); return; }
-  await auditoriaCarregarResponsaveis();
+  await Promise.all([auditoriaCarregarResponsaveis(), auditoriaCarregarLembretes(), auditoriaCarregarConfig()]);
+  const caixaFrase = document.getElementById('audTemplateBox');
+  if (caixaFrase && auditoriaPodeEditarFrase()) caixaFrase.innerHTML = ppvdTemplateLembreteEditorHtml();
   const vdData = DATA.violencia_domestica;
   const ocorrenciasPorMunicipio = {};
   MUNICIPIOS_CANONICAL.forEach(nome => {
@@ -3709,17 +3728,19 @@ async function renderAuditoriaPage() {
   });
   // piores primeiro; o resumo e o detalhe seguem a mesma ordem
   cidadesAud.sort((x, y) => (y.total - x.total) || x.nome.localeCompare(y.nome));
+  window.auditoriaCidades = cidadesAud;
 
   const avisoMvCvpe = `<details class="aud-como"><summary>Sobre MV/CVPE/CVPa nesta auditoria</summary><div>
     Por enquanto só temos a contagem de ocorrências por município e mês — o endereço exato de cada ocorrência ainda não está estruturado por município no data.json (só existe um agregado do batalhão inteiro por tipo de local, sem separar por cidade). Assim que houver um export nesse nível de detalhe, esta seção passa a listar ocorrência por ocorrência, igual à de Violência Doméstica.
   </div></details>`;
 
-  body.innerHTML = avisoMvCvpe + auditoriaResumoHtml(cidadesAud) +
+  body.innerHTML = avisoMvCvpe + `<div id="audResumoBox">${auditoriaResumoHtml(cidadesAud)}</div>` +
     `<div class="aud-acoes"><button type="button" class="ppvd-btn" id="audAbrirTodas">Abrir todas as cidades</button><button type="button" class="ppvd-btn" id="audFecharTodas">Recolher todas</button><span style="color:var(--muted);font-size:12px">cidades em ordem de gravidade · clique numa linha do resumo para abrir o detalhe</span></div>` +
     cidadesAud.map(c => c.html).join('');
-  body.querySelectorAll('button.aud-linha[data-ir]').forEach(b => b.addEventListener('click', () => {
+  body.addEventListener('click', (e) => {
+    const b = e.target.closest('button.aud-linha[data-ir]'); if (!b) return;
     const d = document.getElementById(b.dataset.ir); if (!d) return; d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }));
+  });
   document.getElementById('audAbrirTodas').addEventListener('click', () => body.querySelectorAll('details.aud-cidade').forEach(d => { d.open = true; }));
   document.getElementById('audFecharTodas').addEventListener('click', () => body.querySelectorAll('details.aud-cidade').forEach(d => { d.open = false; }));
 
@@ -3761,13 +3782,17 @@ function auditoriaSugestoes(nomeMunicipio) {
 }
 function auditoriaRespHtml(nome, muniIdx, temPendencia) {
   const lista = auditoriaRespDe(nome), sug = auditoriaSugestoes(nome);
+  const ultimoDe = (r) => auditoriaLembretesDe(nome, r.id)[0];
+  const ultimoHoje = (r) => { const u = ultimoDe(r); return !!u && auditoriaMesmoDia(u.created_at); };
+  const ultimoTxt = (r) => { const u = ultimoDe(r); return u ? `lembrete ${auditoriaQuando(u.created_at)}${u.enviado_por_nome ? ' · ' + msgEsc(u.enviado_por_nome) : ''}` : 'nenhum lembrete enviado'; };
   const opcoes = Object.keys(AUDIT_FUNCOES).map(k => `<option value="${k}">${AUDIT_FUNCOES[k]}</option>`).join('');
   let h = `<div class="ppvd-card audit-resp" style="margin:0 0 14px;padding:12px 14px">
     <div class="hd">Responsáveis da Auditoria <small>comandantes de pelotão e de destacamento e sargenteantes — não é o responsável pelos casos de Violência Doméstica</small></div>`;
   if (!lista.length) h += `<div class="resp-vazio">Nenhum responsável cadastrado para ${nome}. Adicione abaixo.</div>`;
   lista.forEach(r => {
     h += `<div class="resp-linha"><span class="resp-func ${r.funcao}">${AUDIT_FUNCOES[r.funcao] || msgEsc(r.funcao)}</span><span class="nome">${msgEsc(r.nome)}</span><span class="fone">${auditoriaFoneFmt(r.whatsapp)}</span>
-      <span class="acoes"><button class="ppvd-btn ${temPendencia ? 'ppvd-btn-primary' : ''}" ${temPendencia ? '' : 'disabled style="opacity:.45;cursor:not-allowed"'} title="${temPendencia ? 'Abrir o WhatsApp com o lembrete' : 'Sem pendência agora'}" onclick="auditoriaEnviarLembrete('${r.id}')">📱 Enviar lembrete</button>
+      <span class="ultimo ${ultimoHoje(r) ? 'hoje' : ''}">${ultimoTxt(r)}</span>
+      <span class="acoes"><button class="ppvd-btn ${temPendencia ? 'ppvd-btn-primary' : ''}" ${temPendencia ? '' : 'disabled style="opacity:.45;cursor:not-allowed"'} title="${temPendencia ? 'Abrir o WhatsApp com o lembrete (fica registrado)' : 'Sem pendência agora'}" onclick="auditoriaEnviarLembrete('${r.id}')">${ultimoHoje(r) ? '↻ Reenviar' : '📱 Enviar lembrete'}</button>
       <button class="ppvd-btn" onclick="auditoriaRespEditar('${r.id}', ${muniIdx})">✏ Editar</button><button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert-text)" onclick="auditoriaRespRemover('${r.id}', ${muniIdx})">Remover</button></span></div>`;
   });
   h += `<div class="resp-form"><input type="hidden" id="audId-${muniIdx}">
@@ -3776,6 +3801,11 @@ function auditoriaRespHtml(nome, muniIdx, temPendencia) {
     <div class="ppvd-field" style="flex:1;min-width:150px"><label>WhatsApp (com DDD)</label><input id="audWhats-${muniIdx}" placeholder="Ex: 33999999999"></div>
     <button class="ppvd-btn" onclick="auditoriaRespSalvar(${muniIdx})">💾 Salvar</button></div>`;
   if (lista.length && temPendencia) h += `<div style="margin-top:8px"><button class="ppvd-btn" onclick="auditoriaCopiarLembrete('${nome}')" title="Copia o texto do lembrete pra colar num grupo do WhatsApp">📋 Copiar mensagem (grupo)</button></div>`;
+  const hist = auditoriaLembretesDe(nome).slice(0, 8);
+  if (hist.length) {
+    h += `<details class="aud-hist"><summary>Histórico de lembretes (${auditoriaLembretesDe(nome).length} nos últimos 30 dias)</summary>` + hist.map(l =>
+      `<div class="h"><b>${auditoriaQuando(l.created_at)}</b><span>${l.via === 'copia' ? 'mensagem copiada (grupo)' : 'para ' + msgEsc(l.responsavel_nome || '—') + (l.funcao && AUDIT_FUNCOES[l.funcao] ? ' (' + AUDIT_FUNCOES[l.funcao] + ')' : '')}</span><span>por ${msgEsc(l.enviado_por_nome || '—')}</span><span>${l.total_pendencias} pendência(s)</span></div>`).join('') + `</details>`;
+  }
   if (sug.length) {
     h += `<details><summary>Sugestões do cadastro antigo de militares (${sug.length}) — escolha a função para usar na Auditoria</summary>`;
     sug.forEach((m, i) => {
@@ -3829,10 +3859,11 @@ async function auditoriaRespUsarSugestao(muniIdx, i) {
   auditoriaRespRepintar(muniIdx);
 }
 
-// Frase pré-pronta do lembrete de WhatsApp — personalizável só pelo Thomaz (seuthomaz@gmail.com),
-// salva localmente (localStorage), a pedido de Eduardo em 2026-09-09. Placeholders disponíveis:
-// {saudacao}, {nomeMunicipio}, {diaHoje}, {linhas} (a lista de pendências, uma por linha).
-const PPVD_TEMPLATE_LEMBRETE_KEY = 'ppvdTemplateLembreteAuditoria';
+// Frase pré-pronta do lembrete de WhatsApp. Desde 2026-10-13 fica no BANCO (tabela auditoria_config), igual para todos
+// que enviam lembrete — antes era só no navegador do Thomaz (localStorage) e os outros usavam a frase padrão.
+// Quem edita: admin ou quem tem `pode_editar_frase` (hoje o Thomaz). Marcadores: {saudacao}, {nomeMunicipio}, {diaHoje}, {linhas}.
+const PPVD_TEMPLATE_LEMBRETE_KEY = 'ppvdTemplateLembreteAuditoria'; // só pra aproveitar a frase que já estava salva no navegador
+window.auditoriaTemplateDb = null;
 function ppvdTemplateLembretePadrao() {
   return `{saudacao}
 
@@ -3842,37 +3873,80 @@ Em auditoria do painel do 70º BPM, foram verificadas as seguintes pendências e
 
 Favor regularizar assim que possível e, se já resolvido, atualizar no sistema. Qualquer dúvida, à disposição.`;
 }
-function ppvdObterTemplateLembrete() {
-  try {
-    const salvo = localStorage.getItem(PPVD_TEMPLATE_LEMBRETE_KEY);
-    if (salvo) return salvo;
-  } catch (e) {}
-  return ppvdTemplateLembretePadrao();
+function ppvdObterTemplateLembrete() { return window.auditoriaTemplateDb || ppvdTemplateLembretePadrao(); }
+function auditoriaPodeEditarFrase() { return !!(ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_editar_frase)); }
+async function auditoriaCarregarConfig() {
+  if (!ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) { window.auditoriaTemplateDb = null; return; }
+  const { data, error } = await ppvdSupa.from('auditoria_config').select('valor, atualizado_por, atualizado_em').eq('chave', 'template_lembrete').maybeSingle();
+  window.auditoriaTemplateDb = (!error && data && data.valor) ? data.valor : null;
+  window.auditoriaTemplateMeta = (!error && data) ? data : null;
 }
 function ppvdTemplateLembreteEditorHtml() {
-  const atual = ppvdObterTemplateLembrete();
+  let atual = ppvdObterTemplateLembrete(), aviso = '';
+  if (!window.auditoriaTemplateDb) {
+    try { const antigo = localStorage.getItem(PPVD_TEMPLATE_LEMBRETE_KEY); if (antigo) { atual = antigo; aviso = ' (esta é a frase que estava salva só no seu navegador — clique em Salvar para valer para todos)'; } } catch (e) {}
+  }
+  const meta = window.auditoriaTemplateMeta;
+  const quem = meta && meta.atualizado_por ? ` Última alteração: ${msgEsc(meta.atualizado_por)}${meta.atualizado_em ? ' em ' + ppvdFmtDT(meta.atualizado_em) : ''}.` : '';
   return `<div class="ppvd-card" style="margin-bottom:14px">
-    <div style="font-weight:600;margin-bottom:6px">✏️ Frase pré-pronta do lembrete (visível só pra você)</div>
-    <div class="def-box" style="margin-bottom:8px">Use os marcadores <code>{saudacao}</code>, <code>{nomeMunicipio}</code>, <code>{diaHoje}</code> e <code>{linhas}</code> (a lista de pendências) onde quiser no texto. Fica salvo só neste navegador — não muda o texto que os outros militares veem.</div>
-    <textarea id="ppvdTemplateLembreteInput" rows="7" style="width:100%;font-family:inherit;font-size:14px;padding:8px;box-sizing:border-box">${atual}</textarea>
+    <div style="font-weight:600;margin-bottom:6px">✏️ Frase pré-pronta do lembrete (vale para todos que enviam lembrete)</div>
+    <div class="def-box" style="margin-bottom:8px">Use os marcadores <code>{saudacao}</code>, <code>{nomeMunicipio}</code>, <code>{diaHoje}</code> e <code>{linhas}</code> (a lista de pendências) onde quiser no texto. Fica salva no banco: o texto é o mesmo para todos.${quem}${aviso}</div>
+    <textarea id="ppvdTemplateLembreteInput" rows="7" maxlength="4000" style="width:100%;font-family:inherit;font-size:14px;padding:8px;box-sizing:border-box">${msgEsc(atual)}</textarea>
     <div style="margin-top:8px;display:flex;gap:8px">
       <button class="ppvd-btn" onclick="ppvdSalvarTemplateLembrete()">💾 Salvar frase</button>
       <button class="ppvd-btn" onclick="ppvdRestaurarTemplateLembrete()">↺ Restaurar padrão</button>
     </div>
   </div>`;
 }
-function ppvdSalvarTemplateLembrete() {
-  const el = document.getElementById('ppvdTemplateLembreteInput');
-  if (!el) return;
-  try { localStorage.setItem(PPVD_TEMPLATE_LEMBRETE_KEY, el.value); } catch (e) {}
-  alert('Frase salva. Vale a partir do próximo lembrete que você enviar.');
-}
-function ppvdRestaurarTemplateLembrete() {
+async function ppvdSalvarTemplateLembrete() {
+  const el = document.getElementById('ppvdTemplateLembreteInput'); if (!el) return;
+  const valor = el.value.trim();
+  if (valor.length < 20) { alert('A frase está muito curta.'); return; }
+  const { error } = await ppvdSupa.from('auditoria_config').upsert({ chave: 'template_lembrete', valor }, { onConflict: 'chave' });
+  if (error) { alert('Erro ao salvar a frase: ' + error.message); return; }
   try { localStorage.removeItem(PPVD_TEMPLATE_LEMBRETE_KEY); } catch (e) {}
-  const el = document.getElementById('ppvdTemplateLembreteInput');
-  if (el) el.value = ppvdTemplateLembretePadrao();
-  alert('Restaurado o texto padrão.');
+  await auditoriaCarregarConfig();
+  const box = document.getElementById('audTemplateBox'); if (box) box.innerHTML = ppvdTemplateLembreteEditorHtml();
+  alert('Frase salva. Vale para todos a partir do próximo lembrete.');
 }
+async function ppvdRestaurarTemplateLembrete() {
+  if (!confirm('Voltar para a frase padrão (para todos)?')) return;
+  const { error } = await ppvdSupa.from('auditoria_config').delete().eq('chave', 'template_lembrete');
+  if (error) { alert('Erro ao restaurar: ' + error.message); return; }
+  try { localStorage.removeItem(PPVD_TEMPLATE_LEMBRETE_KEY); } catch (e) {}
+  await auditoriaCarregarConfig();
+  const box = document.getElementById('audTemplateBox'); if (box) box.innerHTML = ppvdTemplateLembreteEditorHtml();
+}
+
+// ---- registro dos lembretes enviados (auditoria_lembretes) ----
+window.auditoriaLembretes = [];
+async function auditoriaCarregarLembretes() {
+  if (!ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) { window.auditoriaLembretes = []; return; }
+  const desde = new Date(Date.now() - 30 * 86400000).toISOString();
+  const { data, error } = await ppvdSupa.from('auditoria_lembretes').select('*').gte('created_at', desde).order('created_at', { ascending: false }).limit(600);
+  window.auditoriaLembretes = (!error && data) ? data : [];
+}
+function auditoriaMesmoDia(iso) { const d = new Date(iso), h = new Date(); return d.getFullYear() === h.getFullYear() && d.getMonth() === h.getMonth() && d.getDate() === h.getDate(); }
+function auditoriaQuando(iso) {
+  const d = new Date(iso), hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  if (auditoriaMesmoDia(iso)) return 'hoje ' + hm;
+  const dias = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(iso).setHours(0, 0, 0, 0)) / 86400000);
+  return dias === 1 ? 'ontem ' + hm : `há ${dias} dias (${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')})`;
+}
+function auditoriaLembretesDe(nomeMunicipio, respId) {
+  return (window.auditoriaLembretes || []).filter(l => normMun(l.municipio) === normMun(nomeMunicipio) && (respId == null || l.responsavel_id === respId));
+}
+async function auditoriaRegistrarLembrete(nomeMunicipio, resp, via, msg) {
+  const resumo = (window.auditoriaResumo || {})[nomeMunicipio] || {};
+  const linha = { municipio: nomeMunicipio, responsavel_id: resp ? resp.id : null, responsavel_nome: resp ? resp.nome : null, funcao: resp ? resp.funcao : null, via, total_pendencias: resumo.totalVermelho || 0, resumo: msg ? String(msg).slice(0, 3900) : null };
+  const { error } = await ppvdSupa.from('auditoria_lembretes').insert(linha);
+  if (error) { console.error('Registro do lembrete:', error); alert('O lembrete foi aberto, mas não consegui registrar o envio: ' + error.message); return; }
+  await auditoriaCarregarLembretes();
+  const idx = MUNICIPIOS_CANONICAL.indexOf(nomeMunicipio);
+  if (idx >= 0) auditoriaRespRepintar(idx);
+  auditoriaResumoRepintar();
+}
+
 function ppvdMontarLembreteAuditoria(nomeMunicipio, resp) {
   const resumo = (window.auditoriaResumo || {})[nomeMunicipio];
   if (!resumo) return null;
@@ -3899,13 +3973,17 @@ function auditoriaEnviarLembrete(id) {
   if (!resp || !resp.whatsapp) { alert('Responsável sem WhatsApp cadastrado.'); return; }
   const msg = ppvdMontarLembreteAuditoria(resp.municipio, resp);
   if (!msg) { alert('Nenhuma pendência encontrada pra ' + resp.municipio + ' agora.'); return; }
+  const hoje = auditoriaLembretesDe(resp.municipio, resp.id).find(l => auditoriaMesmoDia(l.created_at));
+  if (hoje && !confirm(`Já foi enviado um lembrete a ${resp.nome} ${auditoriaQuando(hoje.created_at)}${hoje.enviado_por_nome ? ' (por ' + hoje.enviado_por_nome + ')' : ''}. Enviar de novo?`)) return;
   window.open(`https://wa.me/${resp.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+  auditoriaRegistrarLembrete(resp.municipio, resp, 'whatsapp', msg);
 }
 async function auditoriaCopiarLembrete(nomeMunicipio) {
   const msg = ppvdMontarLembreteAuditoria(nomeMunicipio, null);
   if (!msg) { alert('Nenhuma pendência encontrada pra ' + nomeMunicipio + ' agora.'); return; }
   try { await navigator.clipboard.writeText(msg); alert('Mensagem copiada. É só colar no grupo do WhatsApp.'); }
   catch (e) { prompt('Copie a mensagem abaixo (Ctrl+C):', msg); }
+  auditoriaRegistrarLembrete(nomeMunicipio, null, 'copia', msg);
 }
 
 function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {

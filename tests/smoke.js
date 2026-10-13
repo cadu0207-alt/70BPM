@@ -528,7 +528,7 @@ function auditar() {
         { id: 'a2', municipio: 'Araçuaí', funcao: 'cmt_destacamento', nome: 'Ten. Destac (inventado)', whatsapp: '5533999990002', ativo: true },
         { id: 'a3', municipio: 'Araçuaí', funcao: 'sargenteante', nome: 'Sgt (inventado)', whatsapp: '5533999990003', ativo: true },
       ];
-      const cad = (tabela) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, maybeSingle: () => o,
+      const cad = (tabela) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o,
         insert: (v) => { chamadas.push(['insert', tabela, v]); if (tabela === 'auditoria_responsaveis') linhas.push(Object.assign({ id: 'n' + linhas.length, ativo: true }, v)); return o; },
         update: (v) => { chamadas.push(['update', tabela, v]); return o; },
         then: (ok) => ok({ data: tabela === 'auditoria_responsaveis' ? linhas : [], error: null, count: 0 }) }; return o; };
@@ -573,7 +573,7 @@ function auditar() {
     await pb.goto(base);
     await pb.waitForFunction(() => typeof renderAuditoriaPage === 'function');
     const r = await pb.evaluate(async () => {
-      const cad = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
+      const cad = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
       ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, nome: 'A', cargo: 'P3', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true; ppvdMilitaresCache = [];
       DATA.violencia_domestica.ocorrencias = { 'Medina': [{ r: 'M1', d: '01/10/2026', m: 10 }, { r: 'M2', d: '02/10/2026', m: 10 }, { r: 'M3', d: '03/10/2026', m: 10 }] };
       ppvdBuscarCasosVD = async () => ({});
@@ -595,6 +595,56 @@ function auditar() {
     checa(r.temEmDia > 0, 'metas em dia ficam atrás de "ver as metas em dia"', 'não achei o bloco de metas em dia recolhido');
     checa(errosB.length === 0, 'Auditoria (etapa 2) sem erro de JavaScript', 'erros: ' + errosB.slice(0, 3).join(' | '));
     await ctxB.close();
+  }
+
+  // ---------- 18) Auditoria, etapa 3: registro dos lembretes e frase do lembrete no banco ----------
+  console.log('\n[18] Painel de Auditoria: registro dos lembretes e frase compartilhada');
+  {
+    const ctxC = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pc = await ctxC.newPage();
+    const errosC = []; pc.on('pageerror', (e) => errosC.push(e.message));
+    await pc.goto(base);
+    await pc.waitForFunction(() => typeof renderAuditoriaPage === 'function');
+    const r = await pc.evaluate(async () => {
+      const chamadas = []; let lembretes = []; let config = null;
+      const resp = [{ id: 'a1', municipio: 'Araçuaí', funcao: 'cmt_pelotao', nome: 'Ten. Pelotão (inventado)', whatsapp: '5533999990001', ativo: true }];
+      const cad = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o,
+        insert: (v) => { chamadas.push(['insert', t, v]); if (t === 'auditoria_lembretes') lembretes.unshift(Object.assign({ id: 'l' + lembretes.length, created_at: new Date().toISOString(), enviado_por_nome: 'Admin' }, v)); return o; },
+        upsert: (v) => { chamadas.push(['upsert', t, v]); if (t === 'auditoria_config') config = { valor: v.valor, atualizado_por: 'Admin', atualizado_em: new Date().toISOString() }; return o; },
+        delete: () => { chamadas.push(['delete', t]); config = null; return o; }, update: (v) => { chamadas.push(['update', t, v]); return o; },
+        then: (ok) => ok({ data: t === 'auditoria_responsaveis' ? resp : t === 'auditoria_lembretes' ? lembretes : t === 'auditoria_config' ? config : [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u', email: 'x@y.z' }; ppvdPerfil = { aprovado: true, is_admin: false, pode_editar_frase: false, nome: 'Comum', cargo: 'Cmt', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true; ppvdMilitaresCache = [];
+      DATA.violencia_domestica.ocorrencias = { 'Araçuaí': [{ r: 'X1', d: '01/10/2026', m: 10 }] }; ppvdBuscarCasosVD = async () => ({});
+      let abertos = 0; const abrir = window.open; window.open = () => { abertos++; };
+      let perguntas = 0; const conf = window.confirm; window.confirm = () => { perguntas++; return false; };
+      const out = {};
+      await renderAuditoriaPage();
+      out.editorParaComum = !!document.getElementById('ppvdTemplateLembreteInput');
+      const idx = MUNICIPIOS_CANONICAL.indexOf('Araçuaí');
+      auditoriaEnviarLembrete('a1'); await new Promise(ok => setTimeout(ok, 80));
+      out.registros = chamadas.filter(c => c[0] === 'insert' && c[1] === 'auditoria_lembretes').map(c => ({ m: c[2].municipio, r: c[2].responsavel_id, via: c[2].via }));
+      out.botao = document.getElementById('audResp-' + idx).querySelector('.resp-linha .acoes .ppvd-btn').textContent.trim();
+      out.resumo = document.querySelector('#audResumoBox button.aud-linha[data-ir="aud-c-' + idx + '"] .lemb').textContent.trim();
+      out.historico = !!document.getElementById('audResp-' + idx).querySelector('.aud-hist');
+      auditoriaEnviarLembrete('a1'); await new Promise(ok => setTimeout(ok, 50)); // já enviado hoje: pergunta e (respondendo não) não registra de novo
+      out.depoisDoSegundo = chamadas.filter(c => c[0] === 'insert' && c[1] === 'auditoria_lembretes').length; out.perguntas = perguntas; out.janelas = abertos;
+      // admin vê o editor da frase e salva no banco
+      ppvdPerfil.is_admin = true; await renderAuditoriaPage();
+      out.editorParaAdmin = !!document.getElementById('ppvdTemplateLembreteInput');
+      document.getElementById('ppvdTemplateLembreteInput').value = 'Frase nova do lembrete para todos {linhas}';
+      const alerta = window.alert; window.alert = () => {}; await ppvdSalvarTemplateLembrete(); window.alert = alerta;
+      out.upsert = chamadas.filter(c => c[0] === 'upsert').map(c => c[1] + ':' + c[2].chave);
+      out.mensagem = ppvdMontarLembreteAuditoria('Araçuaí', resp[0]);
+      window.open = abrir; window.confirm = conf;
+      return out;
+    });
+    checa(r.registros.length === 1 && r.registros[0].m === 'Araçuaí' && r.registros[0].r === 'a1' && r.registros[0].via === 'whatsapp', 'enviar lembrete registra município, pessoa e via', 'registro do lembrete: ' + JSON.stringify(r.registros));
+    checa(/Reenviar/.test(r.botao) && /hoje/.test(r.resumo) && r.historico, `depois de enviar: botão "${r.botao}", resumo "${r.resumo}" e histórico da cidade`, 'tela não refletiu o envio: ' + JSON.stringify(r));
+    checa(r.depoisDoSegundo === 1 && r.perguntas === 1, 'segundo envio no mesmo dia pergunta antes e não registra se cancelar', 'segundo envio: ' + JSON.stringify(r));
+    checa(!r.editorParaComum && r.editorParaAdmin, 'editor da frase só para admin/editor autorizado', 'editor da frase: ' + JSON.stringify({ comum: r.editorParaComum, admin: r.editorParaAdmin }));
+    checa(r.upsert.join() === 'auditoria_config:template_lembrete' && /Frase nova do lembrete para todos/.test(r.mensagem || ''), 'frase salva no banco e usada na mensagem', 'frase: ' + JSON.stringify({ u: r.upsert, m: String(r.mensagem).slice(0, 60) }));
+    checa(errosC.length === 0, 'Auditoria (etapa 3) sem erro de JavaScript', 'erros: ' + errosC.slice(0, 3).join(' | '));
+    await ctxC.close();
   }
 
   await browser.close();
