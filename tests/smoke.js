@@ -870,7 +870,7 @@ function auditar() {
     checa(r.cv.selects === 0 && r.cv.periodos >= 2 && r.cv.linhas === 4 && r.cv.acao === 4 && r.cv.serie <= 10, `Crimes Violentos: botões, ${r.cv.linhas} linhas com "Abrir Caso" fixo e série sem meses futuros`, 'CV: ' + JSON.stringify(r.cv));
     checa(r.cv.ausente.pendente && r.cv.ausente.semPainel && /não tem|Ocorrências de/.test(r.cv.ausente.titulo || ''), 'cidade sem registros na página mostra aviso em vez de outra cidade', 'cidade ausente: ' + JSON.stringify(r.cv.ausente));
     checa(r.re.selects === 0 && r.re.ordem === 'hoje|há 8 dia(s)|há 40 dia(s)', `Reincidência: botões e ordem do mais recente ("${r.re.ordem}") — 0 dias não cai mais pro fim`, 'ordem: ' + r.re.ordem);
-    checa(r.re.chips === 'Todos 3|✕ Sem caso/novo 3|! Em acompanhamento 0|✓ Encerrados 0|Urgentes (≤10 dias) 2|Arma de fogo 1|3+ chamados 1|Várias naturezas 1' && r.re.urgentes === 2 && r.re.arma === 1, 'filtros de urgência/arma/3+ chamados com contagem', 'Reincidência filtros: ' + JSON.stringify(r.re));
+    checa(r.re.chips === 'Todos 3|✕ Sem caso/novo 3|! Em acompanhamento 0|✓ Encerrados 0|Urgentes (≤10 dias) 2|Arma de fogo 1|3+ chamados 1|Várias naturezas 1|Com violência doméstica 0' && r.re.urgentes === 2 && r.re.arma === 1, 'filtros de urgência/arma/3+ chamados com contagem', 'Reincidência filtros: ' + JSON.stringify(r.re));
     checa(errosY.length === 0, 'as três páginas sem erro de JavaScript', 'erros: ' + errosY.slice(0, 3).join(' | '));
     await ctxY.close();
   }
@@ -932,6 +932,68 @@ function auditar() {
     checa(/Crimes Violentos — ✕ 2 sem caso\/novo · ! 1 em acompanhamento · ✓ 2 encerrados/.test(r.home) && /Reincidência de Endereço — ✕ 1/.test(r.home), 'Home resume Crimes Violentos e Reincidência', 'Home: ' + r.home);
     checa(errosZ.length === 0, 'situação dos casos sem erro de JavaScript', 'erros: ' + errosZ.slice(0, 3).join(' | '));
     await ctxZ.close();
+  }
+
+  // ---------- 24) Onda 3: tendência/projeção na Análise Preditiva e violência doméstica no mesmo endereço ----------
+  console.log('\n[24] Tendência do mês (Análise Preditiva) e VD no mesmo endereço (Crimes Violentos / Reincidência)');
+  {
+    const ctxT = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pt = await ctxT.newPage();
+    const errosT = []; pt.on('pageerror', (e) => errosT.push(e.message));
+    await pt.goto(base);
+    await pt.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pt.evaluate(async () => {
+      if (MES_ATUAL_IDX < 3) return { pular: true };
+      const cad = () => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, pode_abrir_caso: true, nome: 'A' }; ppvdRestritoCarregado = true;
+      diasCorridosAteOntem = () => ({ diasNoMes: 30, diaRef: 11, diasDecorridos: 10, semRegistro: false }); // 10 dias fechados de 30
+      const ap = DATA.analise_preditiva, cv = DATA.crimes_violentos, re = DATA.reincidencia;
+      const i = MES_ATUAL_IDX, a = ap.municipios[0].nome, b = ap.municipios[1].nome;
+      const serie = (cur) => Array.from({ length: 12 }, (_, k) => (k < i ? 10 : (k === i ? cur : 0)));
+      ap.municipios.forEach((m, k) => { m.prec_mes = serie(k === 0 ? 7 : (k === 1 ? 1 : 3)); });
+      ap.panorama.prec_mes = serie(20); ap.panorama.total_mes = serie(50).map(x => (x ? 50 : 0));
+      ap.atualizado_em = new Date().toISOString().slice(0, 10);
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {};
+      goToPage('analise_preditiva'); await esp(700);
+      const main = document.getElementById('main');
+      const linha = (nome) => [...main.querySelectorAll('#apTendencia tbody tr')].find(t => t.dataset.mun === nome);
+      out.ap = { aviso: (main.querySelector('.aviso-acel') || {}).textContent || '', a: linha(a) ? linha(a).textContent.replace(/\s+/g, ' ') : '', b: linha(b) ? linha(b).textContent.replace(/\s+/g, ' ') : '', sparks: main.querySelectorAll('#apTendencia svg.spark').length, classeA: linha(a) && linha(a).querySelector('td:last-child').className, classeB: linha(b) && linha(b).querySelector('td:last-child').className, primeira: main.querySelector('#apTendencia tbody tr').dataset.mun === a, a_nome: a };
+      // projeção instável nos primeiros dias do mês
+      diasCorridosAteOntem = () => ({ diasNoMes: 30, diaRef: 3, diasDecorridos: 2, semRegistro: false });
+      goToPage('analise_preditiva'); await esp(500);
+      out.ap.semProjecao = !document.querySelector('.aviso-acel') && /5º dia/.test(document.getElementById('main').textContent);
+      // VD no mesmo endereço
+      cv.ocorrencias = { [a]: [
+        { r: 'CVX', d: '10/09/2026', m: 9, n: 'Roubo', g: 'alta', b: 'B', l: 'Rua Um', nu: '1', c: 'P' },
+        { r: 'CVY', d: '11/09/2026', m: 9, n: 'Roubo', g: 'alta', b: 'B', l: 'Rua Um', nu: '2', c: 'P' },
+        { r: 'CVZ', d: '12/09/2026', m: 9, n: 'Roubo', g: 'alta', b: 'B', l: 'Rua Dois', nu: '5', c: 'P' },
+      ] };
+      DATA.violencia_domestica.ocorrencias = { [a]: [{ r: 'VD1', d: '01/09/2026', m: 9, n: 'Ameaça', g: 'media', b: 'B', l: 'RUA UM', nu: '1' }, { r: 'CVZ', d: '12/09/2026', m: 9, n: 'Ameaça', g: 'media', b: 'B', l: 'Rua Dois', nu: '5' }] };
+      re.enderecos = { [a]: [{ b: 'B', l: 'Rua Um', nu: '1', q: 2, intervalo_min_dias: 4, dias_desde_ultimo: 3, naturezas: ['Ameaça'], arma_fogo: false, reds: ['x'] }, { b: 'B', l: 'Rua Tres', nu: '9', q: 2, intervalo_min_dias: 4, dias_desde_ultimo: 4, naturezas: ['Furto'], arma_fogo: false, reds: ['y'] }] };
+      setMunFiltro(a);
+      goToPage('crimes_violentos'); await esp(700);
+      const trs = [...main.querySelectorAll('#cvTabelaBox tbody tr')];
+      out.cv = { marcadores: trs.map(t => /VD ×\d/.test(t.children[4].textContent) ? t.children[1].firstChild.textContent.trim() : '').filter(Boolean).join(','), chip: (main.querySelector('#cvFiltros button[data-f="vd"]') || {}).textContent };
+      main.querySelector('#cvFiltros button[data-f="vd"]').click();
+      out.cv.filtrado = [...main.querySelectorAll('#cvTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      out.cv.lookup = !!(window.ppvdCVLookup.CVX._origem.endereco_reincidente) && !window.ppvdCVLookup.CVY._origem.endereco_reincidente;
+      goToPage('reincidencia'); await esp(700);
+      const rs = [...main.querySelectorAll('#reTabelaBox tbody tr')];
+      out.re = { marcadores: rs.map(t => /VD ×1/.test(t.children[5].textContent) ? 'vd' : '-').join(','), chip: (main.querySelector('#reFiltros button[data-f="vd"]') || {}).textContent.replace(/\s+/g, ' ') };
+      return out;
+    });
+    if (r.pular) { ok('(pulado: nos primeiros meses do ano não há série para a tendência)'); }
+    else {
+      checa(/Acelerando/.test(r.ap.aviso) && r.ap.aviso.includes(r.ap.a_nome) && /projeção 21,0/.test(r.ap.aviso), 'cidade acelerando aparece em destaque com a projeção (7 em 10 dias → 21 no mês)', 'aviso: ' + JSON.stringify(r.ap));
+      checa(r.ap.primeira && /Acelerando/.test(r.ap.a) && /tend-up/.test(r.ap.classeA) && /Em queda/.test(r.ap.b) && /tend-dn/.test(r.ap.classeB), 'tabela de tendência: acelerando no topo, outra cidade em queda', 'linhas: ' + JSON.stringify(r.ap));
+      checa(r.ap.sparks >= 13, `mini-gráfico de evolução em cada linha (${r.ap.sparks})`, 'sparklines: ' + r.ap.sparks);
+      checa(r.ap.semProjecao, 'nos 4 primeiros dias do mês não projeta nem acusa aceleração', 'sem projeção: ' + JSON.stringify(r.ap));
+      checa(r.cv.marcadores === 'CVX' && /VD no endereço 1/.test(r.cv.chip) && r.cv.filtrado === 1 && r.cv.lookup, 'Crimes Violentos: só o endereço com VD (mesmo nº) é marcado, a própria ocorrência não conta e o GUT recebe o sinal', 'CV VD: ' + JSON.stringify(r.cv));
+      checa(r.re.marcadores === 'vd,-' && /Com violência doméstica 1/.test(r.re.chip), 'Reincidência: endereço com VD marcado e filtro com contagem', 'Reinc VD: ' + JSON.stringify(r.re));
+    }
+    checa(errosT.length === 0, 'onda 3 sem erro de JavaScript', 'erros: ' + errosT.slice(0, 3).join(' | '));
+    await ctxT.close();
   }
 
   await browser.close();

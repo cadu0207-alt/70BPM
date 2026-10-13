@@ -320,6 +320,9 @@
   /* Páginas de análise no padrão da Violência Doméstica (onda 1, 2026-10-13) */
   table.vd-casos tr[hidden] { display:none !important; }
   .pg-resumo-linha { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
+  .data-table .spark { display:inline-block; width:92px; height:22px; color:var(--text); overflow:visible; vertical-align:middle; }
+  .tend-up { color:var(--alert-text); font-weight:700; } .tend-dn { color:var(--signal); font-weight:700; } .tend-ig { color:var(--muted); }
+  .aviso-acel { border-color:var(--alert); margin:0 0 12px; } .aviso-acel button { margin:2px 6px 2px 0; }
   .vd-outras { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; } .vd-outras:empty { display:none; }
   .vd-outras .ppvd-btn { font-weight:400; text-align:left; } .vd-outras .ppvd-btn b { font-weight:700; }
   /* Página do caso de VD, onda 3 (2026-10-13) */
@@ -2277,6 +2280,26 @@ function pgLigarFiltros(id, caixaId) {
 const pgMk = (txt, titulo, cls) => `<span class="mk ${cls || ''}" title="${titulo}">${txt}</span>`;
 const pgEndereco = (o) => `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
 
+// Endereços com ocorrência de Violência Doméstica (cidade + logradouro + número): cruza Crimes Violentos e Reincidência com a VD.
+// Exige logradouro; só casa quando o número também bate (ou os dois estão sem número) para não juntar ruas homônimas.
+let _vdIndice = null, _vdIndiceRef = null;
+function pgEndChave(nomeCidade, o) {
+  const l = normMun(o.l); if (!l) return '';
+  let nu = String(o.nu == null ? '' : o.nu).trim(); if (nu === '0') nu = '';
+  return normMun(nomeCidade) + '|' + l + '|' + normMun(nu);
+}
+function vdNoEndereco(nomeCidade, o, ignorarReds) {
+  const vd = (DATA.violencia_domestica || {}).ocorrencias;
+  if (!vd) return 0;
+  if (_vdIndiceRef !== vd) {
+    _vdIndice = {};
+    Object.keys(vd).forEach(cidade => (vd[cidade] || []).forEach(x => { const k = pgEndChave(cidade, x); if (k) (_vdIndice[k] = _vdIndice[k] || []).push(x.r); }));
+    _vdIndiceRef = vd;
+  }
+  const k = pgEndChave(nomeCidade, o);
+  return k ? (_vdIndice[k] || []).filter(r => !ignorarReds || r !== ignorarReds).length : 0;
+}
+
 function renderAnalisePreditivaPage() {
   const d = DATA.analise_preditiva;
   const mesesLocais = d.meses;
@@ -2315,6 +2338,35 @@ function renderAnalisePreditivaPage() {
   });
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${precGeral}</td><td>${fmtBr(taxaGeral, 1)}</td><td>${homicGeral}</td><td>${tentGeral}</td><td>${mpGeral}</td><td>${armasGeral}</td></tr>`;
   html += `</tbody></table></div>`;
+
+  // tendência do mês: o mês corrente (parcial) vs. a média dos 3 meses anteriores, com projeção linear até o fim do mês
+  // (ocorrências até ontem ÷ dias fechados × dias do mês; só a partir do 5º dia, antes disso a projeção engana)
+  const refDias = parcial ? diasCorridosAteOntem(dataAtualizacaoIndicador(d)) : null;
+  const fatorProj = refDias && refDias.diasDecorridos >= 5 ? refDias.diasNoMes / refDias.diasDecorridos : null;
+  const tendDe = (arr) => {
+    const cur = arr[iUlt] || 0, prev = iUlt >= 1 ? (arr[iUlt - 1] || 0) : null;
+    const ant = arr.slice(Math.max(0, iUlt - 3), iUlt), media = ant.length ? sum(ant) / ant.length : null;
+    const proj = parcial ? (fatorProj ? cur * fatorProj : null) : cur;
+    let sinal = 'ig';
+    if (proj !== null && media !== null) { if (proj - media >= 2 && proj >= media * 1.25) sinal = 'up'; else if (media - proj >= 2 && proj <= media * 0.75) sinal = 'dn'; }
+    return { cur, prev, media, proj, sinal, dif: proj !== null && media !== null ? proj - media : -9999 };
+  };
+  if (iUlt >= 1) {
+    const linhasT = municipiosData.map(m => ({ nome: m.nome, arr: m.prec_mes.slice(0, iUlt + 1), t: tendDe(m.prec_mes) })).sort((a, b) => b.t.dif - a.t.dif);
+    const tB = tendDe(pano.prec_mes);
+    const f1 = (n) => (n === null ? '—' : fmtBr(n, 1));
+    const rotSinal = { up: '▲ Acelerando', dn: '▼ Em queda', ig: '═ Estável' };
+    const acelerando = linhasT.filter(x => x.t.sinal === 'up');
+    html += `<div class="page-title" style="margin-top:34px;font-size:16px">Tendência do Mês — ocorrências graves</div>`;
+    html += `<div class="vd-recorte">${parcial ? `${mesesLocais[iUlt]} está em andamento (${refDias.diasDecorridos} dia(s) fechado(s)). ${fatorProj ? 'Projeção linear = ocorrências até ontem ÷ dias fechados × dias do mês.' : 'A projeção só aparece a partir do 5º dia do mês.'}` : `${mesesLocais[iUlt]} é o último mês com dados.`} Tendência = projeção contra a média dos 3 meses anteriores (acelerando: pelo menos 25% e 2 ocorrências acima; em queda: o inverso). Clique numa cidade para ver as ocorrências.</div>`;
+    if (acelerando.length) html += `<div class="def-box aviso-acel"><b>⚠ Acelerando em ${mesesLocais[iUlt]}:</b> ` + acelerando.map(x => `<button type="button" class="ppvd-btn" data-mun="${x.nome}">${x.nome} · projeção ${f1(x.t.proj)} (média ${f1(x.t.media)})</button>`).join('') + `</div>`;
+    html += `<div class="table-wrap"><table class="data-table" id="apTendencia"><thead><tr><th style="text-align:left">Município</th><th>Evolução (${mesesLocais[0]}–${mesesLocais[iUlt]})</th><th>${mesesLocais[iUlt - 1]}</th><th>Média 3 meses anteriores</th><th>${mesesLocais[iUlt]}${parcial ? ' (até ontem)' : ''}</th><th>Projeção do mês</th><th>Tendência</th></tr></thead><tbody>`;
+    linhasT.forEach(x => {
+      html += `<tr class="rank-clic${normMun(x.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${x.nome}" title="Ver as ocorrências de ${x.nome}"><td style="text-align:left">${x.nome}</td><td>${sparkSvg(x.arr, null, 'Ocorrências graves mês a mês')}</td><td>${x.t.prev}</td><td>${f1(x.t.media)}</td><td>${x.t.cur}</td><td>${f1(x.t.proj)}</td><td class="tend-${x.t.sinal}">${rotSinal[x.t.sinal]}</td></tr>`;
+    });
+    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td><td>${sparkSvg(pano.prec_mes.slice(0, iUlt + 1), null, 'Ocorrências graves mês a mês')}</td><td>${tB.prev}</td><td>${f1(tB.media)}</td><td>${tB.cur}</td><td>${f1(tB.proj)}</td><td class="tend-${tB.sinal}">${rotSinal[tB.sinal]}</td></tr>`;
+    html += `</tbody></table></div>`;
+  }
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Série Mensal — 70º BPM</div>`;
   html += `<table class="data-table"><thead><tr><th style="text-align:left">Mês</th><th>Total REDS</th><th>Ocorr. Graves</th><th>Descumpr. MP</th><th>Homicídios</th><th>Tentativas</th><th>Com Arma</th><th>Prisões</th></tr></thead><tbody>`;
@@ -2387,6 +2439,8 @@ function renderAnalisePreditivaPage() {
     pgLigarPeriodo('apPeriodos', 'apPeriodo', periodoInicial, (p) => renderMuniPanel(cid.idx, p));
   }
   pgRankingClicavel('apRanking', 'analise_preditiva');
+  pgRankingClicavel('apTendencia', 'analise_preditiva');
+  document.querySelectorAll('.aviso-acel button[data-mun]').forEach(b => b.addEventListener('click', () => { setMunFiltro(b.dataset.mun); goToPage('analise_preditiva'); }));
 }
 
 // Endereços com 2+ chamados de VD: gatilho automático de risco — agora no TOPO do painel da cidade (era o último bloco, depois da tabela)
@@ -2749,23 +2803,24 @@ function renderCrimesViolentosPage() {
     const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>REDS / Data</th><th>Natureza / Gravidade</th><th>Endereço</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
     const linha = (o) => {
       const end = pgEndereco(o);
+      const nVd = vdNoEndereco(nome, o, o.r);
       window.ppvdCVLookup = window.ppvdCVLookup || {};
       if (o.r) {
-        window.ppvdCVLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, _origem: { arma_fogo: o.a, tentativa_homicidio: (o.n || '').includes('Tentativa'), autor_preso: o.p, dias_desde_reds: ppvdDiasDesde(o.d) } };
+        window.ppvdCVLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, _origem: { arma_fogo: o.a, tentativa_homicidio: (o.n || '').includes('Tentativa'), autor_preso: o.p, dias_desde_reds: ppvdDiasDesde(o.d), endereco_reincidente: nVd > 0 } };
       }
       const caso = casoDe(o), velho = velhoSemCaso(o), sem = semDe(o);
       const horas = sem === 'verde' ? null : auditoriaHorasDesde(o.d);
       const abertoHa = horas === null ? '' : `<br><span class="aberto-ha ${horas > 72 ? 'atraso' : ''}" title="Tempo desde o fato, enquanto o caso não está encerrado">aberto há ${Math.max(0, horas) >= 24 ? (Math.max(0, horas) / 24).toFixed(1) + 'd' : Math.max(0, horas).toFixed(0) + 'h'}</span>`;
       const situacao = `<span class="ppvd-badge ${pgBadgeCls(sem)}">${velho ? 'Finalizado' : ppvdStatusLabelOutros(caso && caso.status)}</span>${velho ? '<br><small>' + PPVD_OBS_ANTERIOR + '</small>' : abertoHa}`;
-      const marc = [o.a ? pgMk('Arma', 'Arma de fogo envolvida', 'risco') : '', o.p ? pgMk('Prisão', 'Autor preso') : ''].join('') || '—';
+      const marc = [o.a ? pgMk('Arma', 'Arma de fogo envolvida', 'risco') : '', o.p ? pgMk('Prisão', 'Autor preso') : '', nVd ? pgMk('VD ×' + nVd, 'Há ' + nVd + ' ocorrência(s) de violência doméstica neste mesmo endereço', 'risco') : ''].join('') || '—';
       const resp = caso ? (msgEsc(caso.militar_responsavel) || '—') + (caso.gut_score ? `<br><small>GUT ${caso.gut_score}</small>` : '') : '—';
       const acao = !o.r ? '—' : (caso ? `<button class="ppvd-btn" onclick="ppvdAbrirCasoCV('${o.r}')">Ver Caso ▸</button>` : (velho ? '—' : `<button class="ppvd-btn" onclick="ppvdAbrirCasoCV('${o.r}')">Abrir Caso ▸</button>`));
-      const tags = [sem, o.g, o.a ? 'arma' : '', o.p ? 'prisao' : ''].filter(Boolean).join(' ');
+      const tags = [sem, o.g, o.a ? 'arma' : '', o.p ? 'prisao' : '', nVd ? 'vd' : ''].filter(Boolean).join(' ');
       return `<tr class="vd-row-${sem}" data-tags="${tags}" data-busca="${msgEsc(((o.r || '') + ' ' + end + ' ' + (o.n || '') + ' ' + (o.c || '')).toLowerCase())}"><td data-l="Situação">${situacao}</td><td data-l="REDS / Data">${msgEsc(o.r || '—')}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${msgEsc(o.n)}<br>${gravBadge(o.g)}${o.c ? '<br><small>' + msgEsc(o.c) + '</small>' : ''}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Marcadores">${marc}</td><td data-l="Responsável">${resp}</td><td class="acao">${acao}</td></tr>`;
     };
-    const cont = (f) => principais.filter(o => semDe(o) === f || o.g === f || (f === 'arma' && o.a) || (f === 'prisao' && o.p)).length;
+    const cont = (f) => principais.filter(o => semDe(o) === f || o.g === f || (f === 'arma' && o.a) || (f === 'prisao' && o.p) || (f === 'vd' && vdNoEndereco(nome, o, o.r) > 0)).length;
     if (periodo === 'acum') h += `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no PPVD: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao PPVD, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}.</div>`;
-    h += pgFiltrosHtml('cvFiltros', [['todos', 'Todas', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')], ['critica', 'Crítica', cont('critica')], ['arma', 'Com arma', cont('arma')]], 'Buscar REDS, rua, natureza ou causa');
+    h += pgFiltrosHtml('cvFiltros', [['todos', 'Todas', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')], ['critica', 'Crítica', cont('critica')], ['arma', 'Com arma', cont('arma')], ['vd', 'VD no endereço', cont('vd')]], 'Buscar REDS, rua, natureza ou causa');
     h += `<div style="overflow-x:auto" id="cvTabelaBox">${cabecalho}`;
     h += principais.length ? principais.map(linha).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
     h += `</tbody></table></div>`;
@@ -2849,25 +2904,26 @@ function renderReincidenciaPage() {
     const linha = (e) => {
       const end = pgEndereco(e);
       const caso = casoDe(e), velho = velhoSemCaso(e), sem = semDe(e), urgente = urgenteDe(e);
+      const nVd = vdNoEndereco(nome, e);
       const lookupId = `${nome}__${muniIdx}__${todos.indexOf(e)}`;
       window.ppvdReincLookup = window.ppvdReincLookup || {};
       window.ppvdReincLookup[lookupId] = {
         endereco_key: reChave(nome, e),
         municipio: nome, bairro: e.b, logradouro: e.l, numero: e.nu,
         natureza: (e.naturezas || []).join(', '), reds_relacionados: (e.reds || []).join(', '),
-        _origem: { arma_fogo: e.arma_fogo, qtd_chamados_60d: e.q, dias_desde_ultimo_chamado: e.dias_desde_ultimo, intervalo_dias_entre_chamados: e.intervalo_min_dias, naturezas_distintas: (e.naturezas || []).length },
+        _origem: { arma_fogo: e.arma_fogo, qtd_chamados_60d: e.q, dias_desde_ultimo_chamado: e.dias_desde_ultimo, intervalo_dias_entre_chamados: e.intervalo_min_dias, naturezas_distintas: (e.naturezas || []).length, vd_no_endereco: nVd },
       };
       const situacao = `<span class="ppvd-badge ${pgBadgeCls(sem)}">${velho ? 'Finalizado' : ppvdStatusLabelOutros(caso && caso.status)}</span>${velho ? '<br><small>' + PPVD_OBS_ANTERIOR + '</small>' : ''}`;
-      const marc = [urgente ? pgMk('✕ Urgente', 'Último chamado há 10 dias ou menos', 'risco') : '', e.arma_fogo ? pgMk('⚠ Arma', 'Arma de fogo envolvida', 'risco') : '', e.q >= 3 ? pgMk('3+ chamados', 'Três ou mais chamados no período') : ''].join('') || '—';
+      const marc = [urgente ? pgMk('✕ Urgente', 'Último chamado há 10 dias ou menos', 'risco') : '', e.arma_fogo ? pgMk('⚠ Arma', 'Arma de fogo envolvida', 'risco') : '', e.q >= 3 ? pgMk('3+ chamados', 'Três ou mais chamados no período') : '', nVd ? pgMk('VD ×' + nVd, nVd + ' ocorrência(s) de violência doméstica neste endereço', 'risco') : ''].join('') || '—';
       const ultimo = e.dias_desde_ultimo == null ? '—' : (e.dias_desde_ultimo === 0 ? 'hoje' : 'há ' + e.dias_desde_ultimo + ' dia(s)');
       const resp = caso ? (msgEsc(caso.militar_responsavel) || '—') + (caso.gut_score ? `<br><small>GUT ${caso.gut_score}</small>` : '') : '—';
       const acao = caso ? `<button class="ppvd-btn" onclick="ppvdAbrirCasoReinc('${lookupId}')">Ver Caso ▸</button>` : (velho ? '—' : `<button class="ppvd-btn" onclick="ppvdAbrirCasoReinc('${lookupId}')">Abrir Caso ▸</button>`);
-      const tags = [sem, urgente ? 'urgente' : '', e.arma_fogo ? 'arma' : '', e.q >= 3 ? 'tres' : '', (e.naturezas || []).length >= 2 ? 'multi' : ''].filter(Boolean).join(' ');
+      const tags = [sem, urgente ? 'urgente' : '', e.arma_fogo ? 'arma' : '', e.q >= 3 ? 'tres' : '', (e.naturezas || []).length >= 2 ? 'multi' : '', nVd ? 'vd' : ''].filter(Boolean).join(' ');
       return `<tr class="vd-row-${sem}" data-tags="${tags}" data-busca="${msgEsc((end + ' ' + (e.naturezas || []).join(' ')).toLowerCase())}"><td data-l="Situação">${situacao}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Chamados">${e.q}<br><small>intervalo mín. ${e.intervalo_min_dias != null ? e.intervalo_min_dias + ' dia(s)' : '—'}</small></td><td data-l="Último chamado">${ultimo}</td><td data-l="Naturezas" class="larga">${msgEsc((e.naturezas || []).join(', ')) || '—'}</td><td data-l="Marcadores">${marc}</td><td data-l="Responsável">${resp}</td><td class="acao">${acao}</td></tr>`;
     };
-    const cont = (f) => principais.filter(e => semDe(e) === f || (f === 'urgente' && urgenteDe(e)) || (f === 'arma' && e.arma_fogo) || (f === 'tres' && e.q >= 3) || (f === 'multi' && (e.naturezas || []).length >= 2)).length;
+    const cont = (f) => principais.filter(e => semDe(e) === f || (f === 'urgente' && urgenteDe(e)) || (f === 'arma' && e.arma_fogo) || (f === 'tres' && e.q >= 3) || (f === 'multi' && (e.naturezas || []).length >= 2) || (f === 'vd' && vdNoEndereco(nome, e) > 0)).length;
     h += `<div class="vd-recorte">Contando endereços com chamado desde ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no PPVD: ${principais.length}${historico.length ? ` · ${historico.length} com último chamado antes do PPVD, sem caso, ficam finalizados (verde) no histórico abaixo` : ''}.</div>`;
-    h += pgFiltrosHtml('reFiltros', [['todos', 'Todos', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')], ['urgente', 'Urgentes (≤10 dias)', cont('urgente')], ['arma', 'Arma de fogo', cont('arma')], ['tres', '3+ chamados', cont('tres')], ['multi', 'Várias naturezas', cont('multi')]], 'Buscar rua, bairro ou natureza');
+    h += pgFiltrosHtml('reFiltros', [['todos', 'Todos', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')], ['urgente', 'Urgentes (≤10 dias)', cont('urgente')], ['arma', 'Arma de fogo', cont('arma')], ['tres', '3+ chamados', cont('tres')], ['multi', 'Várias naturezas', cont('multi')], ['vd', 'Com violência doméstica', cont('vd')]], 'Buscar rua, bairro ou natureza');
     h += `<div style="overflow-x:auto" id="reTabelaBox">${cabecalho}`;
     h += principais.length ? principais.map(linha).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
     h += `</tbody></table></div>`;
