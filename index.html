@@ -250,6 +250,45 @@
   .resp-func.sargenteante { border-color:rgba(33,201,138,.6); color:var(--signal); }
   .resp-linha .nome { font-weight:600; }
   .resp-linha .fone { color:var(--muted); font-family:var(--mono); font-size:12px; }
+  /* Auditoria, etapa 2 (2026-10-13): resumo por cidade no topo + detalhe recolhido */
+  .aud-resumo { background:var(--panel); border:1px solid var(--panel-border); border-radius:8px; overflow:hidden; margin-bottom:14px; }
+  .aud-linha { display:grid; grid-template-columns: minmax(140px,1.7fr) repeat(5, minmax(46px,.55fr)) 70px minmax(110px,1fr); gap:6px; align-items:center; width:100%; padding:8px 12px; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--text); text-align:left; font-family:var(--sans); font-size:13px; }
+  button.aud-linha { cursor:pointer; }
+  button.aud-linha:hover { background:#15283d; }
+  .aud-linha.cab { font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); background:#142236; }
+  .aud-linha.tot { font-weight:700; background:rgba(255,255,255,.05); border-bottom:0; }
+  .aud-linha .c { font-weight:600; } .aud-linha .num { text-align:center; font-family:var(--mono); }
+  .aud-linha .num.z { color:var(--muted-dim); font-weight:400; } .aud-linha .num.p { color:var(--alert-text); font-weight:700; }
+  .aud-linha .tt { text-align:center; } .aud-linha .tt .ppvd-badge { font-size:12px; }
+  .aud-linha .rf { display:inline-block; width:20px; text-align:center; font-family:var(--mono); font-size:11px; border-radius:4px; border:1px solid var(--panel-border); color:var(--muted-dim); margin-right:3px; }
+  .aud-linha .rf.on { color:var(--text); border-color:var(--signal); background:rgba(33,201,138,.12); }
+  .aud-linha .semresp { color:var(--caution); font-size:12px; }
+  .aud-acoes { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 12px; align-items:center; }
+  details.aud-cidade { background:var(--panel); border:1px solid var(--panel-border); border-radius:8px; margin-bottom:10px; }
+  details.aud-cidade > summary { cursor:pointer; padding:11px 14px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; list-style:none; }
+  details.aud-cidade > summary::-webkit-details-marker { display:none; }
+  details.aud-cidade > summary::before { content:'›'; font-size:18px; color:var(--muted); transition:transform .15s; }
+  details.aud-cidade[open] > summary::before { transform:rotate(90deg); }
+  details.aud-cidade > summary .cn { font-weight:700; font-size:15px; }
+  details.aud-cidade > summary .chips { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; font-size:12px; }
+  .aud-corpo { padding:0 14px 14px; }
+  .aud-crim { margin-top:10px; border-top:1px solid var(--panel-border); padding-top:8px; font-size:13px; }
+  .aud-crim .chips { display:inline-flex; gap:6px; margin-left:8px; }
+  .aud-crim .nota { color:var(--muted); font-size:12px; margin-top:6px; line-height:1.45; }
+  details.aud-como { margin:0 0 12px; font-size:12.5px; color:var(--muted); }
+  details.aud-como summary { cursor:pointer; padding:5px 0; }
+  details.aud-como div { padding:4px 0 8px; line-height:1.5; }
+  details.aud-emdia { margin-top:8px; font-size:12.5px; color:var(--muted); }
+  details.aud-emdia summary { cursor:pointer; padding:4px 0; }
+  @media (max-width: 760px) {
+    .aud-linha.cab { display:none; }
+    .aud-linha { grid-template-columns: repeat(5, 1fr); gap:6px 4px; padding:10px 12px; }
+    .aud-linha .c { grid-column: 1 / -1; font-size:14px; }
+    .aud-linha .num::before { content: attr(data-l); display:block; font-family:var(--sans); font-size:11px; color:var(--muted); font-weight:400; }
+    .aud-linha .tt { grid-column: 1; text-align:left; } .aud-linha .tt::before { content:'Total'; display:block; font-size:11px; color:var(--muted); }
+    .aud-linha .rr { grid-column: 2 / -1; }
+    details.aud-cidade > summary .chips { display:none; } /* o resumo acima já mostra os números */
+  }
   .resp-linha .acoes { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
   .resp-vazio { color:var(--muted); font-size:12.5px; padding:6px 0; }
   .resp-form { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-top:10px; }
@@ -3445,6 +3484,38 @@ function auditoriaHorasDesde(dataBr) {
   return (Date.now() - dt.getTime()) / 3600000;
 }
 
+// Metas do mês: só as ATRASADAS na tela; as em dia ficam atrás de um "ver" (eram 14 linhas por cidade, quase todas em dia)
+function auditoriaMetasTabela(metas) {
+  let h = `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Indicador</th><th style="text-align:left">Atualizado</th><th>Meta/Teto Mês</th><th>Ajustada (arred.)</th><th>Realizado</th><th style="text-align:left">Status</th></tr></thead><tbody>`;
+  metas.forEach(m => {
+    const atualizadoTxt = m.semRegistro
+      ? '<span style="color:var(--amber)">sem registro</span>'
+      : (m.diaRef === 0 ? '<span style="color:var(--amber)">nada neste mês</span>' : `dia ${m.diaRef}`);
+    h += `<tr class="${m.atrasado ? 'vd-row-vermelho' : ''}"><td style="text-align:left">${m.label}</td><td style="text-align:left">${atualizadoTxt}</td><td>${m.meta}</td><td title="valor exato: ${m.metaAjustada.toFixed(2)}">${m.metaComparacao}</td><td>${m.realizado}</td><td style="text-align:left"><span class="${m.cls}">${m.statusTxt}</span></td></tr>`;
+  });
+  return h + `</tbody></table></div>`;
+}
+function auditoriaCriminaisCompacto(qtdMv, qtdCvpe, qtdCvpa, nome, mesNome) {
+  const chip = (rot, q, pg) => `<button type="button" class="ppvd-badge ${q > 0 ? 'ppvd-badge-critica' : 'ppvd-badge-verde'}" style="cursor:pointer" ${q > 0 ? `onclick="setMunFiltro('${nome}'); goToPage('${pg}')"` : 'disabled'} title="${q > 0 ? 'Abrir ' + rot + ' filtrado em ' + nome : 'Sem ocorrência'}">${rot} ${q}</button>`;
+  const algum = qtdMv + qtdCvpe + qtdCvpa > 0;
+  return `<div class="aud-crim"><b>MV, CVPE e CVPa em ${mesNome}/2026</b><span class="chips">${chip('MV', qtdMv, 'imv')}${chip('CVPE', qtdCvpe, 'cvpe')}${chip('CVPa', qtdCvpa, 'cvpa')}</span>
+    ${algum ? `<div class="nota">Só há a contagem por município e mês — o endereço de cada ocorrência ainda não está disponível nesta auditoria. Clique no indicador pra ver o detalhe ou consulte o SiGOp.</div>` : `<div class="nota">Nenhuma ocorrência no mês.</div>`}</div>`;
+}
+function auditoriaResumoHtml(cidades) {
+  const soma = (k) => cidades.reduce((s, c) => s + c[k], 0);
+  const num = (v, rot) => `<span class="num ${v > 0 ? 'p' : 'z'}" data-l="${rot}">${v}</span>`;
+  const rf = (c) => { const tem = new Set(auditoriaRespDe(c.nome).map(r => r.funcao)); return Object.keys(AUDIT_FUNCOES).map(k => `<span class="rf ${tem.has(k) ? 'on' : ''}" title="${AUDIT_FUNCOES[k]}${tem.has(k) ? '' : ' — não cadastrado'}">${({ cmt_destacamento: 'D', cmt_pelotao: 'P', sargenteante: 'S' })[k]}</span>`).join(''); };
+  let h = `<div class="aud-resumo" role="table" aria-label="Resumo da auditoria por cidade">
+    <div class="aud-linha cab" role="row"><span>Cidade</span><span class="num">VD</span><span class="num">MV</span><span class="num">CVPE</span><span class="num">CVPa</span><span class="num">Metas</span><span class="num">Total</span><span>Responsáveis</span></div>`;
+  cidades.forEach(c => {
+    h += `<button type="button" class="aud-linha" role="row" data-ir="aud-c-${c.muniIdx}" title="Abrir o detalhe de ${c.nome}"><span class="c">${c.nome}</span>${num(c.vd, 'VD')}${num(c.mv, 'MV')}${num(c.cvpe, 'CVPE')}${num(c.cvpa, 'CVPa')}${num(c.metas, 'Metas')}
+      <span class="tt"><span class="ppvd-badge ${c.total > 0 ? 'ppvd-badge-critica' : 'ppvd-badge-verde'}">${c.total}</span></span>
+      <span class="rr">${auditoriaRespDe(c.nome).length ? rf(c) : '<span class="semresp">⚠ nenhum cadastrado</span>'}</span></button>`;
+  });
+  h += `<div class="aud-linha tot" role="row"><span class="c">Batalhão</span>${num(soma('vd'), 'VD')}${num(soma('mv'), 'MV')}${num(soma('cvpe'), 'CVPE')}${num(soma('cvpa'), 'CVPa')}${num(soma('metas'), 'Metas')}<span class="tt"><span class="ppvd-badge ${soma('total') > 0 ? 'ppvd-badge-critica' : 'ppvd-badge-verde'}">${soma('total')}</span></span><span class="rr"></span></div></div>`;
+  return h;
+}
+
 function auditoriaTopicoCriminal(label, qtd, nomeMunicipio, mesNome) {
   const badge = qtd > 0 ? `<span class="ppvd-badge ppvd-badge-critica">${qtd}</span>` : `<span class="ppvd-badge ppvd-badge-verde">0</span>`;
   let h = `<details style="margin-top:10px;border-top:1px solid var(--panel-border);padding-top:6px" ${qtd > 0 ? 'open' : ''}>
@@ -3539,20 +3610,14 @@ async function renderAuditoriaPage() {
   }
 
   function auditoriaTopicoMetas(nome, metas) {
-    const atrasadas = metas.filter(m => m.atrasado);
+    const atrasadas = metas.filter(m => m.atrasado), emDia = metas.filter(m => !m.atrasado);
     let h = `<details style="margin-top:10px;border-top:1px solid var(--panel-border);padding-top:6px" ${atrasadas.length ? 'open' : ''}>
-      <summary style="cursor:pointer;padding:4px 0;font-weight:600">Metas do Mês (dia a dia) ${atrasadas.length ? `<span class="ppvd-badge ppvd-badge-critica">${atrasadas.length}</span>` : '<span class="ppvd-badge ppvd-badge-verde">0</span>'}</summary>`;
+      <summary style="cursor:pointer;padding:4px 0;font-weight:600">Metas do Mês (dia a dia) ${atrasadas.length ? `<span class="ppvd-badge ppvd-badge-critica">${atrasadas.length} atrasada(s)</span>` : '<span class="ppvd-badge ppvd-badge-verde">todas em dia</span>'}</summary>`;
     if (metas.length === 0) {
       h += `<div class="def-box">Sem indicadores de meta mensal cadastrados pra ${nome}.</div>`;
     } else {
-      h += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Indicador</th><th style="text-align:left">Atualizado</th><th>Meta/Teto Mês</th><th>Ajustada (arred.)</th><th>Realizado</th><th style="text-align:left">Status</th></tr></thead><tbody>`;
-      metas.slice().sort((a, b) => (b.atrasado ? 1 : 0) - (a.atrasado ? 1 : 0)).forEach(m => {
-        const atualizadoTxt = m.semRegistro
-          ? '<span style="color:var(--amber)">sem registro</span>'
-          : (m.diaRef === 0 ? '<span style="color:var(--amber)">nada neste mês</span>' : `dia ${m.diaRef}`);
-        h += `<tr class="${m.atrasado ? 'vd-row-vermelho' : ''}"><td style="text-align:left">${m.label}</td><td style="text-align:left">${atualizadoTxt}</td><td>${m.meta}</td><td title="valor exato: ${m.metaAjustada.toFixed(2)}">${m.metaComparacao}</td><td>${m.realizado}</td><td style="text-align:left"><span class="${m.cls}">${m.statusTxt}</span></td></tr>`;
-      });
-      h += `</tbody></table></div>`;
+      if (atrasadas.length) h += auditoriaMetasTabela(atrasadas.slice().sort((a, b) => b.atrasado - a.atrasado));
+      if (emDia.length) h += `<details class="aud-emdia"><summary>Ver as ${emDia.length} meta(s) em dia</summary>${auditoriaMetasTabela(emDia)}</details>`;
     }
     h += `</details>`;
     return h;
@@ -3574,8 +3639,9 @@ async function renderAuditoriaPage() {
   const diaHojeReal = new Date().getDate();
   window.auditoriaResumo = {};
 
-  let htmlCidades = '';
+  const cidadesAud = [];
   MUNICIPIOS_CANONICAL.forEach((nome, muniIdx) => {
+    let htmlCidades = '';
     const lista = ocorrenciasPorMunicipio[nome];
     const flagged = lista.map(o => {
       const caso = o.r ? (casosMap[o.r] || null) : null;
@@ -3612,9 +3678,7 @@ async function renderAuditoriaPage() {
     const temPendencia = totalVermelho > 0;
     window.auditoriaResumo[nome].totalVermelho = totalVermelho;
 
-    htmlCidades += `<div class="chart-box" style="margin-bottom:14px;min-width:0">
-      <h3 style="display:flex;justify-content:space-between;align-items:center;gap:10px">${nome} ${badgeGeral}</h3>
-      <div id="audResp-${muniIdx}">${auditoriaRespHtml(nome, muniIdx, temPendencia)}</div>`;
+    htmlCidades += `<div id="audResp-${muniIdx}">${auditoriaRespHtml(nome, muniIdx, temPendencia)}</div>`;
 
     htmlCidades += `<details style="padding-top:2px" ${flagged.length ? 'open' : ''}>
       <summary style="cursor:pointer;padding:4px 0;font-weight:600">Violência Doméstica ${flagged.length ? `<span class="ppvd-badge ppvd-badge-critica">${flagged.length}</span>` : '<span class="ppvd-badge ppvd-badge-verde">0</span>'}</summary>`;
@@ -3636,20 +3700,29 @@ async function renderAuditoriaPage() {
     }
     htmlCidades += `</details>`;
 
-    htmlCidades += auditoriaTopicoCriminal('MV (Mortes Violentas)', qtdMv, nome, mesNomeAtual);
-    htmlCidades += auditoriaTopicoCriminal('CVPE', qtdCvpe, nome, mesNomeAtual);
-    htmlCidades += auditoriaTopicoCriminal('CVPa', qtdCvpa, nome, mesNomeAtual);
+    htmlCidades += auditoriaCriminaisCompacto(qtdMv, qtdCvpe, qtdCvpa, nome, mesNomeAtual);
     htmlCidades += auditoriaTopicoMetas(nome, metasDiariasCidade);
 
-    htmlCidades += `</div>`;
+    const pill = (rot, q) => `<span class="ppvd-badge ${q > 0 ? 'ppvd-badge-critica' : 'ppvd-badge-verde'}">${rot} ${q}</span>`;
+    cidadesAud.push({ nome, muniIdx, vd: flagged.length, mv: qtdMv, cvpe: qtdCvpe, cvpa: qtdCvpa, metas: metasAtrasadasList.length, total: totalVermelho,
+      html: `<details class="aud-cidade" id="aud-c-${muniIdx}"><summary><span class="cn">${nome}</span>${badgeGeral}<span class="chips">${pill('VD', flagged.length)}${pill('MV', qtdMv)}${pill('CVPE', qtdCvpe)}${pill('CVPa', qtdCvpa)}${pill('Metas', metasAtrasadasList.length)}</span></summary><div class="aud-corpo">${htmlCidades}</div></details>` });
   });
+  // piores primeiro; o resumo e o detalhe seguem a mesma ordem
+  cidadesAud.sort((x, y) => (y.total - x.total) || x.nome.localeCompare(y.nome));
 
-  const avisoMvCvpe = `<div class="def-box" style="border-color:var(--amber)">
-    <b>Sobre MV/CVPE/CVPa nesta auditoria</b><br>
-    Por enquanto só temos a contagem de ocorrências por município e mês (abaixo) — o endereço exato de cada ocorrência ainda não está estruturado por município no data.json (só existe um agregado do batalhão inteiro por tipo de local, sem separar por cidade). Assim que houver um export nesse nível de detalhe, esta seção passa a listar ocorrência por ocorrência, igual à de Violência Doméstica.
-  </div>`;
+  const avisoMvCvpe = `<details class="aud-como"><summary>Sobre MV/CVPE/CVPa nesta auditoria</summary><div>
+    Por enquanto só temos a contagem de ocorrências por município e mês — o endereço exato de cada ocorrência ainda não está estruturado por município no data.json (só existe um agregado do batalhão inteiro por tipo de local, sem separar por cidade). Assim que houver um export nesse nível de detalhe, esta seção passa a listar ocorrência por ocorrência, igual à de Violência Doméstica.
+  </div></details>`;
 
-  body.innerHTML = avisoMvCvpe + htmlCidades;
+  body.innerHTML = avisoMvCvpe + auditoriaResumoHtml(cidadesAud) +
+    `<div class="aud-acoes"><button type="button" class="ppvd-btn" id="audAbrirTodas">Abrir todas as cidades</button><button type="button" class="ppvd-btn" id="audFecharTodas">Recolher todas</button><span style="color:var(--muted);font-size:12px">cidades em ordem de gravidade · clique numa linha do resumo para abrir o detalhe</span></div>` +
+    cidadesAud.map(c => c.html).join('');
+  body.querySelectorAll('button.aud-linha[data-ir]').forEach(b => b.addEventListener('click', () => {
+    const d = document.getElementById(b.dataset.ir); if (!d) return; d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  document.getElementById('audAbrirTodas').addEventListener('click', () => body.querySelectorAll('details.aud-cidade').forEach(d => { d.open = true; }));
+  document.getElementById('audFecharTodas').addEventListener('click', () => body.querySelectorAll('details.aud-cidade').forEach(d => { d.open = false; }));
+
 }
 
 // ============ Responsáveis da AUDITORIA (2026-10-13) ============

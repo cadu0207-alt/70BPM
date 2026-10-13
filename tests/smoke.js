@@ -564,6 +564,39 @@ function auditar() {
     await ctxA.close();
   }
 
+  // ---------- 17) Auditoria, etapa 2: resumo por cidade, detalhe recolhido, metas só as atrasadas ----------
+  console.log('\n[17] Painel de Auditoria: resumo no topo e detalhe recolhido');
+  {
+    const ctxB = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pb = await ctxB.newPage();
+    const errosB = []; pb.on('pageerror', (e) => errosB.push(e.message));
+    await pb.goto(base);
+    await pb.waitForFunction(() => typeof renderAuditoriaPage === 'function');
+    const r = await pb.evaluate(async () => {
+      const cad = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, nome: 'A', cargo: 'P3', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true; ppvdMilitaresCache = [];
+      DATA.violencia_domestica.ocorrencias = { 'Medina': [{ r: 'M1', d: '01/10/2026', m: 10 }, { r: 'M2', d: '02/10/2026', m: 10 }, { r: 'M3', d: '03/10/2026', m: 10 }] };
+      ppvdBuscarCasosVD = async () => ({});
+      await renderAuditoriaPage();
+      const linhas = [...document.querySelectorAll('#auditoriaBody button.aud-linha')];
+      const totais = linhas.map(b => parseInt(b.querySelector('.tt .ppvd-badge').textContent, 10));
+      const ordenado = totais.every((v, i) => i === 0 || totais[i - 1] >= v);
+      const abertas = document.querySelectorAll('#auditoriaBody details.aud-cidade[open]').length;
+      const primeira = linhas[0].dataset.ir; linhas[0].click();
+      const abriu = document.getElementById(primeira).open;
+      const metasDetalhe = [...document.querySelectorAll('#auditoriaBody details.aud-cidade')].every(d => !d.querySelector('details > table') );
+      return { n: linhas.length, ordenado, abertas, abriu, medina: linhas.find(b => b.textContent.includes('Medina')).querySelector('.num').textContent, temEmDia: document.querySelectorAll('#auditoriaBody details.aud-emdia').length, totalLinha: !!document.querySelector('#auditoriaBody .aud-linha.tot') };
+    });
+    checa(r.n === 13 && r.totalLinha, 'resumo no topo com as 13 cidades e a linha do batalhão', 'resumo da Auditoria: ' + JSON.stringify(r));
+    checa(r.ordenado, 'cidades em ordem de gravidade (maior total primeiro)', 'resumo fora de ordem');
+    checa(r.abertas === 0, 'todas as cidades começam recolhidas', `${r.abertas} cidade(s) abertas de início`);
+    checa(r.abriu, 'clicar numa linha do resumo abre o detalhe da cidade', 'a linha do resumo não abriu o detalhe');
+    checa(r.medina === '3', 'resumo mostra os 3 casos de VD atrasados de Medina', `VD de Medina no resumo: ${r.medina}`);
+    checa(r.temEmDia > 0, 'metas em dia ficam atrás de "ver as metas em dia"', 'não achei o bloco de metas em dia recolhido');
+    checa(errosB.length === 0, 'Auditoria (etapa 2) sem erro de JavaScript', 'erros: ' + errosB.slice(0, 3).join(' | '));
+    await ctxB.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
