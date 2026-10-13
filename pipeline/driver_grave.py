@@ -566,7 +566,7 @@ def run_local_faixa(data, report):
 # ---- Ocorrências de MV (RESTRITO: REDS, data/hora, endereço) ----
 # Alimenta a seção "Ocorrências de MV" da página de Mortes Violentas, só para PPVD aprovado. Vai em data['crimes_violentos']['mv_ocorrencias']
 # (chave restrita: sai do data.json público e vai pro Supabase junto do bloco crimes_violentos).
-def _lista_ocorrencias(data, report, pasta, col_total, chave_dado, chave_rep, col_pm=None):
+def _lista_ocorrencias(data, report, pasta, col_total, chave_dado, chave_rep, col_pm=None, extras=None):
     f = latest_csv(pasta)
     if not f or 'crimes_violentos' not in data:
         report[chave_rep] = {'skipped': True, 'reason': f'sem export em entrada/{pasta}' if not f else 'bloco crimes_violentos inexistente'}
@@ -602,11 +602,14 @@ def _lista_ocorrencias(data, report, pasta, col_total, chave_dado, chave_rep, co
         if col_pm:
             item['v'] = int(vit)
             item['pm'] = _num(r.get(col_pm)) > 0
+        if extras:
+            item.update(extras(r, vit))
         saida.setdefault((r.get('MUNICIPIO') or '').strip().upper(), []).append(item)
     total = sum(len(v) for v in saida.values())
     antes = sum(len(v) for v in (data['crimes_violentos'].get(chave_dado) or {}).values())
     data['crimes_violentos'][chave_dado] = saida
-    esperado = sum(data['mv' if pasta == 'MV' else 'cvpe']['reds_mes']) if 'reds_mes' in data.get('mv' if pasta == 'MV' else 'cvpe', {}) else sum(data['mv' if pasta == 'MV' else 'cvpe']['total_mes'])
+    chave_ind = {'MV': 'mv', 'CVPE': 'cvpe', 'CVPA': 'cvpa'}[pasta]
+    esperado = sum(data[chave_ind]['reds_mes']) if 'reds_mes' in data.get(chave_ind, {}) else sum(data[chave_ind]['total_mes'])
     report[chave_rep] = {'file': f, 'antes': antes, 'depois': total, 'esperado': esperado, 'confere': total == esperado}
 
 
@@ -673,6 +676,33 @@ def run_extras_indicadores(data, report):
         report['extras_' + chave] = res
 
 
+def _extras_cvpa(r, vit):
+    """CVPA: o alvo do roubo, o que foi levado (objetos FURTADO/ROUBADO) e os veículos roubados/liberados — campos de texto do SiGOp."""
+    alvo = re.sub(r'^BENS/VALORES( DE)? ', '', ((r.get('COMPLEMENTO_NATUREZA') or '').strip() or 'NAO INFORMADO').split(' (')[0])
+    objs, vistos = [], set()
+    for item in (r.get('MATERIAIS') or '').split('|'):
+        m = re.search(r'situacaoDescricao:(.*?)/tipoObjetoDescricao:(.*?)/marcaPadrao', item)
+        if m and m.group(1).strip().upper().startswith('FURTADO / ROUBADO'):
+            t = m.group(2).strip().title()
+            if t and t not in vistos:
+                vistos.add(t); objs.append(t)
+    veic = []
+    for item in (r.get('VEICULOS') or '').split('|'):
+        m = re.search(r'situacaoPlacaDescricao:(.*?)/motivoApreensao.*?tipoVeiculoDescricao:(.*?)/marcaModelo', item)
+        if m:
+            sit = m.group(1).strip().upper()
+            if not (sit == 'ROUBADO' or 'RECUPER' in sit or 'LIBERADO' in sit):
+                continue  # só veículo da vítima (roubado/recuperado/liberado); apreendido e "sem providência" são do autor ou do local
+            txt = f"{m.group(2).strip().title()} ({'roubado' if sit == 'ROUBADO' else ('recuperado' if 'RECUPER' in sit else 'liberado')})"
+            if txt not in veic:
+                veic.append(txt)
+    return {'v': int(vit), 'alvo': alvo.title() if alvo.isupper() else alvo, 'obj': objs[:5], 'veic': veic[:3]}
+
+
+def run_cvpa_ocorrencias(data, report):
+    _lista_ocorrencias(data, report, 'CVPA', 'ICVPA_TOTAL', 'cvpa_ocorrencias', 'cvpa_ocorrencias', extras=_extras_cvpa)
+
+
 def main():
     data = pr.carregar()  # data_completo.json (com blocos restritos); ver publicar_restrito.py
     report = {}
@@ -697,6 +727,7 @@ def main():
     run_extras_indicadores(data, report)
     run_mv_ocorrencias(data, report)
     run_cvpe_ocorrencias(data, report)
+    run_cvpa_ocorrencias(data, report)
 
     # Carimba atualizado_em em todo bloco tocado (e não pulado) nesta rodada — mesmo
     # motivo do aggregate.py (ver 2026-09-28): sem isso o campo ficava parado na última
