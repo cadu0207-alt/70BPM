@@ -184,8 +184,8 @@ function auditar() {
   await page.evaluate(() => goToPage('home'));
   await page.waitForTimeout(300);
   const home = await page.evaluate(() => {
-    const h3 = Array.from(document.querySelectorAll('#main h3')).find((h) => h.textContent.includes('Quadro de Cumprimento'));
-    return { linhas: h3 ? h3.closest('.chart-box').querySelectorAll('tbody tr').length : -1, kpis: document.querySelectorAll('#main .kpi-card').length, status: (document.getElementById('statusDadosTxt') || {}).textContent,
+    const h3 = Array.from(document.querySelectorAll('#main h3')).find((h) => /quadro de cumprimento/i.test(h.textContent));
+    return { linhas: h3 ? h3.closest('.chart-box').querySelector('table tbody').querySelectorAll('tr').length : -1, kpis: document.querySelectorAll('#main .kpi-card').length, status: (document.getElementById('statusDadosTxt') || {}).textContent,
       kpisHome: document.querySelectorAll('#main .kpi-grid-home .kpi-card').length, mainTag: (document.getElementById('main') || {}).tagName, navTag: (document.getElementById('sidebar') || {}).tagName,
       h1: document.querySelectorAll('#main [role=heading][aria-level="1"]').length, filtroRotulo: (document.getElementById('munFiltroGlobal') || {}).ariaLabel };
   });
@@ -314,7 +314,7 @@ function auditar() {
     const m1 = await pg.evaluate(() => ({
       grupos: document.querySelectorAll('.sidebar .nav-group').length,
       selos: [...document.querySelectorAll('.sidebar [data-bd]')].filter(e => !e.hidden).length,
-      chips: document.querySelectorAll('#main .atencao .chip').length,
+      chips: document.querySelectorAll('#main .atencao .atn-item').length,
       pilulas: document.querySelectorAll('#munStrip .pill-mun').length,
     }));
     checa(m1.grupos === 6, '6 grupos no menu', `grupos no menu: ${m1.grupos}`);
@@ -333,7 +333,7 @@ function auditar() {
     // chip da Atenção agora abre a página do indicador já filtrada
     await pg.evaluate(() => { setMunFiltro(''); goToPage('home'); });
     await pg.waitForTimeout(300);
-    const c = await pg.evaluate(() => { const ch = document.querySelector('#main .atencao .chip'); if (!ch) return null; const alvo = { pg: ch.dataset.pg, mun: ch.dataset.mun }; ch.click(); return Object.assign(alvo, { pagina: currentPageKey, filtro: getMunFiltro(), ativo: (document.querySelector('.sidebar .nav-btn.active') || {}).dataset && document.querySelector('.sidebar .nav-btn.active').dataset.page }); });
+    const c = await pg.evaluate(() => { const ch = document.querySelector('#main .atencao .atn-item'); if (!ch) return null; const alvo = { pg: ch.dataset.pg, mun: ch.dataset.mun }; ch.click(); return Object.assign(alvo, { pagina: currentPageKey, filtro: getMunFiltro(), ativo: (document.querySelector('.sidebar .nav-btn.active') || {}).dataset && document.querySelector('.sidebar .nav-btn.active').dataset.page }); });
     checa(!c || (c.pagina === c.pg && c.filtro === c.mun && c.ativo === c.pg), c ? `chip abre ${c.pg} filtrado em ${c.mun} e marca o item do menu` : 'sem itens em atenção (nada a clicar)', 'chip não levou à página certa: ' + JSON.stringify(c));
     checa(errosM.length === 0, 'menu novo sem erro de JavaScript', 'erros: ' + errosM.slice(0, 3).join(' | '));
     await ctxM.close();
@@ -405,9 +405,8 @@ function auditar() {
     await ph.evaluate(() => goToPage('home'));
     await ph.waitForTimeout(300);
     const h = await ph.evaluate(() => {
-      const caixas = [...document.querySelectorAll('#main .chart-box')].filter(c => c.querySelector('h3') && /Quadro de Cumprimento/.test(c.querySelector('h3').textContent));
-      const cabec = caixas[0] ? [...caixas[0].querySelectorAll('thead th')].map(t => t.textContent.trim()) : [];
-      const acum = caixas[1];
+      const cabec = [...document.querySelectorAll('#main .quadro-unico table thead th')].slice(0, 17).map(t => t.textContent.trim());
+      const acum = document.querySelector('#main .quadro-unico [data-painel="acum"]');
       const idx = (nome) => cabec.indexOf(nome);
       const totalAcum = acum ? [...acum.querySelectorAll('tbody tr.linha-total td')] : [];
       const cor = (td) => (td && /rgba\(([^)]*)\)/.exec(td.getAttribute('style') || '') || [])[1] || '';
@@ -432,6 +431,52 @@ function auditar() {
       checa(!!k && k === q, `cartão de ${nome} com a mesma cor do total no quadro (${k})`, `cartão de ${nome} (${k}) diverge do quadro (${q})`);
     }
     await ctxH.close();
+  }
+
+  // ---------- 14) Home, onda 2: Atenção por cidade, abas do quadro, células clicáveis, ranking ao lado, mini-gráficos ----------
+  console.log('\n[14] Home: Atenção por cidade, quadro com abas e cliques, ranking ao lado dos KPIs');
+  {
+    const ctx2 = await novoContexto(browser, { viewport: { width: 1440, height: 900 } });
+    const p2 = await ctx2.newPage();
+    const erros2 = []; p2.on('pageerror', (e) => erros2.push(e.message));
+    await p2.goto(base);
+    await p2.waitForFunction(() => typeof goToPage === 'function');
+    await p2.evaluate(() => { localStorage.removeItem('homeAbaQuadro'); goToPage('home'); });
+    await p2.waitForTimeout(400);
+    const a = await p2.evaluate(() => {
+      const r = (sel) => { const e = document.querySelector(sel); return e ? e.getBoundingClientRect() : null; };
+      const kpi = r('#main .kpi-grid-home'), rank = r('#main .rank-lateral');
+      return {
+        cidades: document.querySelectorAll('#main .atn-cidade:not([hidden])').length, extras: document.querySelectorAll('#main .atn-extra').length,
+        sparks: document.querySelectorAll('#main .kpi-grid-home .spark').length,
+        lado: !!(kpi && rank && rank.left > kpi.right - 5 && rank.top < kpi.bottom),
+        quadros: document.querySelectorAll('#main .quadro-unico [data-painel]').length,
+        visiveis: [...document.querySelectorAll('#main .quadro-unico [data-painel]')].filter(x => !x.hidden).map(x => x.dataset.painel),
+      };
+    });
+    checa(a.cidades >= 1 && a.cidades <= 6, `Atenção agora em cartões por cidade (${a.cidades} visíveis, ${a.extras} escondidas)`, 'cartões por cidade: ' + JSON.stringify(a));
+    checa(a.sparks === 9, 'os 9 cartões de KPI têm mini-gráfico', `mini-gráficos: ${a.sparks}`);
+    checa(a.lado, 'ranking ao lado dos KPIs', 'o ranking não ficou ao lado dos KPIs');
+    checa(a.quadros === 2 && a.visiveis.length === 1, `quadro único com 2 abas (visível: ${a.visiveis.join()})`, 'quadro de cumprimento fora do formato de abas: ' + JSON.stringify(a));
+    // aba acumulado + persistência
+    await p2.click('#main .aba[data-aba="acum"]');
+    const b = await p2.evaluate(() => ({ visivel: [...document.querySelectorAll('#main .quadro-unico [data-painel]')].filter(x => !x.hidden).map(x => x.dataset.painel).join(), salvo: localStorage.getItem('homeAbaQuadro') }));
+    checa(b.visivel === 'acum' && b.salvo === 'acum', 'aba Acumulado abre e fica lembrada', 'aba Acumulado: ' + JSON.stringify(b));
+    // célula clicável abre o indicador filtrado na cidade
+    const c = await p2.evaluate(() => {
+      const td = document.querySelector('#main .quadro-unico [data-painel="acum"] tbody tr:not(.linha-total) td:nth-child(8)'); // POG
+      const cidade = td.parentElement.firstElementChild.textContent.trim();
+      td.click();
+      return { cidade, pagina: currentPageKey, filtro: getMunFiltro() };
+    });
+    checa(c.pagina === 'pog' && c.filtro.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase() === c.cidade.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase(), `célula do POG abre a página POG filtrada em ${c.cidade}`, 'clique na célula: ' + JSON.stringify(c));
+    // cabeçalho abre o indicador sem filtro de cidade novo
+    await p2.evaluate(() => { setMunFiltro(''); goToPage('home'); });
+    await p2.waitForTimeout(300);
+    const d = await p2.evaluate(() => { document.querySelector('#main .quadro-unico table thead th[data-pg="cvpe"]').click(); return currentPageKey; });
+    checa(d === 'cvpe', 'cabeçalho da coluna abre a página do indicador', `cabeçalho abriu "${d}"`);
+    checa(erros2.length === 0, 'Home sem erro de JavaScript', 'erros: ' + erros2.slice(0, 3).join(' | '));
+    await ctx2.close();
   }
 
   await browser.close();

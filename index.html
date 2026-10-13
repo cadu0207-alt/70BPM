@@ -202,6 +202,48 @@
   @media (min-width: 901px) and (max-width: 1600px) { .main { padding-left:24px; padding-right:24px; } }
   .dica-rolagem { display:none; font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; margin:6px 2px 0; }
   .dica-rolagem.on { display:block; }
+  /* Home, onda 2 (2026-10-13) */
+  .home-linha { display:grid; grid-template-columns: minmax(0, 1.9fr) minmax(300px, 1fr); gap:18px; align-items:start; margin-bottom:20px; }
+  .home-linha .kpi-grid { margin-bottom:0; }
+  .home-linha .rank-lateral .chart-box { margin-top:0; min-width:0; }
+  @media (max-width: 1180px) { .home-linha { grid-template-columns: 1fr; } }
+  .kpi-card .spark { display:block; width:100%; height:26px; margin-top:8px; overflow:visible; }
+  .spark .sp-real { fill:none; stroke:currentColor; stroke-width:2; vector-effect:non-scaling-stroke; stroke-linejoin:round; }
+  .spark .sp-meta { fill:none; stroke:var(--muted); stroke-width:1.5; stroke-dasharray:4 3; vector-effect:non-scaling-stroke; }
+  .kpi-green .spark { color:var(--signal); } .kpi-red .spark { color:var(--alert-text); } .kpi-amber .spark { color:var(--caution); } .kpi-neutral .spark { color:var(--text); }
+  .atn-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap:10px; }
+  .atn-cidade { background:var(--bg-2); border:1px solid var(--panel-border); border-left:3px solid var(--caution); border-radius:8px; padding:10px 12px; }
+  .atn-cidade.r { border-left-color:var(--alert); }
+  .atn-cidade[hidden] { display:none; }
+  .atn-nome { width:100%; display:flex; align-items:center; gap:8px; background:transparent; border:0; color:var(--text); font-weight:700; font-size:14px; padding:0 0 6px; cursor:pointer; text-align:left; font-family:var(--sans); }
+  .atn-nome:hover { color:var(--amber); }
+  .atn-nome .cont { margin-left:auto; font-family:var(--mono); font-size:11.5px; font-weight:600; }
+  .atn-nome .cont .rv { color:var(--alert-text); } .atn-nome .cont .am { color:var(--caution); }
+  .atn-cidade ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:3px; }
+  .atn-item { width:100%; display:flex; align-items:baseline; gap:7px; background:transparent; border:0; border-radius:5px; padding:3px 4px; cursor:pointer; color:var(--text); font-size:12.5px; text-align:left; font-family:var(--sans); }
+  .atn-item:hover { background:#15283d; }
+  .atn-item .g { font-weight:800; font-size:12px; flex-shrink:0; }
+  .atn-item.r .g { color:var(--alert-text); } .atn-item.a .g { color:var(--caution); }
+  .atn-item small { color:var(--muted); font-size:11px; margin-left:auto; text-align:right; }
+  .atn-mais-itens { color:var(--muted); font-size:11.5px; padding:2px 4px; }
+  .atn-mais { margin-top:10px; background:transparent; border:1px solid var(--panel-border); color:var(--muted); border-radius:999px; padding:6px 14px; font-size:12px; cursor:pointer; font-family:var(--sans); }
+  .atn-mais:hover { color:var(--text); border-color:var(--muted-dim); }
+  .abas { display:flex; gap:6px; margin:0 0 10px; }
+  .aba { background:var(--bg-2); border:1px solid var(--panel-border); color:#b6c6d6; border-radius:8px 8px 0 0; padding:8px 16px; font-size:13px; cursor:pointer; font-family:var(--sans); }
+  .aba.on { background:rgba(232,168,60,.14); border-color:var(--amber); color:var(--amber); font-weight:600; }
+  .aba:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+  .periodo-quadro { font-family:var(--mono); font-size:11.5px; color:var(--muted); margin:0 0 8px; }
+  [data-painel][hidden] { display:none; }
+  table.matriz-home td.cel-clic { cursor:pointer; }
+  table.matriz-home td.cel-clic:hover { outline:1px solid var(--amber); outline-offset:-1px; }
+  table.matriz-home th[data-pg] { cursor:pointer; }
+  table.matriz-home th[data-pg]:hover { color:var(--amber); text-decoration:underline; }
+  table.matriz-home tbody td:first-child { cursor:pointer; }
+  .rank-lateral .rank-row > div:nth-child(2) { width:118px !important; font-size:12.5px; }
+  .rank-lateral .rank-row { padding:3px 0 !important; cursor:pointer; }
+  details.como-pontua { margin-top:10px; font-size:12px; color:var(--muted); font-family:var(--mono); }
+  details.como-pontua summary { cursor:pointer; padding:4px 0; }
+  details.como-pontua div { padding:4px 0; line-height:1.5; }
   table.data-table tr.linha-total td { border-top: 2px solid rgba(234,241,248,0.32); font-weight:700; }
   .posicao-dados { display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center; margin:2px 0 14px; font-family:var(--mono); font-size:12.5px; color:var(--muted); }
   .posicao-dados b { color:var(--text); font-weight:600; }
@@ -733,13 +775,25 @@ function bannerAcompanhamentoDiario(itens) {
   </div>`;
 }
 
-function kpiCard(label, val, isGoodWhenNegative=true) {
+function kpiCard(label, val, isGoodWhenNegative=true, extra='') {
   let cls = 'kpi-neutral';
   if (typeof val === 'number') {
     cls = (val <= 0) === isGoodWhenNegative ? 'kpi-green' : 'kpi-red';
   }
   const display = typeof val === 'number' ? (val>0?'+':'') + val.toFixed(1) + '%' : val;
-  return `<div class="kpi-card ${cls}"><div class="val">${display}</div><div class="lbl">${label}</div></div>`;
+  return `<div class="kpi-card ${cls}"><div class="val">${display}</div><div class="lbl">${label}</div>${extra}</div>`;
+}
+// mini-gráfico do cartão: linha cheia = realizado do ano mês a mês, tracejada = meta (mesma escala)
+function sparkSvg(real, meta, titulo) {
+  const n = real.length; if (n < 2) return '';
+  const max = Math.max(1, ...real, ...(meta || []));
+  const X = (i) => (i / (n - 1)) * 96 + 2, Y = (v) => 24 - (v / max) * 21;
+  const pts = (a) => a.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none" role="img" aria-label="${titulo}"><title>${titulo}</title>` +
+    (meta ? `<polyline class="sp-meta" points="${pts(meta)}"/>` : '') + `<polyline class="sp-real" points="${pts(real)}"/></svg>`;
+}
+function subSpark(d, mi, textoSub) {
+  return `<div class="sub">${textoSub}</div>` + sparkSvg(d.total_acum.slice(0, mi + 1), d.total_meta_acum.slice(0, mi + 1), 'Acumulado do ano mês a mês (linha cheia) e meta (tracejada)');
 }
 
 // ---- Home (onda 1 da revisão de 2026-10-13) ----
@@ -756,7 +810,8 @@ function kpiPisoEf(label, d, mi, tipo) {
   const cls = st === 'verde' ? 'kpi-green' : (st === 'amarelo' ? 'kpi-amber' : 'kpi-red');
   const sub = f < 1 ? `${Math.round(v)}% da meta proporcional aos dias fechados · mês cheio: ${metaCheia}` : `${Math.round(v)}% da meta`;
   const tip = f < 1 ? `Cor calculada com a meta proporcional aos dias já fechados (${Math.round(metaEf)} de ${metaCheia} no período)` : '';
-  return `<div class="kpi-card ${cls}" title="${tip}"><div class="val">${real}/${Math.round(metaEf)}</div><div class="lbl">${label}</div><div class="sub">${sub}</div></div>`;
+  const spark = sparkSvg(d.total_acum.slice(0, mi + 1), d.total_meta_acum.slice(0, mi + 1), 'Acumulado do ano mês a mês (linha cheia) e meta do mês cheio (tracejada)');
+  return `<div class="kpi-card ${cls}" title="${tip}"><div class="val">${real}/${Math.round(metaEf)}</div><div class="lbl">${label}</div><div class="sub">${sub}</div>${spark}</div>`;
 }
 function dataBr(dt) { return String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0'); }
 // "Dados fechados até DD/MM · Mês em andamento (N de M dias)": a data mais importante da página, que antes só aparecia no topo
@@ -815,25 +870,38 @@ function renderHome() {
   const idobVit = DATA.idob.total_mv_acum[miIdob]+DATA.idob.total_cvpe_acum[miIdob]+DATA.idob.total_cvpa_acum[miIdob];
   const idobVal = idobQop ? ((idobQop - idobVit*10)/idobQop*100) : 0;
   html += atencaoAgoraHtml();
-  html += `<div class="kpi-grid kpi-grid-home">`;
-  html += kpiCard('Mortes Violentas (Acum)', mvPct);
-  html += kpiCard('CVpe Acum', cvpePct);
-  html += kpiCard('CVpa Acum', cvpaPct);
-  html += kpiCard('Furto Rural Acum', furtoPct);
+  html += `<div class="home-linha"><div class="kpi-grid kpi-grid-home">`;
+  html += kpiCard('Mortes Violentas (Acum)', mvPct, true, subSpark(DATA.mv, miMv, `${mvAcum} no ano · meta ${mvMeta}`));
+  html += kpiCard('CVpe Acum', cvpePct, true, subSpark(DATA.cvpe, miCvpe, `${cvpeAcum} no ano · meta ${cvpeMeta}`));
+  html += kpiCard('CVpa Acum', cvpaPct, true, subSpark(DATA.cvpa, miCvpa, `${cvpaAcum} no ano · meta ${cvpaMeta}`));
+  html += kpiCard('Furto Rural Acum', furtoPct, true, subSpark(DATA.furto, miFurto, `${furtoAcum} no ano · meta ${furtoMeta}`));
   html += kpiPisoEf('Armas de fogo e simu. (res/meta)', DATA.armas, miArmas, 'piso');
-  html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div></div>`;
+  const idobSerie = []; for (let k = 0; k <= miIdob; k++) idobSerie.push(calcIdobIndice(DATA.idob.total_qtdeop_mes[k], DATA.idob.total_mv_mes[k] + DATA.idob.total_cvpe_mes[k] + DATA.idob.total_cvpa_mes[k]));
+  html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div><div class="sub">${idobVit} vítima(s) em ${idobQop} operações</div>${sparkSvg(idobSerie, idobSerie.map(() => 95), 'IDOB mês a mês (linha cheia) e referência de 95% (tracejada)')}</div>`;
   html += kpiPisoEf('POG acum (res/meta)', DATA.pog, miPog, 'pog');
   html += kpiPisoEf('Pad. Escolar acum (res/meta)', DATA.padesc, miPadesc, 'piso');
   html += kpiPisoEf('Saque Seguro acum (res/meta)', DATA.saque_seguro, miSaque, 'piso');
-  html += `</div>`;
-  html += renderCumprimentoMatrix('mes');
-  html += renderCumprimentoMatrix('acum');
-  html += legendaCumprimentoHtml();
-  html += renderRankingTable('acum');
+  html += `</div><div class="rank-lateral">${renderRankingTable('acum', true)}</div></div>`;
+  const qMes = renderCumprimentoMatrix('mes', true), qAcum = renderCumprimentoMatrix('acum', true);
+  let abaQuadro = 'mes'; try { if (localStorage.getItem('homeAbaQuadro') === 'acum') abaQuadro = 'acum'; } catch (e) {}
+  const mesRef = MESES[miMv];
+  html += `<div class="chart-box quadro-unico"><h3>Quadro de cumprimento por cidade</h3>
+    <div class="abas" role="tablist" aria-label="Período do quadro">
+      <button type="button" role="tab" class="aba${abaQuadro === 'mes' ? ' on' : ''}" data-aba="mes" aria-selected="${abaQuadro === 'mes'}">Mês · ${mesRef}</button>
+      <button type="button" role="tab" class="aba${abaQuadro === 'acum' ? ' on' : ''}" data-aba="acum" aria-selected="${abaQuadro === 'acum'}">Acumulado · Jan–${mesRef}</button>
+    </div>
+    <div data-painel="mes" ${abaQuadro === 'mes' ? '' : 'hidden'}><div class="periodo-quadro">${qMes.titulo}</div>${qMes.tabela}</div>
+    <div data-painel="acum" ${abaQuadro === 'acum' ? '' : 'hidden'}><div class="periodo-quadro">${qAcum.titulo}</div>${qAcum.tabela}</div>
+    ${legendaCumprimentoHtml()}
+  </div>`;
   document.getElementById('main').innerHTML = html;
   atencaoAgoraLigar();
-  // quadros largos: avisa quando as colunas não cabem (rolagem lateral)
-  document.querySelectorAll('#main .table-wrap').forEach(w => { if (w.scrollWidth > w.clientWidth + 2) { const d = document.createElement('div'); d.className = 'dica-rolagem on'; d.textContent = '← deslize para ver todas as colunas →'; w.insertAdjacentElement('afterend', d); } });
+  ligarQuadroHome();
+  document.querySelectorAll('#main .rank-lateral .rank-row').forEach(r => r.addEventListener('click', () => {
+    setMunFiltro(normMun(getMunFiltro()) === normMun(r.dataset.mun) ? '' : r.dataset.mun);
+    const at = document.querySelector('#main .atencao'); if (at) { at.outerHTML = atencaoAgoraHtml(); atencaoAgoraLigar(); }
+    highlightMunRows();
+  }));
   document.getElementById('apCtaHome').addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     const navBtn = document.querySelector('[data-page="analise_preditiva"]');
@@ -935,7 +1003,7 @@ function scoreTeto(realizado, meta) {
   return -Math.floor(v / 10);
 }
 
-function renderRankingTable(modo) {
+function renderRankingTable(modo, compacto = false) {
   const sufixo = modo === 'acum' ? '_acum' : '_mes';
   const miMv = Math.min(MES_ATUAL_IDX, DATA.mv.total_mes.length-1), miCvpe = Math.min(MES_ATUAL_IDX, DATA.cvpe.total_mes.length-1), miCvpa = Math.min(MES_ATUAL_IDX, DATA.cvpa.total_mes.length-1);
   const miPog = Math.min(MES_ATUAL_IDX, DATA.pog.total_mes.length-1), miArmas = Math.min(MES_ATUAL_IDX, DATA.armas.total_mes.length-1);
@@ -1019,7 +1087,7 @@ function renderRankingTable(modo) {
     const totalColor = posicao<=3 ? '#21c98a' : (posicao>n-3 ? '#ff6b70' : '#5b9bd5');
     const pctBar = Math.max(4, ((r.total - minTotal) / span) * 100);
     const detalhe = detalheLabels.map(([k,lbl]) => `${lbl}: ${r[k]}`).join(' &middot; ');
-    rows += `<div class="rank-row" title="${detalhe.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+    rows += `<div class="rank-row" data-mun="${r.nome}" title="${detalhe.replace(/"/g,'&quot;')}" style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
       <div style="width:28px;font-weight:700;color:${totalColor}">${posicao}º</div>
       <div style="width:150px;font-weight:600;flex-shrink:0">${r.nome}</div>
       <div style="flex:1;background:rgba(255,255,255,0.06);border-radius:4px;height:14px;overflow:hidden">
@@ -1035,12 +1103,12 @@ function renderRankingTable(modo) {
   let html = `<div class="chart-box" style="margin-top:4px">
     <h3>Ranking Geral por Município &middot; ${tituloPeriodo}</h3>
     <div>${rows}</div>
-    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Barra = pontuação total do município (passe o mouse pra ver o detalhe por indicador). IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Indicadores com meta numérica (Armas/POG/PPAG/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro/IDOB/ITVD): 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). 3 primeiros em verde, 3 últimos em vermelho.</div>
+    <details class="como-pontua"><summary>Como a pontuação é calculada</summary><div>Barra = pontuação total do município (passe o mouse pra ver o detalhe por indicador). IMV/CVPe/CVPa: 3 pts por cumprir a meta, +1 a cada 10% de redução extra abaixo da meta, &minus;1 a cada 10% acima da meta (sem cumprir). Indicadores com meta numérica (Armas/POG/PPAG/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro/IDOB/ITVD): 2 pts se cumpriu a meta (verde), 1 pt se ficou na faixa de tolerância (amarelo), 0 pts se não cumpriu (vermelho). 3 primeiros em verde, 3 últimos em vermelho.</div></details>
   </div>`;
   return html;
 }
 
-function renderCumprimentoMatrix(modo) {
+function renderCumprimentoMatrix(modo, soTabela = false) {
   // modo: 'mes' (mês mais recente) ou 'acum' (acumulado jan-mês mais recente)
   // cada indicador usa seu próprio "último mês disponível" (podem estar em meses diferentes)
   const sufixo = modo === 'acum' ? '_acum' : '_mes';
@@ -1151,17 +1219,14 @@ function renderCumprimentoMatrix(modo) {
   }
 
   const tituloPeriodo = modo === 'acum' ? `Acumulado Jan-${MESES[miMv]} (IMV-Furto) / Jan-${MESES[miPog]} (demais)` : `${MESES[miMv]} (IMV-Furto) / ${MESES[miPog]} (demais)`;
-  let html = `<div class="chart-box" style="margin-top:4px">
-    <h3>Quadro de Cumprimento por Cidade &middot; ${tituloPeriodo}</h3>
-    <div class="table-wrap" style="margin-bottom:0">
+  let html = `<div class="table-wrap" style="margin-bottom:0">
     <table class="data-table matriz-home"><thead><tr>
       <th style="text-align:left">Município</th><th>IMV</th><th>CVPe</th><th>CVPa</th><th>Furto Rural</th><th>Armas</th><th title="Prisões ÷ REDS de furto">Prisões furto</th>
       <th>POG</th><th>PPAG Escolar</th><th>PPAG V.Dom.</th><th>PPAG Rural</th><th>Cavalo de Aço</th><th>Rolezinho</th>
       <th>Pad.Escolar</th><th>Saque Seguro</th><th>IDOB</th><th>ITVD</th>
     </tr></thead><tbody>${rows}</tbody></table>
-    </div>
-  </div>`;
-  return html;
+    </div>`;
+  return soTabela ? { titulo: tituloPeriodo, tabela: html } : `<div class="chart-box" style="margin-top:4px"><h3>Quadro de Cumprimento por Cidade &middot; ${tituloPeriodo}</h3>${html}</div>`;
 }
 
 function drawBarChart(canvasId, labels, values, color) {
@@ -5262,27 +5327,87 @@ function pintarPilulasMun() {
   const ativo = box.querySelector('.pill-mun.on'); if (ativo && ativo.scrollIntoView) { try { ativo.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {} }
 }
 
-// painel "Atenção agora" (Home)
+// painel "Atenção agora" (Home): um cartão por cidade (as mais críticas primeiro), com seus problemas clicáveis
 function atencaoAgoraHtml() {
   let aval; try { aval = avaliarIndicadoresMenu(); } catch (e) { return ''; }
   const filtro = getMunFiltro();
-  const itens = aval.itens.filter(i => !filtro || normMun(i.mun) === normMun(filtro));
-  const verm = itens.filter(i => i.status === 'vermelho'), amar = itens.filter(i => i.status === 'amarelo');
+  const porCidade = {};
+  aval.itens.forEach(i => { const c = porCidade[i.mun] = porCidade[i.mun] || { nome: i.mun, v: 0, a: 0, itens: [] }; c.itens.push(i); if (i.status === 'vermelho') c.v++; else c.a++; });
+  let cidades = Object.values(porCidade).sort((a, b) => (b.v - a.v) || (b.a - a.a) || a.nome.localeCompare(b.nome));
+  if (filtro) cidades = cidades.filter(c => normMun(c.nome) === normMun(filtro));
   const escopo = filtro || `${MUNICIPIOS_CANONICAL.length} cidades`;
-  if (!itens.length) return `<div class="atencao ok"><div class="hd"><b>✓ Atenção agora</b><span>${escopo}: nenhum indicador fora da meta no acumulado.</span></div></div>`;
-  const chip = (i) => `<button type="button" class="chip ${i.status === 'vermelho' ? 'r' : 'a'}" data-pg="${i.pagina}" data-mun="${i.mun}" title="${i.status === 'vermelho' ? 'Fora da meta' : 'Atenção'} — abrir ${i.indicador} em ${i.mun}"><span class="g" aria-hidden="true">${i.status === 'vermelho' ? '✕' : '!'}</span><span>${i.mun} · ${i.indicador}</span><small>${i.detalhe}</small></button>`;
-  const mostraV = verm.slice(0, 10), mostraA = amar.slice(0, 6);
-  let h = `<div class="atencao"><div class="hd"><b>⚠ Atenção agora</b><span>${escopo} · acumulado até ${(DATA.mv.meses || MESES)[Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length - 1)]} · clique pra abrir já filtrado</span></div><div class="chips">`;
-  h += mostraV.map(chip).join('') + mostraA.map(chip).join('') + `</div>`;
-  const resto = (verm.length - mostraV.length) + (amar.length - mostraA.length);
-  if (resto > 0) h += `<div class="mais">+ ${resto} item(ns) a mais — veja a tabela de cumprimento abaixo.</div>`;
+  const mes = (DATA.mv.meses || MESES)[Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length - 1)];
+  if (!cidades.length) return `<div class="atencao ok"><div class="hd"><b>✓ Atenção agora</b><span>${escopo}: nenhum indicador fora da meta no acumulado.</span></div></div>`;
+  const totV = cidades.reduce((s, c) => s + c.v, 0), totA = cidades.reduce((s, c) => s + c.a, 0);
+  const LIM = filtro ? cidades.length : (window.innerWidth < 700 ? 3 : 6); // celular mostra 3 cidades; o resto fica atrás do botão
+  const cartao = (c, i) => {
+    const mostra = c.itens.slice(0, filtro ? 40 : 4), resto = c.itens.length - mostra.length;
+    return `<div class="atn-cidade ${c.v ? 'r' : 'a'}${i >= LIM ? ' atn-extra' : ''}" ${i >= LIM ? 'hidden' : ''}>` +
+      `<button type="button" class="atn-nome" data-mun="${c.nome}" title="${filtro ? 'Tirar o filtro desta cidade' : 'Filtrar a Home por esta cidade'}"><span>${c.nome}</span><span class="cont">${c.v ? `<span class="rv">${c.v} ✕</span>` : ''} ${c.a ? `<span class="am">${c.a} !</span>` : ''}</span></button><ul>` +
+      mostra.map(it => `<li><button type="button" class="atn-item ${it.status === 'vermelho' ? 'r' : 'a'}" data-pg="${it.pagina}" data-mun="${it.mun}" title="${it.status === 'vermelho' ? 'Fora da meta' : 'Atenção'} — abrir ${it.indicador} em ${it.mun}"><span class="g" aria-hidden="true">${it.status === 'vermelho' ? '✕' : '!'}</span><span>${it.indicador}</span><small>${it.detalhe}</small></button></li>`).join('') +
+      `</ul>${resto > 0 ? `<div class="atn-mais-itens">+ ${resto} indicador(es)</div>` : ''}</div>`;
+  };
+  let h = `<div class="atencao"><div class="hd"><b>⚠ Atenção agora</b><span>${escopo} · acumulado até ${mes} · ${totV} fora da meta, ${totA} em atenção · clique para abrir já filtrado</span></div><div class="atn-grid">`;
+  h += cidades.map(cartao).join('') + `</div>`;
+  if (cidades.length > LIM) h += `<button type="button" class="atn-mais" data-rotulo="Ver as ${cidades.length} cidades com alertas" data-lim="${LIM}" data-aberto="0">Ver as ${cidades.length} cidades com alertas</button>`;
   return h + `</div>`;
 }
 function atencaoAgoraLigar() {
-  document.querySelectorAll('#main .atencao .chip').forEach(c => c.addEventListener('click', () => {
-    setMunFiltro(c.dataset.mun);
-    goToPage(c.dataset.pg);
-  }));
+  const box = document.querySelector('#main .atencao'); if (!box) return;
+  box.addEventListener('click', (e) => {
+    const it = e.target.closest('.atn-item');
+    if (it) { setMunFiltro(it.dataset.mun); goToPage(it.dataset.pg); return; }
+    const nome = e.target.closest('.atn-nome');
+    if (nome) {
+      setMunFiltro(normMun(getMunFiltro()) === normMun(nome.dataset.mun) ? '' : nome.dataset.mun);
+      box.outerHTML = atencaoAgoraHtml(); atencaoAgoraLigar(); highlightMunRows(); return;
+    }
+    const mais = e.target.closest('.atn-mais');
+    if (mais) {
+      const abre = mais.dataset.aberto !== '1';
+      box.querySelectorAll('.atn-extra').forEach(c => { c.hidden = !abre; });
+      mais.dataset.aberto = abre ? '1' : '0'; mais.textContent = abre ? `Mostrar só as ${mais.dataset.lim} mais críticas` : mais.dataset.rotulo;
+    }
+  });
+}
+
+// quadro de cumprimento: abas Mês/Acumulado, cabeçalho e células clicáveis
+const QUADRO_COLS_PG = [null, 'imv', 'cvpe', 'cvpa', 'furto', 'armas', 'esforco_furto', 'pog', 'ppag', 'ppag', 'ppag', 'cavaloaco', 'rolezinho', 'padesc', 'saque_seguro', 'idob', 'itvd'];
+function avisoRolagemQuadro(box) {
+  box.querySelectorAll('.dica-rolagem').forEach(d => d.remove());
+  const w = box.querySelector('[data-painel]:not([hidden]) .table-wrap');
+  if (w && w.scrollWidth > w.clientWidth + 2) { const d = document.createElement('div'); d.className = 'dica-rolagem on'; d.textContent = '← deslize para ver todas as colunas →'; w.insertAdjacentElement('afterend', d); }
+}
+function ligarQuadroHome() {
+  const box = document.querySelector('#main .quadro-unico'); if (!box) return;
+  box.querySelectorAll('table.matriz-home').forEach(t => {
+    t.querySelectorAll('thead th').forEach((th, i) => { if (QUADRO_COLS_PG[i]) { th.dataset.pg = QUADRO_COLS_PG[i]; th.title = th.title || 'Abrir a página deste indicador'; } });
+    t.querySelectorAll('tbody td').forEach(td => { if (td.cellIndex > 0 && QUADRO_COLS_PG[td.cellIndex]) td.classList.add('cel-clic'); });
+  });
+  box.addEventListener('click', (e) => {
+    const aba = e.target.closest('.aba');
+    if (aba) {
+      box.querySelectorAll('.aba').forEach(b => { const on = b === aba; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+      box.querySelectorAll('[data-painel]').forEach(p => { p.hidden = p.dataset.painel !== aba.dataset.aba; });
+      try { localStorage.setItem('homeAbaQuadro', aba.dataset.aba); } catch (er) {}
+      avisoRolagemQuadro(box); return;
+    }
+    const th = e.target.closest('th[data-pg]');
+    if (th) { goToPage(th.dataset.pg); return; }
+    const td = e.target.closest('tbody td'); if (!td) return;
+    const tr = td.parentElement, total = tr.classList.contains('linha-total');
+    if (td.cellIndex === 0) {
+      if (total) return;
+      const m = canonMun(td.textContent.trim());
+      setMunFiltro(normMun(getMunFiltro()) === normMun(m) ? '' : m);
+      const at = document.querySelector('#main .atencao'); if (at) { at.outerHTML = atencaoAgoraHtml(); atencaoAgoraLigar(); }
+      highlightMunRows(); return;
+    }
+    const pg = QUADRO_COLS_PG[td.cellIndex]; if (!pg) return;
+    setMunFiltro(total ? '' : canonMun(tr.firstElementChild.textContent.trim()));
+    goToPage(pg);
+  });
+  avisoRolagemQuadro(box);
 }
 
 // barra de abas do celular + folha de itens
