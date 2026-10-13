@@ -1061,6 +1061,58 @@ function auditar() {
     await ctxI.close();
   }
 
+  // ---------- 26) Páginas de indicador, onda 2: quadro mês a mês, ano vs limite, painel da cidade, barras e detalhamento ----------
+  console.log('\n[26] Páginas de indicador: ano contra o limite, quadro mês a mês, painel da cidade, local/faixa e detalhamento');
+  {
+    const ctxJ = await novoContexto(browser, { viewport: { width: 390, height: 800 } });
+    const pj = await ctxJ.newPage();
+    const errosJ = []; pj.on('pageerror', (e) => errosJ.push(e.message));
+    await pj.goto(base);
+    await pj.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pj.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}; setMunFiltro('');
+      const soma = (l) => l.reduce((a, x) => a + x[1], 0);
+      out.cobertura = ['mv', 'cvpe', 'cvpa'].map(k => k + ':' + soma(DATA[k + '_local']) + '/' + soma(DATA[k + '_faixa']) + '/' + DATA[k].total_acum[11]).join(' ');
+      out.furto = { causa: soma(DATA.furto_causa) + '/' + DATA.furto.total_acum[11], logradouros: DATA.furto_logradouro.map(x => x[0]).join('|') };
+      diasCorridosAteOntem = () => ({ diasNoMes: 30, diaRef: 11, diasDecorridos: 10, semRegistro: false });
+      goToPage('imv'); await esp(600);
+      const main = document.getElementById('main'), ult = Math.min(MES_ATUAL_IDX, DATA.mv.meses.length - 1);
+      const esperadoProj = Math.round(DATA.mv.total_acum[ult] / (ult + 1) * DATA.mv.total_meta_acum.length);
+      out.ano = { svg: !!main.querySelector('svg.ano-svg polyline.an-real'), proj: (main.querySelector('.kpi-card:nth-child(2) .val') || {}).textContent, esperadoProj, legenda: !!main.querySelector('.ano-leg') };
+      const q = main.querySelector('#indQuadro');
+      out.quadro = { linhas: q ? q.querySelectorAll('tbody tr').length : 0, colunas: q ? q.querySelectorAll('thead th').length : 0, total: q ? q.querySelector('tbody tr:last-child td.col-divider').textContent.trim() : '', esperado: String(DATA.mv.total_acum[ult]) };
+      const barras = [...main.querySelectorAll('.barras')];
+      out.barras = { listas: barras.length, faixa: [...barras[1].querySelectorAll('.rot')].map(x => x.textContent).join('|'), aviso: [...main.querySelectorAll('.ind-sec.charts-row .vd-recorte')].length, empilhado: main.querySelector('.ind-sec.charts-row .chart-box').getBoundingClientRect().width > 300 };
+      // detalhamento por mês: mês 1 (fevereiro) deve fechar com a série do indicador
+      const mi = 1, btn = main.querySelector('#detPeriodos button[data-p="' + mi + '"]'); btn.click();
+      const totalLinha = main.querySelector('#detTabela table tbody tr:last-child td:last-child').textContent.trim();
+      out.detalhe = { mes: totalLinha, esperado: String(DATA.mv.total_mes[mi]), subtotais: main.querySelectorAll('#detTabela tr.cia-sub').length };
+      main.querySelector('#detPeriodos button[data-p="acum"]').click();
+      out.detalhe.acum = main.querySelector('#detTabela table tbody tr:last-child td:last-child').textContent.trim(); out.detalhe.esperadoAcum = String(DATA.mv.total_acum[ult]);
+      // painel da cidade
+      const cidade = DATA.mv.municipios[0].nome; setMunFiltro(cidade); goToPage('imv'); await esp(600);
+      const tits = [...document.querySelectorAll('#main .ind-tit')].map(h => h.textContent);
+      out.cidade = { titulo: tits.find(t => t.includes('mês a mês') && !t.includes('município')) || '', barras: document.querySelectorAll('#main svg.ano-svg rect.bar-ok, #main svg.ano-svg rect.bar-ruim').length, naturezas: (document.querySelector('#main .nat-chips') || {}).textContent || '' };
+      // piso: projeção usa a fração fechada do mês corrente
+      goToPage('armas'); await esp(600);
+      const a = DATA.armas, f = 10 / 30, esperadoArmas = Math.round(a.total_acum[ult] / (ult + f) * a.total_meta_acum.length);
+      out.armas = { proj: (document.querySelector('#main .kpi-card:nth-child(2) .val') || {}).textContent, esperado: esperadoArmas };
+      setMunFiltro('');
+      return out;
+    });
+    checa(/mv:22\/22\/22/.test(r.cobertura.replace(/\s+/g, ' ')) || r.cobertura.split(' ').every(x => { const p = x.split(':')[1].split('/'); return p[0] === p[1] && p[1] === p[2]; }), 'local e faixa horária cobrem 100% das ocorrências (MV, CVPE, CVPa)', 'cobertura: ' + r.cobertura);
+    checa(r.furto.causa.split('/')[0] === r.furto.causa.split('/')[1] && !/[a-z]{3,} [A-Z]{3,}|PROP\./.test(r.furto.logradouros) && /PROPRIEDADE \/ COMUNIDADE RURAL/.test(r.furto.logradouros), 'Furto Rural: causa cobre o total e logradouro sem nome de propriedade/pessoa (só rodovias e agrupamento)', 'furto: ' + JSON.stringify(r.furto));
+    checa(r.ano.svg && r.ano.legenda && String(r.ano.proj).replace(/\D/g, '') === String(r.ano.esperadoProj), `ano contra o teto com projeção linear (${r.ano.proj})`, 'ano: ' + JSON.stringify(r.ano));
+    checa(r.quadro.linhas === 14 && r.quadro.colunas >= 3 && r.quadro.total === r.quadro.esperado, 'quadro município × mês com 13 cidades e total', 'quadro: ' + JSON.stringify(r.quadro));
+    checa(r.barras.listas === 2 && /^De 00:00/.test(r.barras.faixa) && r.barras.aviso === 0 && r.barras.empilhado, 'local e faixa em barras legíveis (faixa em ordem do dia, sem aviso de cobertura, empilhadas no celular)', 'barras: ' + JSON.stringify(r.barras));
+    checa(r.detalhe.mes === r.detalhe.esperado && r.detalhe.subtotais === 3 && r.detalhe.acum === r.detalhe.esperadoAcum, `detalhamento por natureza com filtro de mês fecha com a série (${r.detalhe.mes}) e traz subtotal por companhia`, 'detalhe: ' + JSON.stringify(r.detalhe));
+    checa(/mês a mês/.test(r.cidade.titulo) && r.cidade.barras >= 9, 'cidade filtrada ganha painel com barras mês a mês', 'cidade: ' + JSON.stringify(r.cidade));
+    checa(String(r.armas.proj).replace(/\D/g, '') === String(r.armas.esperado), `Armas: projeção do ano usa a fração fechada do mês (${r.armas.proj})`, 'armas: ' + JSON.stringify(r.armas));
+    checa(errosJ.length === 0, 'páginas de indicador (onda 2) sem erro de JavaScript', 'erros: ' + errosJ.slice(0, 3).join(' | '));
+    await ctxJ.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

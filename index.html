@@ -326,6 +326,24 @@
   tr.rank-clic.sel td:first-child { color:var(--amber); font-weight:700; }
   .ind-lim { color:#a9bccd; font-weight:400; }
   .ind-tab .par { white-space:nowrap; }
+  /* Páginas de indicador — onda 2 (2026-10-13): quadro mês a mês, ano vs limite, painel da cidade, barras e detalhamento */
+  .ind-sec { margin-top:30px; } .ind-sec h3.ind-tit { font-size:16px; margin:0 0 8px; }
+  .hm td.hm-ok { background:rgba(33,201,138,.16); } .hm td.hm-ruim { background:rgba(230,72,79,.26); font-weight:700; } .hm td.hm-zero { color:#8aa0b4; }
+  .hm td, .hm th { padding:6px 6px; } .hm tr.rank-clic.sel td { outline:1px solid rgba(232,168,60,.45); }
+  .ano-svg { width:100%; height:auto; max-height:260px; display:block; margin-top:8px; }
+  .ano-svg text { fill:#a9bccd; font-size:11px; font-family:var(--mono); } .ano-svg line.gr { stroke:rgba(234,241,248,.12); stroke-width:1; }
+  .ano-svg .an-real { fill:none; stroke:var(--text); stroke-width:2.5; stroke-linejoin:round; } .ano-svg .an-lim { fill:none; stroke:var(--amber); stroke-width:2; stroke-dasharray:6 4; }
+  .ano-svg .an-proj { fill:none; stroke:#5b9bd5; stroke-width:2; stroke-dasharray:2 4; stroke-linecap:round; }
+  .ano-svg .bar-ok { fill:rgba(33,201,138,.75); } .ano-svg .bar-ruim { fill:rgba(230,72,79,.85); } .ano-svg .bar-lim { stroke:var(--amber); stroke-width:2.5; }
+  .ano-leg { display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:6px; } .ano-leg i { display:inline-block; width:22px; height:0; border-top:3px solid var(--text); vertical-align:middle; margin-right:6px; }
+  .ano-leg i.l { border-top:3px dashed var(--amber); } .ano-leg i.p { border-top:3px dotted #5b9bd5; }
+  .barras { display:grid; gap:7px; margin:8px 0 0; padding:0; list-style:none; }
+  .barras li { display:grid; grid-template-columns:minmax(120px, 34%) 1fr 70px; align-items:center; gap:10px; font-size:12.5px; }
+  .barras .rot { overflow-wrap:anywhere; } .barras .fio { background:rgba(255,255,255,.07); border-radius:4px; height:14px; overflow:hidden; } .barras .fio i { display:block; height:100%; background:var(--amber); border-radius:4px; }
+  .barras.verde .fio i { background:var(--signal); } .barras .n { text-align:right; font-family:var(--mono); }
+  .nat-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; } .nat-chips span { border:1px solid var(--panel-border); background:var(--bg-2); border-radius:999px; padding:3px 11px; font-size:12px; }
+  .data-table tr.cia-sub td { font-style:italic; background:rgba(255,255,255,.04); } .data-table td.z0 { color:#8aa0b4; }
+  @media (max-width: 760px) { .barras li { grid-template-columns:1fr 70px; } .barras .fio { grid-column:1 / -1; order:3; } .ind-sec.charts-row .chart-box { flex-basis:100%; } }
   .data-table .spark { display:inline-block; width:92px; height:22px; color:var(--text); overflow:visible; vertical-align:middle; }
   .tend-up { color:var(--alert-text); font-weight:700; } .tend-dn { color:var(--signal); font-weight:700; } .tend-ig { color:var(--muted); }
   .aviso-acel { border-color:var(--alert); margin:0 0 12px; } .aviso-acel button { margin:2px 6px 2px 0; }
@@ -1532,6 +1550,48 @@ function drawBarChart(canvasId, labels, values, color) {
   });
 }
 
+const MES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+// Acumulado do ano: linha cheia = realizado, tracejada = limite (teto/meta) acumulado, pontilhada = projeção linear até dezembro
+function svgAcumuladoAno(reais, limites, proj, titulo) {
+  const n = limites.length, W = 640, H = 230, ml = 36, mr = 14, mt = 14, mb = 30;
+  const max = Math.max(1, ...reais, ...limites, proj || 0);
+  const X = (i) => ml + (n === 1 ? 0 : i * (W - ml - mr) / (n - 1)), Y = (v) => mt + (H - mt - mb) * (1 - v / max);
+  const pts = (arr) => arr.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+  let s = `<svg class="ano-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${titulo}"><title>${titulo}</title>`;
+  for (let g = 0; g <= 4; g++) { const v = max * g / 4, y = Y(v); s += `<line class="gr" x1="${ml}" y1="${y.toFixed(1)}" x2="${W - mr}" y2="${y.toFixed(1)}"/><text x="${ml - 6}" y="${(y + 4).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; }
+  for (let i = 0; i < n; i++) s += `<text x="${X(i).toFixed(1)}" y="${H - 9}" text-anchor="middle">${MES_ABREV[i] || i + 1}</text>`;
+  s += `<polyline class="an-lim" points="${pts(limites)}"/>`;
+  if (proj !== null && reais.length < n) s += `<polyline class="an-proj" points="${X(reais.length - 1).toFixed(1)},${Y(reais[reais.length - 1]).toFixed(1)} ${X(n - 1).toFixed(1)},${Y(proj).toFixed(1)}"/><circle cx="${X(n - 1).toFixed(1)}" cy="${Y(proj).toFixed(1)}" r="4" fill="#5b9bd5"/>`;
+  s += `<polyline class="an-real" points="${pts(reais)}"/><circle cx="${X(reais.length - 1).toFixed(1)}" cy="${Y(reais[reais.length - 1]).toFixed(1)}" r="4" fill="var(--text)"/>`;
+  return s + `</svg>`;
+}
+
+// Barras mês a mês de uma cidade: cada barra é o realizado do mês e o traço âmbar é o limite do mês
+function svgBarrasMes(reais, limites, higherIsBetter, titulo) {
+  const n = reais.length, W = 640, H = 200, ml = 30, mr = 10, mt = 18, mb = 28;
+  const max = Math.max(1, ...reais, ...limites);
+  const slot = (W - ml - mr) / n, bw = Math.min(34, slot * 0.6), Y = (v) => mt + (H - mt - mb) * (1 - v / max);
+  let s = `<svg class="ano-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${titulo}"><title>${titulo}</title>`;
+  for (let g = 0; g <= 2; g++) { const v = max * g / 2, y = Y(v); s += `<line class="gr" x1="${ml}" y1="${y.toFixed(1)}" x2="${W - mr}" y2="${y.toFixed(1)}"/><text x="${ml - 5}" y="${(y + 4).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; }
+  reais.forEach((v, i) => {
+    const cx = ml + slot * i + slot / 2, ruim = higherIsBetter ? v < limites[i] : v > limites[i], y = Y(v);
+    s += `<rect class="${ruim ? 'bar-ruim' : 'bar-ok'}" x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, Y(0) - y).toFixed(1)}" rx="3"/>`;
+    s += `<text x="${cx.toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle">${v}</text>`;
+    s += `<line class="bar-lim" x1="${(cx - bw / 2 - 3).toFixed(1)}" y1="${Y(limites[i]).toFixed(1)}" x2="${(cx + bw / 2 + 3).toFixed(1)}" y2="${Y(limites[i]).toFixed(1)}"/>`;
+    s += `<text x="${cx.toFixed(1)}" y="${H - 9}" text-anchor="middle">${MES_ABREV[i]}</text>`;
+  });
+  return s + `</svg>`;
+}
+
+// Lista de barras horizontais (substitui o gráfico de canvas, que cortava e girava os rótulos): rótulo, barra e quantidade com %
+function barrasHtml(lista, ordemCron, classe) {
+  let itens = (lista || []).slice();
+  if (ordemCron) itens.sort((a, b) => ((/(\d\d):/.exec(a[0]) || [0, 99])[1] - (/(\d\d):/.exec(b[0]) || [0, 99])[1]));
+  const total = itens.reduce((a, x) => a + x[1], 0) || 1, max = Math.max(1, ...itens.map(x => x[1]));
+  return `<ul class="barras ${classe || ''}">` + itens.map(x => `<li><span class="rot">${msgEsc(x[0])}</span><span class="fio" aria-hidden="true"><i style="width:${(x[1] / max * 100).toFixed(1)}%"></i></span><span class="n">${x[1]} · ${fmtBr(x[1] / total * 100, 0)}%</span></li>`).join('') + `</ul>`;
+}
+
 function popMunicipio(nome) {
   for (const k of ['violencia_domestica', 'reincidencia', 'crimes_violentos']) {
     const c = ((DATA[k] || {}).municipios || []).find(x => normMun(x.nome) === normMun(nome));
@@ -1550,6 +1610,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   const comTaxa = ['mv', 'cvpe', 'cvpa'].includes(key); // indicadores de crime têm taxa por 100 mil habitantes
   const rotLim = higherIsBetter ? 'Meta' : 'Teto'; // MV/CVPE/CVPa/Furto são TETO (menor é melhor); Armas/Padrinhos/Saque são META
   const munFiltro = normMun(getMunFiltro());
+  const fMesAtual = higherIsBetter ? fatorMesEmAndamento(d, ultimoIdx) : 1; // fração do mês corrente já fechada (só pesa na META de piso)
 
   // Situação contra o limite: teto = folga/estouro; meta = cumprida/faltam. Verde ✓ / vermelho ✕ (mesma convenção do painel).
   // Com tetos de 0 a 5 o percentual ("+200%", "−100%") só assustava; a diferença em unidades diz o que importa.
@@ -1561,11 +1622,12 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   const par = (real, lim) => `<span class="par"><b>${real}</b> <span class="ind-lim">/ ${lim}</span></span>`;
   const pctMeta = (real, lim) => (lim ? fmtBr(real / lim * 100, 0) + '%' : '—');
   const taxa = (real, pop) => (pop ? fmtBr(real / pop * 100000, 1) : '—');
-
   // META (piso) no mês em andamento é proporcional aos dias já fechados — mesma regra do quadro e do cartão da Home; com a meta cheia,
   // "faltam 39" num mês de 13 dias era um número que ninguém conseguiria cumprir. TETO segue com o teto cheio (mais tolerante).
   const limMes = (meta, f) => (higherIsBetter ? Math.floor(meta * f + 1e-9) : meta);
   const limAcum = (metaAcum, metaMes, f) => (higherIsBetter ? Math.floor(metaAcum - metaMes * (1 - f) + 1e-9) : metaAcum);
+  const fDe = (mi) => (mi === ultimoIdx ? fMesAtual : 1);
+
   function table(mi) {
     let rows = '', popTotal = 0;
     const f = higherIsBetter ? fatorMesEmAndamento(d, mi) : 1;
@@ -1591,6 +1653,77 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     return rows;
   }
 
+  // ---- ano: acumulado x limite e projeção linear até dezembro (batalhão) ----
+  const nAno = d.total_meta_acum.length;
+  const projAno = (realAcum, mi) => { const decorrido = mi + fDe(mi); return decorrido >= 1 ? realAcum / decorrido * nAno : null; };
+  function anoHtml() {
+    const reais = d.total_acum.slice(0, ultimoIdx + 1), limites = d.total_meta_acum.slice();
+    const lAte = limAcum(d.total_meta_acum[ultimoIdx], d.total_meta_mes[ultimoIdx], fMesAtual), anual = d.total_meta_acum[nAno - 1];
+    const proj = ultimoIdx < nAno - 1 ? projAno(reais[ultimoIdx], ultimoIdx) : reais[ultimoIdx];
+    const ruim = proj !== null && (higherIsBetter ? proj < anual : proj > anual);
+    let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">O ano contra o ${rotLim.toLowerCase()} — 70º BPM</h3>`;
+    h += `<div class="kpi-grid">`;
+    h += `<div class="kpi-card ${(higherIsBetter ? reais[ultimoIdx] >= lAte : reais[ultimoIdx] <= lAte) ? 'kpi-green' : 'kpi-red'}"><div class="val">${reais[ultimoIdx]}</div><div class="lbl">Acumulado até ${mesesLocais[ultimoIdx]}</div><div class="sub">${rotLim.toLowerCase()} até aqui: ${lAte} · ${situacao(reais[ultimoIdx], lAte)}</div></div>`;
+    h += `<div class="kpi-card ${ruim ? 'kpi-red' : 'kpi-green'}"><div class="val">${proj === null ? '—' : fmtBr(proj, 0)}</div><div class="lbl">Projeção para o ano (ritmo atual)</div><div class="sub">${rotLim.toLowerCase()} do ano: ${anual}${proj === null ? '' : ' · ' + (ruim ? (higherIsBetter ? 'abaixo da meta' : 'acima do teto') : (higherIsBetter ? 'meta alcançada no ritmo atual' : 'dentro do teto no ritmo atual'))}</div></div>`;
+    if (comTaxa) { const pt = d.municipios.reduce((a, m) => a + popMunicipio(m.nome), 0); h += `<div class="kpi-card kpi-neutral"><div class="val">${taxa(reais[ultimoIdx], pt)}</div><div class="lbl">Taxa por 100 mil hab. (acumulado)</div></div>`; }
+    h += `</div>`;
+    h += svgAcumuladoAno(reais, limites, proj, `Acumulado do ano contra o ${rotLim.toLowerCase()}, com projeção até dezembro`);
+    h += `<div class="ano-leg"><span><i></i>realizado acumulado</span><span><i class="l"></i>${rotLim.toLowerCase()} acumulado</span><span><i class="p"></i>projeção linear (realizado ÷ meses decorridos × ${nAno})</span></div></div>`;
+    return h;
+  }
+
+  // ---- painel da cidade escolhida no filtro global ----
+  function cidadeHtml() {
+    const m = d.municipios.find(x => normMun(x.nome) === munFiltro);
+    if (!m) return '';
+    const reais = m.realizado_mes.slice(0, ultimoIdx + 1), limites = reais.map((_, i) => limMes(m.meta_mes[i], fDe(i)));
+    const lAte = limAcum(m.meta_acum[ultimoIdx], m.meta_mes[ultimoIdx], fMesAtual), anual = m.meta_acum[nAno - 1];
+    const proj = ultimoIdx < nAno - 1 ? projAno(m.realizado_acum[ultimoIdx], ultimoIdx) : m.realizado_acum[ultimoIdx];
+    const ruim = proj !== null && (higherIsBetter ? proj < anual : proj > anual);
+    let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">${m.nome} — mês a mês</h3><div class="ppvd-card">`;
+    h += `<div class="kpi-grid"><div class="kpi-card ${(higherIsBetter ? m.realizado_acum[ultimoIdx] >= lAte : m.realizado_acum[ultimoIdx] <= lAte) ? 'kpi-green' : 'kpi-red'}"><div class="val">${m.realizado_acum[ultimoIdx]}</div><div class="lbl">Acumulado até ${mesesLocais[ultimoIdx]}</div><div class="sub">${rotLim.toLowerCase()} até aqui: ${lAte} · ${situacao(m.realizado_acum[ultimoIdx], lAte)}</div></div>`;
+    h += `<div class="kpi-card ${ruim ? 'kpi-red' : 'kpi-green'}"><div class="val">${proj === null ? '—' : fmtBr(proj, 1)}</div><div class="lbl">Projeção para o ano</div><div class="sub">${rotLim.toLowerCase()} do ano: ${anual}</div></div>`;
+    if (comTaxa) h += `<div class="kpi-card kpi-neutral"><div class="val">${taxa(m.realizado_acum[ultimoIdx], popMunicipio(m.nome))}</div><div class="lbl">Taxa por 100 mil hab.</div></div>`;
+    h += `</div>` + svgBarrasMes(reais, limites, higherIsBetter, `${m.nome}: realizado por mês e ${rotLim.toLowerCase()} do mês`);
+    h += `<div class="ano-leg"><span>barra = realizado do mês (vermelha: ${higherIsBetter ? 'abaixo da meta' : 'acima do teto'})</span><span><i class="l"></i>${rotLim.toLowerCase()} do mês</span></div>`;
+    const detCfg = DETALHADO_CONFIG[key], det = detCfg && DATA[detCfg.dataKey];
+    if (det) {
+      let nat = null;
+      (det.cias || []).forEach(c => c.municipios.forEach(x => { if (normMun(x.nome) === normMun(m.nome)) nat = x; }));
+      if (nat) { const cols = detCfg.colunas.concat(nat.outros ? [{ key: 'outros', label: 'Outros' }] : []).filter(c => nat[c.key] > 0); h += `<div class="nat-chips" aria-label="Naturezas no ano">${cols.length ? cols.map(c => `<span>${c.label}: <b>${nat[c.key]}</b></span>`).join('') : '<span>Nenhuma ocorrência no ano</span>'}</div>`; }
+    }
+    return h + `</div></div>`;
+  }
+
+  // ---- quadro município x mês (cada célula é o realizado do mês; cor = situação contra o limite do mês) ----
+  function quadroHtml() {
+    const cel = (real, lim) => {
+      const ruim = higherIsBetter ? real < lim : real > lim;
+      const cls = real === 0 && lim === 0 ? 'hm-zero' : (ruim ? 'hm-ruim' : (real === 0 ? 'hm-zero' : 'hm-ok'));
+      return `<td class="${cls}" title="realizado ${real} · ${rotLim.toLowerCase()} ${lim}">${real}</td>`;
+    };
+    let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Mês a mês por município</h3>`;
+    h += `<div class="vd-recorte">Cada célula é o realizado do mês; vermelho = ${higherIsBetter ? 'abaixo da meta' : 'acima do teto'} do mês, verde = ${higherIsBetter ? 'meta do mês cumprida' : 'dentro do teto'}, cinza = sem ocorrência. Passe o mouse (ou toque) para ver o ${rotLim.toLowerCase()} do mês.</div>`;
+    h += `<div class="table-wrap"><table class="data-table hm" id="indQuadro"><thead><tr><th style="text-align:left">Município</th>${mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<th>${MES_ABREV[i]}</th>`).join('')}<th class="col-divider">Total</th></tr></thead><tbody>`;
+    d.municipios.forEach(m => {
+      h += `<tr class="rank-clic${normMun(m.nome) === munFiltro ? ' sel' : ''}" data-mun="${m.nome}"><td style="text-align:left">${m.nome}</td>` + m.realizado_mes.slice(0, ultimoIdx + 1).map((v, i) => cel(v, limMes(m.meta_mes[i], fDe(i)))).join('') + `<td class="col-divider"><b>${m.realizado_acum[ultimoIdx]}</b></td></tr>`;
+    });
+    h += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">TOTAL</td>` + d.total_mes.slice(0, ultimoIdx + 1).map((v, i) => cel(v, limMes(d.total_meta_mes[i], fDe(i)))).join('') + `<td class="col-divider">${d.total_acum[ultimoIdx]}</td></tr>`;
+    return h + `</tbody></table></div></div>`;
+  }
+
+  // ---- local imediato / faixa horária (ou causa / logradouro): barras legíveis, com aviso se não cobrem o total ----
+  function localFaixaHtml() {
+    const rotulos = key === 'furto' ? ['Causa', 'Logradouro (rodovias; propriedades agrupadas)'] : ['Local imediato', 'Faixa horária'];
+    const esperado = d.total_acum[ultimoIdx];
+    const bloco = (lista, rot, cron, classe) => {
+      const soma = lista.reduce((a, x) => a + x[1], 0);
+      const nota = soma !== esperado ? `<div class="vd-recorte">Cobre ${soma} de ${esperado} ocorrência(s) do ano${key === 'furto' && rot.startsWith('Logradouro') ? '' : ' — a lista está desatualizada em relação ao total'}.</div>` : '';
+      return `<div class="chart-box"><h3>${rot}</h3>${barrasHtml(lista, cron, classe)}${nota}</div>`;
+    };
+    return `<div class="ind-sec charts-row" style="gap:16px">${bloco(DATA[localKey], rotulos[0], false, '')}${bloco(DATA[faixaKey], rotulos[1], key !== 'furto', 'verde')}</div>`;
+  }
+
   let html = `<div class="page-title">${title}</div>`;
   // zero no mês só é "sem lançamento" em indicador de META; em indicador de TETO zero é o bom resultado (vale se a rotina já rodou no mês)
   html += freshBadge(mesesLocais[ultimoIdx], { semDadoReal: indicadorSemDadoNoMes(d, ultimoIdx, !higherIsBetter) });
@@ -1606,17 +1739,13 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     <th style="text-align:left">Município</th><th>Mês</th>
     <th class="col-divider">Acumulado</th><th>${comTaxa ? 'Taxa/100 mil' : '% da meta'}</th><th style="text-align:left">Situação</th>
   </tr></thead><tbody>${table(monthIdx)}</tbody></table></div>`;
-  if (showCharts) {
-    const labelLocal = key === 'furto' ? 'Causa' : 'Local Imediato';
-    const labelFaixa = key === 'furto' ? 'Logradouro' : 'Faixa Horária';
-    html += `<div class="charts-row">
-      <div class="chart-box"><h3>${labelLocal}</h3><canvas id="chartLocal" style="width:100%;height:260px"></canvas></div>
-      <div class="chart-box"><h3>${labelFaixa}</h3><canvas id="chartFaixa" style="width:100%;height:260px"></canvas></div>
-    </div>`;
-  }
+  html += anoHtml();
+  html += cidadeHtml();
+  html += quadroHtml();
+  if (showCharts) html += localFaixaHtml();
   const detCfg = DETALHADO_CONFIG[key];
   if (detCfg && DATA[detCfg.dataKey]) {
-    html += detalhadoPorNaturezaHtml(DATA[detCfg.dataKey], detCfg.titulo, detCfg.colunas.concat(((DATA[detCfg.dataKey].total || {}).outros || 0) > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []), detCfg.defHtml, detCfg.fonteHtml);
+    html += detalhadoPorNaturezaHtml(DATA[detCfg.dataKey], detCfg.titulo, detCfg.colunas.concat(((DATA[detCfg.dataKey].total || {}).outros || 0) > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []), detCfg.defHtml, detCfg.fonteHtml, mesesLocais.slice(0, ultimoIdx + 1));
   }
   document.getElementById('main').innerHTML = html;
 
@@ -1627,18 +1756,14 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     monthIdx = parseInt(b.dataset.p); try { localStorage.setItem('indMes_' + key, String(monthIdx)); } catch (er) {}
     marcarMes(); document.querySelector('#dataTable tbody').innerHTML = table(monthIdx);
   });
-  // clicar numa cidade liga/desliga o filtro global (o mesmo dos botões do topo) e redesenha a página
-  document.getElementById('dataTable').addEventListener('click', (e) => {
+  // clicar numa cidade (tabela ou quadro) liga/desliga o filtro global (o mesmo dos botões do topo) e redesenha a página
+  const filtrarPorLinha = (e) => {
     const tr = e.target.closest('tr.rank-clic'); if (!tr) return;
     setMunFiltro(normMun(getMunFiltro()) === normMun(tr.dataset.mun) ? '' : tr.dataset.mun); goToPage(currentPageKey);
-  });
-
-  if (showCharts) {
-    const localData = DATA[localKey].slice(0, 10);
-    const faixaData = DATA[faixaKey].slice(0, 10);
-    drawBarChart('chartLocal', localData.map(x=>x[0]), localData.map(x=>x[1]), '#e8a83c');
-    drawBarChart('chartFaixa', faixaData.map(x=>x[0]), faixaData.map(x=>x[1]), '#21c98a');
-  }
+  };
+  document.getElementById('dataTable').addEventListener('click', filtrarPorLinha);
+  document.getElementById('indQuadro').addEventListener('click', filtrarPorLinha);
+  ligarDetalhado(DATA[(detCfg || {}).dataKey], detCfg ? detCfg.colunas.concat(((DATA[detCfg.dataKey] || {}).total || {}).outros > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []) : []);
 }
 
 function pogBandColor(v) {
@@ -4356,39 +4481,48 @@ async function auditoriaCopiarLembrete(nomeMunicipio) {
   auditoriaRegistrarLembrete(nomeMunicipio, null, 'copia', msg);
 }
 
-function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {
-  let html = `<div class="chart-box" style="margin-top:20px;min-width:0"><h3>${titulo}</h3>`;
-  html += `<div class="def-box"><b>${d.periodo}</b><br>${defHtml}</div>`;
-  html += `<table class="data-table"><thead><tr>
+// Detalhamento por natureza: acumulado ou um mês (o arquivo de dados já traz por_mes), zeros em cinza e subtotal por companhia
+function detalhadoTabelaHtml(d, colunas, mi) {
+  const val = (m, k) => (mi === 'acum' ? (m[k] || 0) : (((m.por_mes || {})[k] || [])[mi] || 0));
+  const cel = (v, c) => (v === 0 ? `<td class="z0">·</td>` : (c.highlight ? `<td style="background:rgba(230,72,79,0.22);color:#ff8a8f;font-weight:600">${v}</td>` : `<td>${v}</td>`));
+  const tot = (m) => colunas.reduce((a, c) => a + val(m, c.key), 0);
+  let html = `<div style="overflow-x:auto"><table class="data-table"><thead><tr>
     <th style="text-align:left">Fração</th><th style="text-align:left">Município</th>
-    ${colunas.map(c => `<th${c.highlight?' style="background:rgba(230,72,79,0.28);color:var(--text)"':''}>${c.label}</th>`).join('')}
-    <th>Total Absoluto</th>
+    ${colunas.map(c => `<th${c.highlight ? ' style="background:rgba(230,72,79,0.28);color:var(--text)"' : ''}>${c.label}</th>`).join('')}
+    <th>Total</th>
   </tr></thead><tbody>`;
+  const geral = colunas.map(() => 0); let geralTot = 0;
   d.cias.forEach(cia => {
+    const sub = colunas.map(() => 0);
     cia.municipios.forEach((m, i) => {
       html += `<tr>`;
-      if (i === 0) html += `<td rowspan="${cia.municipios.length}" style="text-align:left;font-weight:700;vertical-align:middle">${cia.nome}</td>`;
+      if (i === 0) html += `<td rowspan="${cia.municipios.length + 1}" style="text-align:left;font-weight:700;vertical-align:middle">${cia.nome}</td>`;
       html += `<td style="text-align:left">${m.nome}</td>`;
-      colunas.forEach(c => {
-        html += c.highlight
-          ? `<td style="background:rgba(230,72,79,0.22);color:#ff8a8f;font-weight:600">${m[c.key]}</td>`
-          : `<td>${m[c.key]}</td>`;
-      });
-      html += `<td style="font-weight:700">${m.total}</td></tr>`;
+      colunas.forEach((c, j) => { const v = val(m, c.key); sub[j] += v; geral[j] += v; html += cel(v, c); });
+      const t = tot(m); geralTot += t;
+      html += t === 0 ? `<td class="z0">·</td></tr>` : `<td style="font-weight:700">${t}</td></tr>`;
     });
+    html += `<tr class="cia-sub"><td style="text-align:left">Subtotal ${cia.nome}</td>${sub.map(v => `<td>${v}</td>`).join('')}<td>${sub.reduce((a, b) => a + b, 0)}</td></tr>`;
   });
-  const t = d.total;
-  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td colspan="2" style="text-align:left">TOTAL</td>`;
-  colunas.forEach(c => {
-    html += c.highlight
-      ? `<td style="background:rgba(230,72,79,0.28);color:#ff8a8f">${t[c.key]}</td>`
-      : `<td>${t[c.key]}</td>`;
-  });
-  html += `<td>${t.total}</td></tr>`;
-  html += `</tbody></table>`;
+  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td colspan="2" style="text-align:left">TOTAL</td>${geral.map((v, j) => (colunas[j].highlight ? `<td style="background:rgba(230,72,79,0.28);color:#ff8a8f">${v}</td>` : `<td>${v}</td>`)).join('')}<td>${geralTot}</td></tr>`;
+  return html + `</tbody></table></div>`;
+}
+function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml, meses) {
+  let html = `<div class="chart-box ind-sec" style="min-width:0"><h3>${titulo}</h3>`;
+  html += `<details class="aud-como"><summary>Como ler este detalhamento</summary><div><b>${d.periodo}</b><br>${defHtml}</div></details>`;
+  html += `<div class="pills-vd" id="detPeriodos" role="group" aria-label="Período do detalhamento"><button type="button" data-p="acum" class="on">Acumulado</button>${(meses || []).map((m, i) => `<button type="button" data-p="${i}">${m}</button>`).join('')}</div>`;
+  html += `<div id="detTabela">${detalhadoTabelaHtml(d, colunas, 'acum')}</div>`;
   html += `<div class="updated">${fonteHtml}</div>`;
   html += `</div>`;
   return html;
+}
+function ligarDetalhado(d, colunas) {
+  const box = document.getElementById('detPeriodos'); if (!box || !d) return;
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    document.getElementById('detTabela').innerHTML = detalhadoTabelaHtml(d, colunas, b.dataset.p === 'acum' ? 'acum' : parseInt(b.dataset.p));
+  });
 }
 
 // Config dos detalhamentos por indicador — usado dentro de renderIndicatorPage,
