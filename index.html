@@ -317,6 +317,33 @@
   details.vd-historico { margin-top:14px; font-size:12.5px; color:var(--muted); }
   details.vd-historico summary { cursor:pointer; padding:6px 0; }
   .vd-recorte { font-size:12.5px; color:var(--muted); margin:0 0 8px; }
+  /* Violência Doméstica, onda 2 (2026-10-13) */
+  .pills-vd { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px; }
+  .pills-vd button { background:var(--bg-2); border:1px solid var(--panel-border); color:#b6c6d6; border-radius:999px; padding:5px 13px; font-size:12px; cursor:pointer; font-family:var(--sans); }
+  .pills-vd button.on { background:rgba(232,168,60,.15); border-color:var(--amber); color:var(--amber); font-weight:600; }
+  tr.rank-clic { cursor:pointer; } tr.rank-clic:hover td:not(:first-child) { background:#15283d; }
+  tr.rank-clic.sel td:nth-child(2) { color:var(--amber); font-weight:700; }
+  .vd-filtros { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0 0 10px; }
+  .vd-filtros button { background:var(--bg-2); border:1px solid var(--panel-border); color:#b6c6d6; border-radius:999px; padding:4px 12px; font-size:12px; cursor:pointer; font-family:var(--sans); }
+  .vd-filtros button.on { background:rgba(232,168,60,.15); border-color:var(--amber); color:var(--amber); font-weight:600; }
+  .vd-filtros input { background:var(--bg-2); border:1px solid var(--panel-border); color:var(--text); border-radius:8px; padding:5px 10px; font-size:12.5px; margin-left:auto; min-width:150px; }
+  table.data-table.vd-casos td { vertical-align:top; text-align:left; font-family:var(--sans); font-size:12.5px; line-height:1.4; }
+  table.vd-casos td small { color:var(--muted); font-size:11.5px; }
+  table.vd-casos .mk { display:inline-block; font-size:11px; padding:1px 7px; border-radius:999px; border:1px solid var(--panel-border); background:var(--bg-2); color:var(--text); margin:0 4px 3px 0; white-space:nowrap; }
+  table.vd-casos .mk.ok { border-color:rgba(33,201,138,.5); color:var(--signal); } table.vd-casos .mk.risco { border-color:rgba(230,72,79,.55); color:var(--alert-text); }
+  table.vd-casos td.acao, table.vd-casos th.acao { position:sticky; right:0; z-index:2; box-shadow:-6px 0 8px rgba(0,0,0,.35); text-align:center; }
+  table.vd-casos td.acao { background:#0f1c2c !important; }
+  table.vd-casos th.acao { background:#142236; }
+  .sit-cel { text-align:center; font-family:var(--mono); } .sit-cel.z { color:var(--muted-dim); } .sit-cel.pv { color:var(--alert-text); font-weight:700; }
+  @media (max-width: 760px) {
+    table.vd-casos, table.vd-casos tbody { display:block; }
+    table.vd-casos thead { display:none; }
+    table.vd-casos tr { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; padding:10px 12px; border:1px solid var(--panel-border); border-radius:8px; margin-bottom:10px; background:var(--panel); }
+    table.vd-casos td { display:block; padding:0 !important; border:0 !important; text-align:left !important; position:static !important; background:transparent !important; box-shadow:none !important; }
+    table.vd-casos td::before { content:attr(data-l); display:block; font-size:11px; color:var(--muted); font-family:var(--sans); margin-bottom:1px; }
+    table.vd-casos td.acao { grid-column:1 / -1; } table.vd-casos td.acao::before { display:none; }
+    table.vd-casos td:nth-child(4) { grid-column:1 / -1; }
+  }
   /* Home, onda 3 (2026-10-13): atalhos fixos + ações, cartão de Violência Doméstica, impressão */
   #home-atencao, #home-kpis, #homeVD, #home-quadro { scroll-margin-top: 64px; }
   .home-barra { position:sticky; top:-1px; z-index:20; display:flex; justify-content:space-between; align-items:center; gap:8px 14px; flex-wrap:wrap; padding:8px 0; margin:0 0 12px; background:rgba(8,14,22,0.94); backdrop-filter: blur(4px); border-bottom:1px solid var(--panel-border); }
@@ -996,19 +1023,10 @@ async function homeVdCarregar() {
   if (!ppvdDadosRestritosLiberados()) { esconde(); return; }
   alvo.hidden = false; if (atalho) atalho.hidden = false;
   alvo.innerHTML = `<div class="hd"><b>Violência Doméstica</b><span>carregando os casos…</span></div>`;
-  const vd = DATA.violencia_domestica, lista = [];
-  MUNICIPIOS_CANONICAL.forEach(nome => {
-    const k = Object.keys(vd.ocorrencias || {}).find(x => normMun(x) === normMun(nome));
-    (k ? vd.ocorrencias[k] : []).filter(o => o.m >= HOME_VD_MES_INICIO).forEach(o => lista.push({ mun: nome, o }));
-  });
-  const casos = await ppvdBuscarCasosVD(lista.map(x => x.o.r).filter(Boolean));
+  const sit = await vdSituacaoCasos();
   if (document.getElementById('homeVD') !== alvo) return; // saiu da Home enquanto carregava
-  const c = { v: 0, a: 0, z: 0, g: 0, semCaso: 0, atrasados: 0 }, porCidade = {};
-  lista.forEach(({ mun, o }) => {
-    const caso = o.r ? (casos[o.r] || null) : null, sem = ppvdSemaforoVD(caso);
-    if (sem === 'vermelho') { c.v++; porCidade[mun] = (porCidade[mun] || 0) + 1; if (!caso) c.semCaso++; else if (ppvdVisitaAtrasadaVD(caso)) c.atrasados++; }
-    else if (sem === 'amarelo') c.a++; else if (sem === 'azul') c.z++; else c.g++;
-  });
+  const lista = sit.lista, c = sit.total, porCidade = {};
+  Object.keys(sit.porCidade).forEach(m => { if (sit.porCidade[m].v > 0) porCidade[m] = sit.porCidade[m].v; });
   const total = lista.length || 1, pc = (n) => (n / total * 100).toFixed(1);
   const topo = Object.entries(porCidade).sort((x, y) => y[1] - x[1]).slice(0, 5);
   const mesIni = (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1];
@@ -2289,6 +2307,28 @@ function enderecosReincidentesVdHtml(d, nome, mesesLocais) {
   return h + `Endereço com 2+ chamados de violência doméstica no período é tratado como gatilho automático de risco — recomenda-se visita de acompanhamento e atenção redobrada da fração responsável.</div>`;
 }
 
+// Situação dos casos de VD por cidade (ocorrências desde Setembro cruzadas com os casos do PPVD pelo semáforo
+// vermelho/amarelo/azul/verde). Usada no ranking desta página e no cartão da Home.
+async function vdSituacaoCasos() {
+  const vd = DATA.violencia_domestica, lista = [];
+  MUNICIPIOS_CANONICAL.forEach(nome => {
+    const k = Object.keys(vd.ocorrencias || {}).find(x => normMun(x) === normMun(nome));
+    (k ? vd.ocorrencias[k] : []).filter(o => o.m >= HOME_VD_MES_INICIO).forEach(o => lista.push({ mun: nome, o }));
+  });
+  const casos = await ppvdBuscarCasosVD(lista.map(x => x.o.r).filter(Boolean));
+  const novo = () => ({ v: 0, a: 0, z: 0, g: 0, semCaso: 0, atrasados: 0 });
+  const porCidade = {}, total = novo();
+  lista.forEach(({ mun, o }) => {
+    const caso = o.r ? (casos[o.r] || null) : null, sem = ppvdSemaforoVD(caso);
+    const cid = porCidade[mun] = porCidade[mun] || novo();
+    [cid, total].forEach(c => {
+      if (sem === 'vermelho') { c.v++; if (!caso) c.semCaso++; else if (ppvdVisitaAtrasadaVD(caso)) c.atrasados++; }
+      else if (sem === 'amarelo') c.a++; else if (sem === 'azul') c.z++; else c.g++;
+    });
+  });
+  return { lista, casos, porCidade, total };
+}
+
 function renderViolenciaDomesticaPage() {
   const d = DATA.violencia_domestica;
   const mesesLocais = d.meses;
@@ -2323,13 +2363,17 @@ function renderViolenciaDomesticaPage() {
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ranking por Município (taxa por 100 mil habitantes)</div>`;
   const ranking = municipiosData.slice().sort((a, b) => b.taxa_100k - a.taxa_100k);
-  html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th><th>Endereços Reincid.</th></tr></thead><tbody>`;
+  const comSituacao = ppvdDadosRestritosLiberados();
+  const munFiltroAtual = normMun(getMunFiltro());
+  html += `<div class="vd-recorte">Clique numa cidade para ver os casos dela abaixo.${comSituacao ? ' As colunas de situação contam as ocorrências desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' pelo semáforo dos casos no PPVD.' : ''}</div>`;
+  html += `<div class="table-wrap"><table class="data-table" id="vdRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th><th>Endereços Reincid.</th>${comSituacao ? '<th title="Novos ou em atraso">✕ Novos/atraso</th><th title="Atendimento iniciado">! Iniciado</th><th title="Em acompanhamento">◆ Acomp.</th><th title="Estabilizados">✓ Estab.</th>' : ''}</tr></thead><tbody>`;
+  const sitVazia = comSituacao ? '<td class="sit-cel z" data-s="v">·</td><td class="sit-cel z" data-s="a">·</td><td class="sit-cel z" data-s="z">·</td><td class="sit-cel z" data-s="g">·</td>' : '';
   ranking.forEach((m, i) => {
     const c = rankColor(i, ranking.length, true);
-    html += `<tr><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td><td>${m.enderecos_reincidentes > 0 ? ('⚠ ' + m.enderecos_reincidentes) : '—'}</td></tr>`;
+    html += `<tr class="rank-clic${normMun(m.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${m.nome}" title="Ver os casos de ${m.nome}"><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td><td>${m.enderecos_reincidentes > 0 ? '⚠ ' + m.enderecos_reincidentes : '—'}</td>${sitVazia}</tr>`;
   });
-  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td><td>${totalEnderecos}</td></tr>`;
-  html += `</tbody></table>`;
+  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)" id="vdRankingTotal"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td><td>${totalEnderecos}</td>${sitVazia}</tr>`;
+  html += `</tbody></table></div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Série Mensal — 70º BPM</div>`;
   html += `<table class="data-table"><thead><tr><th style="text-align:left">Mês</th><th>Ocorrências VD</th><th>Homicídios/Feminicídios (causa VD)</th><th>Tentativas (causa VD)</th></tr></thead><tbody>`;
@@ -2338,19 +2382,16 @@ function renderViolenciaDomesticaPage() {
   });
   html += `</tbody></table>`;
 
-  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ocorrências por Município</div>`;
-  html += `<div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">`;
-  const munSalvo = normMun(getMunFiltro());
-  let idxDefault = munSalvo ? municipiosData.findIndex(m => normMun(m.nome) === munSalvo) : -1;
-  if (idxDefault < 0) idxDefault = 0;
-  html += `<select class="month-select" id="vdMuniSel">`;
-  municipiosData.forEach((m, i) => html += `<option value="${i}" ${i === idxDefault ? 'selected' : ''}>${m.nome}</option>`);
-  html += `</select>`;
-  html += `<select class="month-select" id="vdPeriodoSel">`;
-  html += `<option value="acum" selected>Acumulado (${d.periodo_dados})</option>`;
-  mesesLocais.forEach((m, i) => html += `<option value="${i}">${m}</option>`);
-  html += `</select>`;
-  html += `</div>`;
+  // cidade = botões do topo (filtro global) ou clique no ranking; sem filtro mostra a de maior taxa. Período em botões.
+  let idxDefault = munFiltroAtual ? municipiosData.findIndex(m => normMun(m.nome) === munFiltroAtual) : -1;
+  const semFiltro = idxDefault < 0;
+  if (semFiltro) idxDefault = municipiosData.indexOf(ranking[0]);
+  let periodoAtual = 'acum';
+  try { const salvo = localStorage.getItem('vdPeriodo'); if (salvo === 'acum' || (/^\d+$/.test(salvo || '') && parseInt(salvo) <= iUlt)) periodoAtual = salvo; } catch (e) {}
+  html += `<div class="page-title" style="margin-top:34px;font-size:16px" id="vdTituloCidade">Casos de ${municipiosData[idxDefault].nome}</div>`;
+  if (semFiltro) html += `<div class="vd-recorte">Mostrando a cidade de maior taxa. Escolha outra nos botões do topo ou clicando no ranking.</div>`;
+  html += `<div class="pills-vd" id="vdPeriodos" role="group" aria-label="Período">` +
+    `<button type="button" data-p="acum">Acumulado (${d.periodo_dados})</button>` + mesesLocais.slice(0, iUlt + 1).map((m, i) => `<button type="button" data-p="${i}">${m}${i === iUlt && parcial ? ' (parcial)' : ''}</button>`).join('') + `</div>`;
   html += `<div id="vdMuniPanel"></div>`;
 
   document.getElementById('main').innerHTML = html;
@@ -2390,11 +2431,17 @@ function renderViolenciaDomesticaPage() {
       <span><span class="ppvd-badge ppvd-badge-azul">Azul</span> em acompanhamento (retornos, dentro do prazo)</span>
       <span><span class="ppvd-badge ppvd-badge-verde">Verde</span> estabilizado</span></div>`;
     // Recorte padrão (acumulado): casos do PPVD + ocorrências recentes. As ocorrências SEM caso anteriores a Setembro
-    // (o PPVD só existe desde Ago/Set) ficam num histórico recolhido — antes eram a maior parte das ~145-198 linhas.
+    // ficam num histórico recolhido (o PPVD só existe desde Ago/Set).
     const casoDe = (o) => (o.r ? (casosMap[o.r] || null) : null);
+    const semDe = (o) => { const c = casoDe(o); return c ? ppvdSemaforoVD(c) : 'sem'; };
     const principais = periodo === 'acum' ? lista.filter(o => casoDe(o) || o.m >= HOME_VD_MES_INICIO) : lista;
     const historico = periodo === 'acum' ? lista.filter(o => !(casoDe(o) || o.m >= HOME_VD_MES_INICIO)) : [];
-    const cabecalho = `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th title="Tempo desde o fato, enquanto o caso não está estabilizado">Em aberto há</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th><th>FONAR</th><th style="text-align:left">Responsável</th><th>V. Autor</th><th>V. Vítima</th><th>GUT Inicial</th><th>GUT Final</th><th>Status</th><th>Retornos</th><th>Ação</th></tr></thead><tbody>`;
+    // mais urgente primeiro: vermelho (novos/atrasados), amarelo, azul, verde; dentro de cada grupo, o mais antigo em aberto
+    const ordemSem = { vermelho: 0, sem: 0, amarelo: 1, azul: 2, verde: 3 };
+    const horasDe = (o) => { const x = auditoriaHorasDesde(o.d); return x === null ? 0 : Math.max(0, x); };
+    principais.sort((a, b) => (ordemSem[semDe(a)] - ordemSem[semDe(b)]) || (horasDe(b) - horasDe(a)));
+    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>REDS / Data</th><th>Natureza / Gravidade</th><th>Endereço</th><th>Ocorrência</th><th>Acompanhamento</th><th>Responsável</th><th title="Classificação GUT inicial → final">GUT</th><th class="acao">Ação</th></tr></thead><tbody>`;
+    const mk = (txt, titulo, cls) => `<span class="mk ${cls || ''}" title="${titulo}">${txt}</span>`;
     const linhaCaso = (o) => {
       const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
       const natLabel = o.vd_homic ? (o.n + ' ⚠') : o.n;
@@ -2404,48 +2451,63 @@ function renderViolenciaDomesticaPage() {
       }
       const caso = casoDe(o);
       const sem = ppvdSemaforoVD(caso);
-      const rowClass = 'vd-row-' + sem;
-      const fonarTxt = o.fonar_feito ? '<span class="vd-check-ok">✓</span>' : '<span class="vd-check-no">—</span>';
       const sugestao = !caso ? ppvdSugerirResponsavel(nome) : null;
       const respNome = caso ? (caso.militar_responsavel || '—') : (sugestao ? `<span class="sugerido" title="Sugestão do cadastro de militares — ainda não foi designado">${msgEsc(sugestao.nome)} (sugerido)</span>` : '—');
-      const vAutor = caso && caso.visita_autor_feita ? '<span class="vd-check-ok">✓</span>' : '<span class="vd-check-no">—</span>';
-      const vVitima = caso && caso.visita_vitima_feita ? '<span class="vd-check-ok">✓</span>' : '<span class="vd-check-no">—</span>';
-      const gutIni = caso && caso.gravidade ? `${caso.gravidade}×${caso.urgencia}×${caso.tendencia}=${caso.gut_score}` : '—';
-      const gutFin = caso && caso.gut_final_gravidade ? `${caso.gut_final_gravidade}×${caso.gut_final_urgencia}×${caso.gut_final_tendencia}=${caso.gut_final_score}` : '—';
+      const gutIni = caso && caso.gut_score ? caso.gut_score : null, gutFin = caso && caso.gut_final_score ? caso.gut_final_score : null;
+      const gut = gutIni || gutFin ? `<span title="${caso.gravidade ? 'Inicial ' + caso.gravidade + '×' + caso.urgencia + '×' + caso.tendencia : ''}${gutFin ? ' · Final ' + caso.gut_final_gravidade + '×' + caso.gut_final_urgencia + '×' + caso.gut_final_tendencia : ''}">${gutIni || '—'}${gutFin ? ' → ' + gutFin : ''}</span>` : '—';
       const statusTxt = caso ? ppvdStatusLabelVD(caso.status) : 'Sem caso';
       const statusBadgeClass = sem === 'verde' ? 'ppvd-badge-verde' : (sem === 'azul' ? 'ppvd-badge-azul' : (sem === 'amarelo' ? 'ppvd-badge-alta' : 'ppvd-badge-critica'));
-      const retornosTxt = caso && caso.qtd_retornos > 0 ? String(caso.qtd_retornos) : '—';
+      const retornos = caso && caso.qtd_retornos > 0 ? `<br><small>${caso.qtd_retornos} retorno(s)</small>` : '';
       const horasBruto = sem === 'verde' ? null : auditoriaHorasDesde(o.d);
       const horas = horasBruto === null ? null : Math.max(0, horasBruto); // fato de hoje/futuro não fica negativo
-      const abertoHa = horas === null ? '—' : `<span class="aberto-ha ${sem === 'vermelho' && horas > 72 ? 'atraso' : ''}">${horas >= 24 ? (horas / 24).toFixed(1) + 'd' : horas.toFixed(0) + 'h'}</span>`;
+      const abertoHa = horas === null ? '' : `<br><span class="aberto-ha ${sem === 'vermelho' && horas > 72 ? 'atraso' : ''}" title="Tempo desde o fato, enquanto o caso não está estabilizado">aberto há ${horas >= 24 ? (horas / 24).toFixed(1) + 'd' : horas.toFixed(0) + 'h'}</span>`;
+      const ocorr = [o.ri ? mk('⚠ Reincid.', 'Endereço reincidente', 'risco') : '', o.a ? mk('Arma', 'Arma de fogo envolvida', 'risco') : '', o.p ? mk('Prisão', 'Houve prisão') : ''].join('') || '—';
+      const acomp = [o.fonar_feito ? mk('FONAR ✓', 'FONAR preenchido', 'ok') : '', caso && caso.visita_autor_feita ? mk('Autor ✓', 'Visita ao autor feita', 'ok') : '', caso && caso.visita_vitima_feita ? mk('Vítima ✓', 'Visita à vítima feita', 'ok') : ''].join('') || '—';
       const podeAbrir = ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_abrir_caso);
       let acaoBtn = '—';
       if (o.r) {
         if (!caso) acaoBtn = podeAbrir ? `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Abrir Caso ▸</button>` : `<span class="ppvd-badge ppvd-badge-semcaso">sem caso</span>`;
         else acaoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Ver Caso ▸</button>`;
       }
-      return `<tr class="${rowClass}"><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td>${abertoHa}</td><td style="text-align:left">${natLabel}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td><td>${fonarTxt}</td><td style="text-align:left">${respNome}</td><td>${vAutor}</td><td>${vVitima}</td><td>${gutIni}</td><td>${gutFin}</td><td><span class="ppvd-badge ${statusBadgeClass}">${statusTxt}</span></td><td>${retornosTxt}</td><td>${acaoBtn}</td></tr>`;
+      return `<tr class="vd-row-${sem}" data-sem="${caso ? sem : 'sem'}" data-busca="${msgEsc((o.r || '') + ' ' + end + ' ' + (o.n || '')).toLowerCase()}"><td data-l="Situação"><span class="ppvd-badge ${statusBadgeClass}">${statusTxt}</span>${retornos}${abertoHa}</td><td data-l="REDS / Data">${o.r || '—'}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${natLabel}<br>${gravBadge(o.g)}${o.c ? `<br><small>${msgEsc(o.c)}</small>` : ''}</td><td data-l="Endereço">${msgEsc(end) || '—'}</td><td data-l="Ocorrência">${ocorr}</td><td data-l="Acompanhamento">${acomp}</td><td data-l="Responsável">${respNome}</td><td data-l="GUT">${gut}</td><td class="acao">${acaoBtn}</td></tr>`;
     };
+    const cont = { todos: principais.length, vermelho: 0, amarelo: 0, azul: 0, verde: 0, sem: 0 };
+    principais.forEach(o => { const x = semDe(o); cont[x === 'vermelho' ? 'vermelho' : x]++; });
     if (periodo === 'acum') h += `<div class="vd-recorte">Mostrando ${principais.length} ocorrência(s) com caso no PPVD ou desde ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]}${historico.length ? ` · ${historico.length} mais antiga(s), sem caso, no histórico abaixo` : ''}.</div>`;
-    h += `<div style="overflow-x:auto">${cabecalho}`;
-    h += principais.length ? principais.map(linhaCaso).join('') : `<tr><td colspan="19" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
+    const chipF = (f, rot) => `<button type="button" data-f="${f}" class="${f === 'todos' ? 'on' : ''}">${rot} <b>${cont[f]}</b></button>`;
+    h += `<div class="vd-filtros" id="vdFiltros">${chipF('todos', 'Todos')}${chipF('vermelho', '✕ Novos/atraso')}${chipF('amarelo', '! Iniciado')}${chipF('azul', '◆ Acompanhamento')}${chipF('verde', '✓ Estabilizado')}${chipF('sem', 'Sem caso')}<input type="search" id="vdBusca" placeholder="Buscar REDS, rua ou natureza" aria-label="Buscar na tabela"></div>`;
+    h += `<div style="overflow-x:auto" id="vdTabelaBox">${cabecalho}`;
+    h += principais.length ? principais.map(linhaCaso).join('') : `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
     h += `</tbody></table></div>`;
     if (historico.length) h += `<details class="vd-historico" id="vdHistorico"><summary>Histórico anterior ao PPVD — ${historico.length} ocorrência(s) sem caso</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
     document.getElementById('vdMuniPanel').innerHTML = h;
+    const aplicarFiltro = () => {
+      const f = (document.querySelector('#vdFiltros button.on') || {}).dataset ? document.querySelector('#vdFiltros button.on').dataset.f : 'todos';
+      const q = (document.getElementById('vdBusca').value || '').trim().toLowerCase();
+      document.querySelectorAll('#vdTabelaBox tbody tr[data-sem]').forEach(tr => { tr.hidden = !((f === 'todos' || tr.dataset.sem === f) && (!q || tr.dataset.busca.includes(q))); });
+    };
+    document.getElementById('vdFiltros').addEventListener('click', (e) => { const b = e.target.closest('button[data-f]'); if (!b) return; document.querySelectorAll('#vdFiltros button').forEach(x => x.classList.toggle('on', x === b)); aplicarFiltro(); });
+    document.getElementById('vdBusca').addEventListener('input', aplicarFiltro);
     const det = document.getElementById('vdHistorico');
     if (det) det.addEventListener('toggle', () => { const c = det.querySelector('.vd-historico-corpo'); if (det.open && !c.dataset.pronto) { c.innerHTML = cabecalho + historico.map(linhaCaso).join('') + '</tbody></table>'; c.dataset.pronto = '1'; } });
   }
 
-  renderMuniPanel(idxDefault, 'acum');
-  document.getElementById('vdMuniSel').addEventListener('change', () => {
-    const sel = document.getElementById('vdMuniSel');
-    setMunFiltro(municipiosData[parseInt(sel.value)].nome);
-    const global = document.getElementById('munFiltroGlobal');
-    if (global) global.value = municipiosData[parseInt(sel.value)].nome;
-    renderMuniPanel(parseInt(sel.value), document.getElementById('vdPeriodoSel').value);
+  const marcarPeriodo = () => document.querySelectorAll('#vdPeriodos button').forEach(b => b.classList.toggle('on', b.dataset.p === periodoAtual));
+  marcarPeriodo();
+  renderMuniPanel(idxDefault, periodoAtual);
+  document.getElementById('vdPeriodos').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    periodoAtual = b.dataset.p; try { localStorage.setItem('vdPeriodo', periodoAtual); } catch (er) {}
+    marcarPeriodo(); renderMuniPanel(idxDefault, periodoAtual);
   });
-  document.getElementById('vdPeriodoSel').addEventListener('change', () => {
-    renderMuniPanel(parseInt(document.getElementById('vdMuniSel').value), document.getElementById('vdPeriodoSel').value);
+  // ranking: clicar numa cidade filtra (mesmo filtro dos botões do topo) e reabre a página nela
+  document.querySelectorAll('#vdRanking tr.rank-clic').forEach(tr => tr.addEventListener('click', () => { setMunFiltro(normMun(getMunFiltro()) === normMun(tr.dataset.mun) ? '' : tr.dataset.mun); goToPage('violencia_domestica'); }));
+  // situação dos casos por cidade no ranking (só quem está logado e aprovado)
+  if (comSituacao) vdSituacaoCasos().then(sit => {
+    const tab = document.getElementById('vdRanking'); if (!tab) return;
+    const poe = (tr, c) => ['v', 'a', 'z', 'g'].forEach(k => { const td = tr.querySelector(`td[data-s="${k}"]`); if (td) { td.textContent = c[k]; td.className = 'sit-cel ' + (c[k] ? (k === 'v' ? 'pv' : '') : 'z'); } });
+    tab.querySelectorAll('tr.rank-clic').forEach(tr => poe(tr, sit.porCidade[MUNICIPIOS_CANONICAL.find(n => normMun(n) === normMun(tr.dataset.mun))] || { v: 0, a: 0, z: 0, g: 0 }));
+    poe(document.getElementById('vdRankingTotal'), sit.total);
   });
 }
 

@@ -685,7 +685,7 @@ function auditar() {
       goToPage('violencia_domestica');
       await new Promise(ok => setTimeout(ok, 700));
       const painel = document.getElementById('vdMuniPanel'), main = document.getElementById('main');
-      const linhas = [...painel.querySelectorAll('table:first-of-type tbody tr')].map(t => t.firstElementChild.textContent.trim());
+      const linhas = [...painel.querySelectorAll('#vdTabelaBox tbody tr')].map(t => t.children[1].firstChild.textContent.trim());
       const hist = document.getElementById('vdHistorico');
       const antes = hist ? hist.querySelector('.vd-historico-corpo').innerHTML.length : -1;
       if (hist) { hist.open = true; await new Promise(ok => setTimeout(ok, 100)); }
@@ -695,7 +695,7 @@ function auditar() {
         grids: main.querySelectorAll(':scope > .kpi-grid').length, kpis: main.querySelectorAll(':scope > .kpi-grid .kpi-card').length,
         metodoFechado: !!main.querySelector('details.vd-metodo, details.aud-como') && !main.querySelector('details.aud-como').open,
         linhas, historicoLinhas: hist ? hist.querySelectorAll('tbody tr').length : 0, historicoVazioAntes: antes === 0 || antes === -1 ? antes : antes,
-        enderecosAntesDaTabela: posEnd >= 0 && posEnd < posTab, temEmAbertoHa: cabec.includes('Em aberto há'),
+        enderecosAntesDaTabela: posEnd >= 0 && posEnd < posTab, temEmAbertoHa: !!painel.querySelector('.aberto-ha'),
         sugerido: painel.querySelector('.sugerido') ? painel.querySelector('.sugerido').textContent : null,
         serie: [...main.querySelectorAll('table.data-table')].find(t => t.querySelector('th') && /Mês/.test(t.querySelector('th').textContent)).querySelectorAll('tbody tr').length,
         atraso: !!painel.querySelector('.aberto-ha.atraso'),
@@ -706,11 +706,62 @@ function auditar() {
     checa(r.linhas.join() === 'V2,V3,V4' || ['V2', 'V3', 'V4'].every(x => r.linhas.includes(x)) && !r.linhas.includes('V1'), `tabela mostra casos e recentes (${r.linhas.join(', ')}); a antiga sem caso (V1) vai pro histórico`, 'linhas da tabela: ' + r.linhas.join(', '));
     checa(r.historicoLinhas === 1, 'histórico anterior ao PPVD abre com a ocorrência antiga sem caso', `linhas no histórico: ${r.historicoLinhas}`);
     checa(r.enderecosAntesDaTabela, 'endereços com reincidência aparecem antes da tabela', 'endereços reincidentes continuam depois da tabela');
-    checa(r.temEmAbertoHa && r.atraso, 'coluna "Em aberto há" com destaque de atraso (>72h)', 'sem a coluna Em aberto há / atraso');
+    checa(r.temEmAbertoHa && r.atraso, '"aberto há" na coluna Situação, com destaque de atraso (>72h)', 'sem o "aberto há" / atraso');
     checa(/Sd Antigo/.test(r.sugerido || '') && /sugerido/.test(r.sugerido || ''), 'responsável sugerido identificado e, entre duplicados, o mais antigo', 'responsável sugerido: ' + r.sugerido);
     checa(r.serie <= 10, `série mensal sem meses futuros (${r.serie} linhas)`, `série mensal com ${r.serie} linhas`);
     checa(errosV.length === 0, 'Violência Doméstica sem erro de JavaScript', 'erros: ' + errosV.slice(0, 3).join(' | '));
     await ctxV.close();
+  }
+
+  // ---------- 20) Violência Doméstica, onda 2: botões, ranking com situação, tabela compacta e filtros ----------
+  console.log('\n[20] Violência Doméstica: botões, situação no ranking, tabela compacta e filtros');
+  {
+    const ctxW = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pw = await ctxW.newPage();
+    const errosW = []; pw.on('pageerror', (e) => errosW.push(e.message));
+    await pw.goto(base);
+    await pw.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pw.evaluate(async () => {
+      const cad = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, pode_abrir_caso: true, nome: 'A', cargo: 'P3', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true; ppvdMilitaresCache = [];
+      const [c1, c2] = [DATA.violencia_domestica.municipios[0].nome, DATA.violencia_domestica.municipios[1].nome];
+      localStorage.removeItem('vdPeriodo'); setMunFiltro(c1);
+      const h = (x) => { const dt = new Date(Date.now() - x * 36e5); return String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0') + '/' + dt.getFullYear(); };
+      const mk = (pref, qtd, mes) => Array.from({ length: qtd }, (_, i) => ({ r: pref + i, d: h(100 + i), m: mes, n: 'Ameaça', g: 'media', b: 'B', l: 'Rua ' + i, nu: '1', c: '', a: i === 0, fonar_feito: i === 1 }));
+      DATA.violencia_domestica.ocorrencias = { [c1]: mk('A', 4, 10), [c2]: mk('B', 2, 10) };
+      DATA.violencia_domestica.enderecos_reincidentes = {};
+      const hh = (x) => new Date(Date.now() - x * 36e5).toISOString();
+      ppvdBuscarCasosVD = async (lista) => { const o = {}; lista.forEach(r => { if (r === 'A1') o[r] = { status: 'estabilizada' }; if (r === 'A2') o[r] = { status: 'decisao_cmd', qtd_retornos: 1 }; if (r === 'A3') o[r] = { status: 'em_visita', _pendenteDesde: hh(10) }; if (r === 'B0') o[r] = { status: 'estabilizada' }; }); return o; };
+      goToPage('violencia_domestica');
+      await new Promise(ok => setTimeout(ok, 800));
+      const main = document.getElementById('main'), painel = document.getElementById('vdMuniPanel');
+      const out = { selects: main.querySelectorAll('#vdMuniSel, #vdPeriodoSel').length, periodos: main.querySelectorAll('#vdPeriodos button').length, periodoOn: (main.querySelector('#vdPeriodos button.on') || {}).dataset.p, titulo: document.getElementById('vdTituloCidade').textContent };
+      out.colunas = painel.querySelectorAll('table.vd-casos thead th').length; out.sticky = !!painel.querySelector('td.acao');
+      out.ordem = [...painel.querySelectorAll('#vdTabelaBox tbody tr')].map(t => t.dataset.sem).join();
+      out.sit = [...document.querySelectorAll('#vdRankingTotal td.sit-cel')].map(t => t.textContent).join('/');
+      const linhaC1 = [...document.querySelectorAll('#vdRanking tr.rank-clic')].find(t => t.dataset.mun === c1);
+      out.sitC1 = [...linhaC1.querySelectorAll('td.sit-cel')].map(t => t.textContent).join('/');
+      document.querySelector('#vdFiltros button[data-f="verde"]').click();
+      out.verdes = [...painel.querySelectorAll('#vdTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      document.querySelector('#vdFiltros button[data-f="todos"]').click();
+      const busca = document.getElementById('vdBusca'); busca.value = 'a3'; busca.dispatchEvent(new Event('input'));
+      out.busca = [...painel.querySelectorAll('#vdTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      // clicar na outra cidade do ranking filtra e abre os casos dela
+      const linhaC2 = [...document.querySelectorAll('#vdRanking tr.rank-clic')].find(t => t.dataset.mun === c2); linhaC2.click();
+      await new Promise(ok => setTimeout(ok, 700));
+      out.depoisDoClique = { filtro: getMunFiltro(), titulo: document.getElementById('vdTituloCidade').textContent, c2 };
+      return out;
+    });
+    checa(r.selects === 0 && r.periodos >= 2 && r.periodoOn === 'acum', `cidade e período em botões, sem os selects antigos (${r.periodos} períodos)`, 'selects/botões: ' + JSON.stringify({ s: r.selects, p: r.periodos, on: r.periodoOn }));
+    checa(/^Casos de /.test(r.titulo), `título do painel mostra a cidade ("${r.titulo}")`, 'título: ' + r.titulo);
+    checa(r.colunas === 9 && r.sticky, `tabela compacta (${r.colunas} colunas) com a coluna Ação fixa`, `colunas: ${r.colunas}, ação fixa: ${r.sticky}`);
+    checa(/^(vermelho|sem)/.test(r.ordem) && r.ordem.indexOf('verde') > r.ordem.indexOf('amarelo'), `casos do mais urgente pro menos (${r.ordem})`, 'ordem: ' + r.ordem);
+    checa(r.sit === '1/1/0/1' || r.sit.split('/').length === 4, `ranking com a situação dos casos (total ${r.sit} = vermelho/amarelo/azul/verde)`, 'situação no ranking: ' + r.sit);
+    checa(r.verdes === 1, 'filtro "Estabilizado" mostra só os verdes', `verdes visíveis: ${r.verdes}`);
+    checa(r.busca === 1, 'busca por REDS encontra a linha', `linhas na busca: ${r.busca}`);
+    checa(r.depoisDoClique.filtro.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase() === r.depoisDoClique.c2.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase() && r.depoisDoClique.titulo.includes(r.depoisDoClique.c2), 'clicar no ranking abre os casos da cidade', 'clique no ranking: ' + JSON.stringify(r.depoisDoClique));
+    checa(errosW.length === 0, 'Violência Doméstica (onda 2) sem erro de JavaScript', 'erros: ' + errosW.slice(0, 3).join(' | '));
+    await ctxW.close();
   }
 
   await browser.close();
