@@ -241,6 +241,21 @@
   table.matriz-home tbody td:first-child { cursor:pointer; }
   .rank-lateral .rank-row > div:nth-child(2) { width:118px !important; font-size:12.5px; }
   .rank-lateral .rank-row { padding:3px 0 !important; cursor:pointer; }
+  .audit-resp .hd { font-weight:600; margin-bottom:2px; }
+  .audit-resp .hd small { color:var(--muted); font-weight:400; font-size:11.5px; display:block; margin-top:2px; }
+  .resp-linha { display:flex; gap:8px 12px; align-items:center; flex-wrap:wrap; padding:7px 0; border-bottom:1px solid var(--line); }
+  .resp-func { font-family:var(--mono); font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--panel-border); background:var(--bg-2); color:var(--text); white-space:nowrap; }
+  .resp-func.cmt_destacamento { border-color:rgba(232,168,60,.6); color:var(--amber); }
+  .resp-func.cmt_pelotao { border-color:rgba(91,155,213,.6); color:#8ec5ff; }
+  .resp-func.sargenteante { border-color:rgba(33,201,138,.6); color:var(--signal); }
+  .resp-linha .nome { font-weight:600; }
+  .resp-linha .fone { color:var(--muted); font-family:var(--mono); font-size:12px; }
+  .resp-linha .acoes { margin-left:auto; display:flex; gap:6px; flex-wrap:wrap; }
+  .resp-vazio { color:var(--muted); font-size:12.5px; padding:6px 0; }
+  .resp-form { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-top:10px; }
+  .resp-form .ppvd-field { margin-bottom:0; }
+  .audit-resp details { margin-top:8px; font-size:12.5px; color:var(--muted); }
+  .audit-resp details summary { cursor:pointer; padding:3px 0; }
   details.como-pontua { margin-top:10px; font-size:12px; color:var(--muted); font-family:var(--mono); }
   details.como-pontua summary { cursor:pointer; padding:4px 0; }
   details.como-pontua div { padding:4px 0; line-height:1.5; }
@@ -3545,6 +3560,7 @@ async function renderAuditoriaPage() {
 
   await ppvdCarregarDadosRestritos();
   if (!ppvdDadosRestritosLiberados()) { body.innerHTML = ppvdAvisoRestrito(); return; }
+  await auditoriaCarregarResponsaveis();
   const vdData = DATA.violencia_domestica;
   const ocorrenciasPorMunicipio = {};
   MUNICIPIOS_CANONICAL.forEach(nome => {
@@ -3593,27 +3609,12 @@ async function renderAuditoriaPage() {
       mesNomeAtual,
     };
 
-    const respSalvo = ppvdSugerirResponsavel(nome);
-    const nomeAtual = respSalvo ? respSalvo.nome : '';
-    const whatsAtual = respSalvo ? respSalvo.whatsapp : '';
     const temPendencia = totalVermelho > 0;
+    window.auditoriaResumo[nome].totalVermelho = totalVermelho;
 
     htmlCidades += `<div class="chart-box" style="margin-bottom:14px;min-width:0">
       <h3 style="display:flex;justify-content:space-between;align-items:center;gap:10px">${nome} ${badgeGeral}</h3>
-      <div class="ppvd-card" style="margin:0 0 14px;padding:12px 14px">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-          <div class="ppvd-field" style="margin-bottom:0;flex:1;min-width:170px">
-            <label>Responsável (Cmt Destac./Pelotão)</label>
-            <input id="auditNome-${muniIdx}" value="${nomeAtual}" placeholder="Ex: Ten. Diego Silva">
-          </div>
-          <div class="ppvd-field" style="margin-bottom:0;flex:1;min-width:150px">
-            <label>WhatsApp (com DDD)</label>
-            <input id="auditWhats-${muniIdx}" value="${whatsAtual}" placeholder="Ex: 33999999999">
-          </div>
-          <button class="ppvd-btn" onclick="ppvdSalvarResponsavelAuditoria(${muniIdx})">💾 Salvar</button>
-          <button class="ppvd-btn ${temPendencia ? 'ppvd-btn-primary' : ''}" ${temPendencia ? '' : 'disabled style="opacity:.45;cursor:not-allowed"'} onclick="ppvdEnviarLembreteAuditoria('${nome}')">📱 Enviar Lembrete</button>
-        </div>
-      </div>`;
+      <div id="audResp-${muniIdx}">${auditoriaRespHtml(nome, muniIdx, temPendencia)}</div>`;
 
     htmlCidades += `<details style="padding-top:2px" ${flagged.length ? 'open' : ''}>
       <summary style="cursor:pointer;padding:4px 0;font-weight:600">Violência Doméstica ${flagged.length ? `<span class="ppvd-badge ppvd-badge-critica">${flagged.length}</span>` : '<span class="ppvd-badge ppvd-badge-verde">0</span>'}</summary>`;
@@ -3651,24 +3652,108 @@ async function renderAuditoriaPage() {
   body.innerHTML = avisoMvCvpe + htmlCidades;
 }
 
-// Reaproveita o cadastro de "Militares Responsáveis" (militares_responsaveis) que já existe
-// pro despacho de casos de VD — o contato salvo aqui na Auditoria é o mesmo usado lá.
-async function ppvdSalvarResponsavelAuditoria(muniIdx) {
-  const nomeMunicipio = MUNICIPIOS_CANONICAL[muniIdx];
-  const nomeInput = (document.getElementById('auditNome-' + muniIdx).value || '').trim();
-  const whatsInput = ppvdNormalizarWhatsApp(document.getElementById('auditWhats-' + muniIdx).value);
-  if (!nomeInput || !whatsInput) { alert('Preencha nome e WhatsApp do responsável.'); return; }
-  const existente = ppvdSugerirResponsavel(nomeMunicipio);
-  let error;
-  if (existente) {
-    ({ error } = await ppvdSupa.from('militares_responsaveis').update({ nome: nomeInput, whatsapp: whatsInput, ativo: true }).eq('id', existente.id));
-  } else {
-    ({ error } = await ppvdSupa.from('militares_responsaveis').insert({ nome: nomeInput, whatsapp: whatsInput, municipio: nomeMunicipio, ativo: true }));
+// ============ Responsáveis da AUDITORIA (2026-10-13) ============
+// Comandantes de pelotão, comandantes de destacamento e sargenteantes de cada cidade — pessoas diferentes do
+// "militar responsável" pelos casos de Violência Doméstica. Antes a Auditoria gravava na mesma tabela da VD
+// (militares_responsaveis) e um Salvar aqui trocava o responsável da VD; agora tem tabela própria
+// (auditoria_responsaveis), com várias pessoas por cidade e a função de cada uma.
+const AUDIT_FUNCOES = { cmt_destacamento: 'Cmt de Destacamento', cmt_pelotao: 'Cmt de Pelotão', sargenteante: 'Sargenteante' };
+window.auditoriaResps = [];
+async function auditoriaCarregarResponsaveis() {
+  if (!ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) { window.auditoriaResps = []; return; }
+  const { data, error } = await ppvdSupa.from('auditoria_responsaveis').select('*').eq('ativo', true).order('municipio').order('funcao');
+  window.auditoriaResps = (!error && data) ? data : [];
+}
+function auditoriaRespDe(nomeMunicipio) {
+  const ordem = Object.keys(AUDIT_FUNCOES);
+  return (window.auditoriaResps || []).filter(r => normMun(r.municipio) === normMun(nomeMunicipio))
+    .sort((a, b) => ordem.indexOf(a.funcao) - ordem.indexOf(b.funcao) || a.nome.localeCompare(b.nome));
+}
+function auditoriaFoneFmt(w) {
+  const d = String(w || '').replace(/\D/g, '');
+  return d.length >= 12 ? `+${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, d.length - 4)}-${d.slice(-4)}` : d;
+}
+// sugestões a partir do cadastro ANTIGO (militares_responsaveis): o nome do município vinha bagunçado
+// ("COMERCINHO", "CORONEL MURTA - MG"...) e não dá pra saber qual registro era da Auditoria — quem decide é o admin
+function auditoriaSugestoes(nomeMunicipio) {
+  const alvo = normMun(nomeMunicipio);
+  const ja = new Set(auditoriaRespDe(nomeMunicipio).map(r => String(r.whatsapp)));
+  const vistos = new Set();
+  return (ppvdMilitaresCache || []).filter(m => {
+    const mun = normMun(String(m.municipio || '').replace(/\s*-\s*MG\s*$/i, ''));
+    const fone = ppvdNormalizarWhatsApp(m.whatsapp);
+    if (mun !== alvo || !fone || ja.has(fone) || vistos.has(fone)) return false;
+    vistos.add(fone); return true;
+  });
+}
+function auditoriaRespHtml(nome, muniIdx, temPendencia) {
+  const lista = auditoriaRespDe(nome), sug = auditoriaSugestoes(nome);
+  const opcoes = Object.keys(AUDIT_FUNCOES).map(k => `<option value="${k}">${AUDIT_FUNCOES[k]}</option>`).join('');
+  let h = `<div class="ppvd-card audit-resp" style="margin:0 0 14px;padding:12px 14px">
+    <div class="hd">Responsáveis da Auditoria <small>comandantes de pelotão e de destacamento e sargenteantes — não é o responsável pelos casos de Violência Doméstica</small></div>`;
+  if (!lista.length) h += `<div class="resp-vazio">Nenhum responsável cadastrado para ${nome}. Adicione abaixo.</div>`;
+  lista.forEach(r => {
+    h += `<div class="resp-linha"><span class="resp-func ${r.funcao}">${AUDIT_FUNCOES[r.funcao] || msgEsc(r.funcao)}</span><span class="nome">${msgEsc(r.nome)}</span><span class="fone">${auditoriaFoneFmt(r.whatsapp)}</span>
+      <span class="acoes"><button class="ppvd-btn ${temPendencia ? 'ppvd-btn-primary' : ''}" ${temPendencia ? '' : 'disabled style="opacity:.45;cursor:not-allowed"'} title="${temPendencia ? 'Abrir o WhatsApp com o lembrete' : 'Sem pendência agora'}" onclick="auditoriaEnviarLembrete('${r.id}')">📱 Enviar lembrete</button>
+      <button class="ppvd-btn" onclick="auditoriaRespEditar('${r.id}', ${muniIdx})">✏ Editar</button><button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert-text)" onclick="auditoriaRespRemover('${r.id}', ${muniIdx})">Remover</button></span></div>`;
+  });
+  h += `<div class="resp-form"><input type="hidden" id="audId-${muniIdx}">
+    <div class="ppvd-field" style="min-width:150px"><label>Função</label><select id="audFuncao-${muniIdx}">${opcoes}</select></div>
+    <div class="ppvd-field" style="flex:1;min-width:170px"><label>Nome</label><input id="audNome-${muniIdx}" placeholder="Ex: Ten. Diego Silva" maxlength="120"></div>
+    <div class="ppvd-field" style="flex:1;min-width:150px"><label>WhatsApp (com DDD)</label><input id="audWhats-${muniIdx}" placeholder="Ex: 33999999999"></div>
+    <button class="ppvd-btn" onclick="auditoriaRespSalvar(${muniIdx})">💾 Salvar</button></div>`;
+  if (lista.length && temPendencia) h += `<div style="margin-top:8px"><button class="ppvd-btn" onclick="auditoriaCopiarLembrete('${nome}')" title="Copia o texto do lembrete pra colar num grupo do WhatsApp">📋 Copiar mensagem (grupo)</button></div>`;
+  if (sug.length) {
+    h += `<details><summary>Sugestões do cadastro antigo de militares (${sug.length}) — escolha a função para usar na Auditoria</summary>`;
+    sug.forEach((m, i) => {
+      h += `<div class="resp-linha"><span class="nome">${msgEsc(m.nome)}</span><span class="fone">${auditoriaFoneFmt(ppvdNormalizarWhatsApp(m.whatsapp))}</span>
+        <span class="acoes"><select id="audSugFuncao-${muniIdx}-${i}">${opcoes}</select><button class="ppvd-btn" onclick="auditoriaRespUsarSugestao(${muniIdx}, ${i})">Usar na Auditoria</button></span></div>`;
+    });
+    h += `</details>`;
   }
-  if (error) { alert('Erro ao salvar: ' + error.message); return; }
-  ppvdMilitaresCache = null;
-  await ppvdCarregarMilitares();
-  goToPage('auditoria');
+  return h + `</div>`;
+}
+function auditoriaRespRepintar(muniIdx) {
+  const nome = MUNICIPIOS_CANONICAL[muniIdx], box = document.getElementById('audResp-' + muniIdx);
+  if (box) box.innerHTML = auditoriaRespHtml(nome, muniIdx, !!((window.auditoriaResumo || {})[nome] || {}).totalVermelho);
+}
+async function auditoriaRespSalvar(muniIdx) {
+  const nome = MUNICIPIOS_CANONICAL[muniIdx];
+  const id = document.getElementById('audId-' + muniIdx).value;
+  const funcao = document.getElementById('audFuncao-' + muniIdx).value;
+  const nomePessoa = (document.getElementById('audNome-' + muniIdx).value || '').trim();
+  const whats = ppvdNormalizarWhatsApp(document.getElementById('audWhats-' + muniIdx).value);
+  if (nomePessoa.length < 2 || !/^[0-9]{12,13}$/.test(whats)) { alert('Preencha o nome e um WhatsApp válido (com DDD).'); return; }
+  const q = id ? ppvdSupa.from('auditoria_responsaveis').update({ funcao, nome: nomePessoa, whatsapp: whats }).eq('id', id)
+              : ppvdSupa.from('auditoria_responsaveis').insert({ municipio: nome, funcao, nome: nomePessoa, whatsapp: whats, ativo: true });
+  const { error } = await q;
+  if (error) { alert(/duplicate|unique/i.test(error.message) ? 'Essa pessoa já está cadastrada nessa função para ' + nome + '.' : 'Erro ao salvar: ' + error.message); return; }
+  await auditoriaCarregarResponsaveis();
+  auditoriaRespRepintar(muniIdx);
+}
+function auditoriaRespEditar(id, muniIdx) {
+  const r = (window.auditoriaResps || []).find(x => x.id === id); if (!r) return;
+  document.getElementById('audId-' + muniIdx).value = r.id;
+  document.getElementById('audFuncao-' + muniIdx).value = r.funcao;
+  document.getElementById('audNome-' + muniIdx).value = r.nome;
+  document.getElementById('audWhats-' + muniIdx).value = r.whatsapp;
+  document.getElementById('audNome-' + muniIdx).focus();
+}
+async function auditoriaRespRemover(id, muniIdx) {
+  const r = (window.auditoriaResps || []).find(x => x.id === id);
+  if (!r || !confirm('Remover ' + r.nome + ' (' + (AUDIT_FUNCOES[r.funcao] || r.funcao) + ') da Auditoria de ' + r.municipio + '? Isso não mexe no responsável dos casos de Violência Doméstica.')) return;
+  const { error } = await ppvdSupa.from('auditoria_responsaveis').update({ ativo: false }).eq('id', id);
+  if (error) { alert('Erro ao remover: ' + error.message); return; }
+  await auditoriaCarregarResponsaveis();
+  auditoriaRespRepintar(muniIdx);
+}
+async function auditoriaRespUsarSugestao(muniIdx, i) {
+  const nome = MUNICIPIOS_CANONICAL[muniIdx], m = auditoriaSugestoes(nome)[i]; if (!m) return;
+  const funcao = document.getElementById(`audSugFuncao-${muniIdx}-${i}`).value;
+  const { error } = await ppvdSupa.from('auditoria_responsaveis').insert({ municipio: nome, funcao, nome: String(m.nome).trim(), whatsapp: ppvdNormalizarWhatsApp(m.whatsapp), ativo: true });
+  if (error) { alert('Erro ao adicionar: ' + error.message); return; }
+  await auditoriaCarregarResponsaveis();
+  auditoriaRespRepintar(muniIdx);
 }
 
 // Frase pré-pronta do lembrete de WhatsApp — personalizável só pelo Thomaz (seuthomaz@gmail.com),
@@ -3715,10 +3800,9 @@ function ppvdRestaurarTemplateLembrete() {
   if (el) el.value = ppvdTemplateLembretePadrao();
   alert('Restaurado o texto padrão.');
 }
-function ppvdMontarLembreteAuditoria(nomeMunicipio) {
+function ppvdMontarLembreteAuditoria(nomeMunicipio, resp) {
   const resumo = (window.auditoriaResumo || {})[nomeMunicipio];
   if (!resumo) return null;
-  const resp = ppvdSugerirResponsavel(nomeMunicipio);
 
   const linhas = [];
   resumo.metasAtrasadasList.forEach(m => {
@@ -3730,19 +3814,25 @@ function ppvdMontarLembreteAuditoria(nomeMunicipio) {
   if (resumo.flaggedCount > 0) linhas.push(`• Violência Doméstica: ${resumo.flaggedCount} caso(s) com mais de 72h sem solução final`);
   if (linhas.length === 0) return null;
 
-  const saudacao = resp && resp.nome ? `Bom dia, ${resp.nome}!` : 'Bom dia!';
+  const saudacao = resp && resp.nome ? `Bom dia, ${resp.nome}${resp.funcao && AUDIT_FUNCOES[resp.funcao] ? ' (' + AUDIT_FUNCOES[resp.funcao] + ')' : ''}!` : 'Bom dia!';
   return ppvdObterTemplateLembrete()
     .replace(/\{saudacao\}/g, saudacao)
     .replace(/\{nomeMunicipio\}/g, nomeMunicipio)
     .replace(/\{diaHoje\}/g, resumo.diaHoje)
     .replace(/\{linhas\}/g, linhas.join('\n'));
 }
-function ppvdEnviarLembreteAuditoria(nomeMunicipio) {
-  const resp = ppvdSugerirResponsavel(nomeMunicipio);
-  if (!resp || !resp.whatsapp) { alert('Cadastre o nome e WhatsApp do responsável antes de enviar (campo acima).'); return; }
-  const msg = ppvdMontarLembreteAuditoria(nomeMunicipio);
-  if (!msg) { alert('Nenhuma pendência encontrada pra ' + nomeMunicipio + ' agora.'); return; }
+function auditoriaEnviarLembrete(id) {
+  const resp = (window.auditoriaResps || []).find(r => r.id === id);
+  if (!resp || !resp.whatsapp) { alert('Responsável sem WhatsApp cadastrado.'); return; }
+  const msg = ppvdMontarLembreteAuditoria(resp.municipio, resp);
+  if (!msg) { alert('Nenhuma pendência encontrada pra ' + resp.municipio + ' agora.'); return; }
   window.open(`https://wa.me/${resp.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+async function auditoriaCopiarLembrete(nomeMunicipio) {
+  const msg = ppvdMontarLembreteAuditoria(nomeMunicipio, null);
+  if (!msg) { alert('Nenhuma pendência encontrada pra ' + nomeMunicipio + ' agora.'); return; }
+  try { await navigator.clipboard.writeText(msg); alert('Mensagem copiada. É só colar no grupo do WhatsApp.'); }
+  catch (e) { prompt('Copie a mensagem abaixo (Ctrl+C):', msg); }
 }
 
 function detalhadoPorNaturezaHtml(d, titulo, colunas, defHtml, fonteHtml) {

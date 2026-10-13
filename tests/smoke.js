@@ -513,6 +513,57 @@ function auditar() {
     await ctx3.close();
   }
 
+  // ---------- 16) Auditoria: vários responsáveis por cidade, tabela própria (não mexe no responsável da VD) ----------
+  console.log('\n[16] Painel de Auditoria: responsáveis (cmt de pelotão/destacamento/sargenteante)');
+  {
+    const ctxA = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pa = await ctxA.newPage();
+    const errosA = []; pa.on('pageerror', (e) => errosA.push(e.message));
+    await pa.goto(base);
+    await pa.waitForFunction(() => typeof renderAuditoriaPage === 'function');
+    const r = await pa.evaluate(async () => {
+      const chamadas = [];
+      let linhas = [
+        { id: 'a1', municipio: 'Araçuaí', funcao: 'cmt_pelotao', nome: 'Ten. Pelotão (inventado)', whatsapp: '5533999990001', ativo: true },
+        { id: 'a2', municipio: 'Araçuaí', funcao: 'cmt_destacamento', nome: 'Ten. Destac (inventado)', whatsapp: '5533999990002', ativo: true },
+        { id: 'a3', municipio: 'Araçuaí', funcao: 'sargenteante', nome: 'Sgt (inventado)', whatsapp: '5533999990003', ativo: true },
+      ];
+      const cad = (tabela) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, maybeSingle: () => o,
+        insert: (v) => { chamadas.push(['insert', tabela, v]); if (tabela === 'auditoria_responsaveis') linhas.push(Object.assign({ id: 'n' + linhas.length, ativo: true }, v)); return o; },
+        update: (v) => { chamadas.push(['update', tabela, v]); return o; },
+        then: (ok) => ok({ data: tabela === 'auditoria_responsaveis' ? linhas : [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad };
+      ppvdUser = { id: 'u', email: 'x@y.z' }; ppvdPerfil = { aprovado: true, is_admin: true, nome: 'Admin', cargo: 'P3', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true;
+      ppvdMilitaresCache = [{ id: 9, nome: 'Antigo (inventado)', whatsapp: '33999990009', municipio: 'CORONEL MURTA - MG' }];
+      DATA.violencia_domestica.ocorrencias = {};
+      ppvdBuscarCasosVD = async () => ({});
+      await renderAuditoriaPage();
+      const idx = MUNICIPIOS_CANONICAL.indexOf('Araçuaí');
+      const caixa = document.getElementById('audResp-' + idx);
+      const out = { linhas: caixa.querySelectorAll('.resp-linha').length, funcoes: [...caixa.querySelectorAll('.resp-func')].map(e => e.textContent.trim()) };
+      const murta = document.getElementById('audResp-' + MUNICIPIOS_CANONICAL.indexOf('Coronel Murta'));
+      out.sugestaoMurta = !!murta.querySelector('details'); // "CORONEL MURTA - MG" do cadastro antigo vira sugestão
+      // adicionar uma pessoa nova grava SÓ na tabela da Auditoria
+      document.getElementById('audFuncao-' + idx).value = 'sargenteante';
+      document.getElementById('audNome-' + idx).value = 'Cb Novo (inventado)';
+      document.getElementById('audWhats-' + idx).value = '33999990004';
+      await auditoriaRespSalvar(idx);
+      out.tabelas = [...new Set(chamadas.map(c => c[0] + ':' + c[1]))];
+      out.depois = document.getElementById('audResp-' + idx).querySelectorAll('.resp-linha').length;
+      // mensagem do lembrete leva nome e função
+      window.auditoriaResumo['Araçuaí'] = { flaggedCount: 1, qtdMv: 0, qtdCvpe: 0, qtdCvpa: 0, metasAtrasadasList: [], diaHoje: 13, mesNomeAtual: 'Outubro' };
+      out.msg = ppvdMontarLembreteAuditoria('Araçuaí', linhas[0]);
+      return out;
+    });
+    checa(r.linhas === 3 && r.funcoes.join() === 'Cmt de Destacamento,Cmt de Pelotão,Sargenteante', `cidade com 3 responsáveis (${r.funcoes.join(' / ')})`, 'responsáveis da cidade: ' + JSON.stringify(r));
+    checa(r.sugestaoMurta, 'cadastro antigo "CORONEL MURTA - MG" aparece como sugestão (não some)', 'sem sugestão do cadastro antigo');
+    checa(r.tabelas.includes('insert:auditoria_responsaveis') && !r.tabelas.some(t => t.endsWith('militares_responsaveis')), 'adicionar responsável grava só em auditoria_responsaveis (não mexe no da VD)', 'tabelas escritas: ' + r.tabelas.join(', '));
+    checa(r.depois === 4, 'lista da cidade atualiza depois de adicionar', `linhas depois de adicionar: ${r.depois}`);
+    checa(/Bom dia, Ten\. Pelotão \(inventado\) \(Cmt de Pelotão\)!/.test(r.msg || ''), 'lembrete cumprimenta a pessoa com a função', 'mensagem do lembrete: ' + String(r.msg).slice(0, 80));
+    checa(errosA.length === 0, 'Auditoria sem erro de JavaScript', 'erros: ' + errosA.slice(0, 3).join(' | '));
+    await ctxA.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
