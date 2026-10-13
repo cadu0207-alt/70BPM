@@ -876,7 +876,8 @@
       "1": 22,
       "2": 0,
       "3+": 0
-    }
+    },
+    "reds_bairro_invalido": 4
   },
   "cvpe": {
     "meses": [
@@ -1755,7 +1756,8 @@
       "1": 14,
       "2": 1,
       "3+": 1
-    }
+    },
+    "reds_bairro_invalido": 3
   },
   "cvpa": {
     "meses": [
@@ -2634,7 +2636,8 @@
       "1": 26,
       "2": 7,
       "3+": 0
-    }
+    },
+    "reds_bairro_invalido": 11
   },
   "mv_local": [
     [
@@ -24776,5 +24779,131 @@
       "OUTROS BENS/VALORES EM OUTRO LOCAL",
       1
     ]
-  ]
+  ],
+  "cvpa_alvo_municipio": {
+    "AGUAS VERMELHAS": [
+      [
+        "MORADOR / VISITANTE DE RESIDENCIA",
+        2
+      ],
+      [
+        "CARGAS",
+        1
+      ]
+    ],
+    "ARACUAI": [
+      [
+        "PROP / FUNC DE ESTABELECIMENTO",
+        2
+      ],
+      [
+        "MORADOR / VISITANTE DE RESIDENCIA",
+        1
+      ],
+      [
+        "OUTROS BENS/VALORES EM OUTRO LOCAL",
+        1
+      ],
+      [
+        "TRANSEUNTE",
+        1
+      ],
+      [
+        "VEICULO OU EMBARCACAO",
+        1
+      ]
+    ],
+    "PEDRA AZUL": [
+      [
+        "TRANSEUNTE",
+        2
+      ],
+      [
+        "CLIENTE/VISITANTE ESTABELECIMENTO",
+        1
+      ],
+      [
+        "MOTORISTA/PASSAGEIRO VEIC.PARTIC.",
+        1
+      ]
+    ],
+    "MEDINA": [
+      [
+        "VEICULO OU EMBARCACAO",
+        2
+      ],
+      [
+        "CARGAS",
+        1
+      ],
+      [
+        "MORADOR / VISITANTE DE RESIDENCIA",
+        1
+      ],
+      [
+        "TRANSEUNTE",
+        1
+      ]
+    ],
+    "CACHOEIRA DE PAJEU": [
+      [
+        "CARGAS",
+        3
+      ],
+      [
+        "TRANSEUNTE",
+        2
+      ],
+      [
+        "MORADOR / VISITANTE DE RESIDENCIA",
+        1
+      ]
+    ],
+    "PADRE PARAISO": [
+      [
+        "PROP / FUNC DE ESTABELECIMENTO",
+        3
+      ],
+      [
+        "TRANSEUNTE",
+        3
+      ],
+      [
+        "MORADOR / VISITANTE DE RESIDENCIA",
+        1
+      ]
+    ],
+    "CORONEL MURTA": [
+      [
+        "MORADOR / VISITANTE DE RESIDENCIA",
+        3
+      ]
+    ],
+    "ITAOBIM": [
+      [
+        "VEICULO OU EMBARCACAO",
+        2
+      ],
+      [
+        "CLIENTE EVENTO CULT/SOCIAL/ESPORT/MUS",
+        1
+      ],
+      [
+        "TRANSEUNTE",
+        1
+      ]
+    ],
+    "VIRGEM DA LAPA": [
+      [
+        "ESTABELECIMENTO/PESSOA JURIDICA",
+        1
+      ]
+    ],
+    "DIVISA ALEGRE": [
+      [
+        "CARGAS",
+        1
+      ]
+    ]
+  }
 }

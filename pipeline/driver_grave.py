@@ -645,8 +645,12 @@ def run_extras_indicadores(data, report):
         soma = sum(_num(r.get(col_total)) for r in validas)
         matriz = [[0] * 4 for _ in range(7)]
         rodov, alvo = collections.Counter(), collections.Counter()
+        bairro_inv, alvo_mun = set(), {}
         for r in validas:
             tot = _num(r.get(col_total))
+            reds_b = (r.get('NUMERO_REDS') or '').strip(); bai = (r.get('BAIRRO') or '').strip().upper()
+            if reds_b and (not bai or bai.startswith('INV')):
+                bairro_inv.add(reds_b)  # bairro 'INVÁLIDO' no cadastro do SiGOp
             pref = (r.get('DIA_DA_SEMANA_FATO') or '').strip().upper()[:3]
             i_d = next((i for i, (pf, _) in enumerate(DIAS_SEMANA) if pf == pref), None)
             m = re.search(r'(\d\d):', r.get('FAIXA_HORA_6') or '')
@@ -658,7 +662,9 @@ def run_extras_indicadores(data, report):
                 rodov['NAO INFORMADO' if not via or via.startswith('INV') else via] += tot
             if chave == 'cvpa':
                 rot = (r.get('COMPLEMENTO_NATUREZA') or '').strip() or 'NAO INFORMADO'
-                alvo[re.sub(r'^BENS/VALORES( DE)? ', '', rot.split(' (')[0])] += tot  # o SiGOp escreve a mesma categoria com e sem "BENS/VALORES DE"
+                rot2 = re.sub(r'^BENS/VALORES( DE)? ', '', rot.split(' (')[0])  # o SiGOp escreve a mesma categoria com e sem "BENS/VALORES DE"
+                alvo[rot2] += tot
+                alvo_mun.setdefault((r.get('MUNICIPIO') or '').strip().upper(), collections.Counter())[rot2] += tot
         res = {'file': f, 'soma_indicador': soma, 'em_rodovia': sum(rodov.values())}
         if sum(sum(l) for l in matriz) == soma:
             data[chave + '_dia_faixa'] = {'dias': [n for _, n in DIAS_SEMANA], 'faixas': FAIXAS_6H, 'matriz': matriz}
@@ -666,10 +672,13 @@ def run_extras_indicadores(data, report):
         else:
             res['dia_faixa'] = f'não confere ({sum(sum(l) for l in matriz)} de {soma}) — mantido o anterior'
         data[chave + '_rodovia'] = [[k, v] for k, v in sorted(rodov.items(), key=lambda kv: (-kv[1], kv[0]))]
+        data[chave]['reds_bairro_invalido'] = len(bairro_inv)
+        res['bairro_invalido'] = len(bairro_inv)
         if chave == 'cvpa':
             ordenado = sorted(alvo.items(), key=lambda kv: (-kv[1], kv[0]))
             if sum(v for _, v in ordenado) == soma:
                 data['cvpa_alvo'] = [[k, v] for k, v in ordenado]
+                data['cvpa_alvo_municipio'] = {m: [[k, v] for k, v in sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))] for m, c in alvo_mun.items()}
                 res['alvo'] = 'ok'
             else:
                 res['alvo'] = 'não confere'
