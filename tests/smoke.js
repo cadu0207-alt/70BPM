@@ -1249,6 +1249,69 @@ function auditar() {
     await ctxL.close();
   }
 
+  // ---------- 30) CVPE: lista restrita de ocorrências com a situação do caso de visita à vítima ----------
+  console.log('\n[30] CVPE: ocorrências (restrito) com semáforo do caso de visita à vítima');
+  {
+    const ctxP = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pp = await ctxP.newPage();
+    const errosP = []; pp.on('pageerror', (e) => errosP.push(e.message));
+    await pp.goto(base);
+    await pp.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pp.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}; const a = DATA.cvpe.municipios[0].nome, b = DATA.cvpe.municipios[1].nome;
+      const base = { b: 'B', c: 'Causa', meio: 'ARMAS DE FOGO', loc: 'CASA', a: false, p: false };
+      DATA.crimes_violentos.cvpe_ocorrencias = { [a]: [
+        { ...base, r: 'P0', d: '10/10/2026', h: '10:00', m: 10, n: 'Tentativa de Homicidio', l: 'Rua Um', nu: '1', v: 1, pm: true },
+        { ...base, r: 'P1', d: '05/09/2026', h: '22:00', m: 9, n: 'Tentativa de Homicidio', l: 'Rua Dois', nu: '2', v: 3, pm: false, a: true },
+        { ...base, r: 'P2', d: '01/09/2026', h: '08:00', m: 9, n: 'Tortura', l: 'Rua Tres', nu: '3', v: 1, pm: false, p: true },
+        { ...base, r: 'P8', d: '01/03/2026', h: '08:00', m: 3, n: 'Tentativa de Homicidio', l: 'Rua Velha', nu: '8', v: 1, pm: false },
+        { ...base, r: 'P9', d: '02/04/2026', h: '08:00', m: 4, n: 'Tentativa de Homicidio', l: 'Rua Antiga', nu: '9', v: 1, pm: false },
+      ], [b]: [{ ...base, r: 'P5', d: '03/10/2026', h: '09:00', m: 10, n: 'Sequestro', l: 'Rua Cinco', nu: '5', v: 1, pm: false }] };
+      DATA.violencia_domestica.ocorrencias = { [a]: [{ r: 'P1', d: '05/09/2026', m: 9, n: 'Ameaça', g: 'media', l: 'Rua Dois', nu: '2' }] };
+      // anônimo
+      setMunFiltro(''); goToPage('cvpe'); await esp(500);
+      out.anonimo = { aviso: /detalhe restrito/i.test(document.getElementById('main').innerText), reds: (document.getElementById('main').innerText.match(/\bP[0-9]\b/g) || []).length };
+      // logado, com casos no banco (P1 em acompanhamento, P2 encerrado, P9 antigo ainda novo)
+      const casosBanco = [
+        { modalidade: 'crimes_violentos', reds_numero: 'P1', status: 'em_acompanhamento', militar_responsavel: 'Sd Fulano', gut_score: 40 },
+        { modalidade: 'crimes_violentos', reds_numero: 'P2', status: 'encerrado' },
+        { modalidade: 'crimes_violentos', reds_numero: 'P9', status: 'novo' },
+      ];
+      const cad = (t) => { const f = {}; const o = { select: () => o, eq: (c, v) => { f[c] = v; return o; }, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => ok({ data: t === 'ppvd_casos' ? casosBanco.filter(c => !f.modalidade || c.modalidade === f.modalidade) : [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, nome: 'A' }; ppvdRestritoCarregado = true;
+      goToPage('cvpe'); await esp(900);
+      const main = document.getElementById('main');
+      const trs = [...main.querySelectorAll('#cvpeTabelaBox tbody tr')];
+      out.logado = {
+        ordem: trs.map(t => t.children[1].querySelector('small').textContent).join(','),
+        sems: trs.map(t => t.dataset.tags.split(' ')[0]).join(','),
+        marc: Object.fromEntries(trs.map(t => [t.children[1].querySelector('small').textContent, t.children[6].textContent])),
+        acoes: trs.map(t => t.querySelector('td.acao').textContent.trim()).join('|'),
+        resp: trs.find(t => /Sd Fulano/.test(t.textContent)) ? 'sim' : 'nao',
+        chips: [...main.querySelectorAll('#cvpeFiltros button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(0, 6).join('|'),
+        historico: (main.querySelector('#cvpeHistorico summary') || {}).textContent || '', lookup: !!(window.ppvdCVLookup.P0 && window.ppvdCVLookup.P0._origem && window.ppvdCVLookup.P2._origem.autor_preso && window.ppvdCVLookup.P1._origem.arma_fogo),
+      };
+      const det = document.getElementById('cvpeHistorico'); det.open = true; await esp(200);
+      out.hist = (det.querySelector('tbody tr') || {}).textContent || '';
+      main.querySelector('#cvpeFiltros button[data-f="pm"]').click();
+      out.pm = [...main.querySelectorAll('#cvpeTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      setMunFiltro(b); goToPage('cvpe'); await esp(900);
+      out.cidade = { linhas: document.querySelectorAll('#cvpeTabelaBox tbody tr').length };
+      setMunFiltro('');
+      ppvdLimparDadosRestritos(); out.limpo = Object.keys(DATA.crimes_violentos.cvpe_ocorrencias || {}).length === 0;
+      return out;
+    });
+    checa(r.anonimo.aviso && r.anonimo.reds === 0, 'visitante anônimo: aviso de detalhe restrito e nenhum REDS na página do CVPE', 'anônimo: ' + JSON.stringify(r.anonimo));
+    checa(r.logado.ordem === 'P0,P5,P9,P1,P2' && r.logado.sems === 'vermelho,vermelho,vermelho,amarelo,verde', `lista por urgência: vermelhos (policial vítima primeiro), amarelo, verde (${r.logado.ordem} / ${r.logado.sems})`, 'ordem: ' + JSON.stringify(r.logado));
+    checa(/Policial vítima/.test(r.logado.marc.P0) && /3 vítimas/.test(r.logado.marc.P1) && /Contexto VD/.test(r.logado.marc.P1) && /Autor preso/.test(r.logado.marc.P2), 'marcadores: policial vítima, várias vítimas, contexto VD e autor preso', 'marcadores: ' + JSON.stringify(r.logado.marc));
+    checa(/Abrir Caso/.test(r.logado.acoes) && /Ver Caso/.test(r.logado.acoes) && r.logado.resp === 'sim', 'sem caso mostra "Abrir Caso"; com caso mostra "Ver Caso" e o responsável', 'ações: ' + r.logado.acoes);
+    checa(/Histórico anterior ao PPVD — 1 ocorrência/.test(r.logado.historico) && /Finalizado/.test(r.hist) && /sem o registro no sistema/.test(r.hist), 'ocorrência antiga sem caso vai pro histórico como finalizada; a antiga com caso aberto (P9) continua na lista', 'histórico: ' + r.logado.historico + ' / ' + r.hist);
+    checa(r.pm === 1 && r.cidade.linhas === 1 && r.logado.lookup && r.limpo, 'filtro "Policial vítima", filtro de cidade, dados para abrir o caso e esvaziamento no logout', 'resto: ' + JSON.stringify([r.pm, r.cidade, r.logado.lookup, r.limpo]));
+    checa(errosP.length === 0, 'CVPE (ocorrências) sem erro de JavaScript', 'erros: ' + errosP.slice(0, 3).join(' | '));
+    await ctxP.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
