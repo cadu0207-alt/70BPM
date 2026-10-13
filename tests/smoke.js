@@ -1409,6 +1409,39 @@ function auditar() {
     await ctxR.close();
   }
 
+  // ---------- 33) CVPa onda 3: bairro inválido (qualidade do dado) e alvo por cidade ----------
+  console.log('\n[33] MV, CVPE e CVPa: aviso de bairro inválido; CVPa: alvo do roubo por cidade');
+  {
+    const ctxS = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const ps = await ctxS.newPage();
+    const errosS = []; ps.on('pageerror', (e) => errosS.push(e.message));
+    await ps.goto(base);
+    await ps.waitForFunction(() => typeof goToPage === 'function');
+    const r = await ps.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      setMunFiltro(''); const out = {};
+      for (const [pg, k] of [['imv', 'mv'], ['cvpe', 'cvpe'], ['cvpa', 'cvpa']]) {
+        goToPage(pg); await esp(450);
+        const c = [...document.querySelectorAll('#main .kpi-card')].find(x => /bairro inválido/.test((x.querySelector('.lbl') || {}).textContent || ''));
+        out[k] = { esperado: DATA[k].reds_bairro_invalido, cartao: c ? (c.querySelector('.val') || {}).textContent : null, sub: c ? (c.querySelector('.sub') || {}).textContent : '' };
+      }
+      const am = DATA.cvpa_alvo_municipio, somaAm = Object.values(am).reduce((a, l) => a + l.reduce((x, y) => x + y[1], 0), 0), somaAlvo = DATA.cvpa_alvo.reduce((a, x) => a + x[1], 0);
+      out.alvo = { somaAm, somaAlvo };
+      goToPage('cvpa'); await esp(450);
+      const botao = document.querySelector('#indAcimaTeto button'); out.botao = botao ? botao.textContent : '';
+      const cidade = botao ? botao.dataset.mun : DATA.cvpa.municipios[0].nome;
+      setMunFiltro(cidade); goToPage('cvpa'); await esp(450);
+      out.chips = [...document.querySelectorAll('#main .nat-chips')].map(x => x.textContent).join(' || ');
+      setMunFiltro('');
+      return out;
+    });
+    checa(['mv', 'cvpe', 'cvpa'].every(k => r[k].esperado > 0 ? String(r[k].cartao) === String(r[k].esperado) && /bairro foi cadastrado/.test(r[k].sub) : r[k].cartao === null), 'aviso de bairro inválido (nº de ocorrências e %) nos três indicadores', 'bairro inválido: ' + JSON.stringify([r.mv, r.cvpe, r.cvpa].map(x => [x.esperado, x.cartao])));
+    checa(r.alvo.somaAm === r.alvo.somaAlvo, 'o alvo do roubo por cidade fecha com o alvo do batalhão', 'alvo por cidade: ' + JSON.stringify(r.alvo));
+    checa(/mais: /.test(r.botao) && /[A-Za-z]+: \d/.test(r.chips), 'CVPa: cidade acima do teto mostra o alvo principal e o painel da cidade lista o alvo do roubo', 'botão/chips: ' + r.botao + ' | ' + r.chips);
+    checa(errosS.length === 0, 'CVPa (onda 3) sem erro de JavaScript', 'erros: ' + errosS.slice(0, 3).join(' | '));
+    await ctxS.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

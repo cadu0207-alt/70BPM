@@ -1679,6 +1679,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     if (tcCons && (tcCons.tentado > 0 || key !== 'mv')) h += `<div class="kpi-card kpi-neutral"><div class="val">${tcCons.tentado} × ${tcCons.consumado}</div><div class="lbl">Tentados × consumados (${unidade || 'vítimas'})</div><div class="sub">${tcCons.tentado + tcCons.consumado ? fmtBr(tcCons.tentado / (tcCons.tentado + tcCons.consumado) * 100, 0) + '% tentados' : ''}</div></div>`;
     const rodv = DATA[key + '_rodovia'];
     if (Array.isArray(rodv) && rodv.length && unidade) { const nRod = rodv.reduce((a, x) => a + x[1], 0); h += `<div class="kpi-card kpi-neutral"><div class="val">${nRod}</div><div class="lbl">Em rodovia (${unidade})</div><div class="sub">${reais[ultimoIdx] ? fmtBr(nRod / reais[ultimoIdx] * 100, 0) + '% do total' : ''}${nRod ? ' · ' + rodv.slice(0, 2).map(x => x[0] + ' ' + x[1]).join(', ') : ''}</div></div>`; }
+    if (typeof d.reds_bairro_invalido === 'number' && d.reds_bairro_invalido > 0 && redsMes) { const nR2 = somaA(redsMes, ultimoIdx); h += `<div class="kpi-card kpi-amber"><div class="val">${d.reds_bairro_invalido}</div><div class="lbl">Ocorrências com bairro inválido</div><div class="sub">de ${nR2}${nR2 ? ' (' + fmtBr(d.reds_bairro_invalido / nR2 * 100, 0) + '%)' : ''} — o bairro foi cadastrado como "inválido" no REDS; corrigir melhora o mapa e a lista restrita</div></div>`; }
     const vpo = d.vitimas_por_ocorrencia;
     if (vpo && (vpo['2'] + vpo['3+']) > 0) h += `<div class="kpi-card kpi-neutral"><div class="val">${vpo['2'] + vpo['3+']}</div><div class="lbl">Ocorrências com mais de uma vítima</div><div class="sub">${vpo['2']} com 2${vpo['3+'] ? ' · ' + vpo['3+'] + ' com 3 ou mais' : ''}</div></div>`;
     h += `</div>`;
@@ -1707,6 +1708,8 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
       (det.cias || []).forEach(c => c.municipios.forEach(x => { if (normMun(x.nome) === normMun(m.nome)) nat = x; }));
       if (nat) { const cols = detCfg.colunas.concat(nat.outros ? [{ key: 'outros', label: 'Outros' }] : []).filter(c => nat[c.key] > 0); h += `<div class="nat-chips" aria-label="Naturezas no ano">${cols.length ? cols.map(c => `<span>${c.label}: <b>${nat[c.key]}</b></span>`).join('') : '<span>Nenhuma ocorrência no ano</span>'}</div>`; }
     }
+    const alvoMun = key === 'cvpa' ? (DATA.cvpa_alvo_municipio || {}) : null;
+    if (alvoMun) { const kA = Object.keys(alvoMun).find(x => normMun(x) === normMun(m.nome)); if (kA && alvoMun[kA].length) h += `<div class="nat-chips" aria-label="Alvo do roubo no ano">${alvoMun[kA].map(x => `<span>${msgEsc(x[0])}: <b>${x[1]}</b></span>`).join('')}</div>`; }
     return h + `</div></div>`;
   }
 
@@ -1877,7 +1880,8 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   html += `<div class="vd-recorte">Mês e acumulado mostram realizado / ${rotLim.toLowerCase()}${unidade ? ', contados em ' + unidade + (redsMes ? ' (uma ocorrência pode ter mais de uma)' : '') : ''}; a situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). ${higherIsBetter ? 'Meta: quanto mais, melhor; no mês em andamento a meta é proporcional aos dias já fechados.' : 'Teto: quanto menos, melhor — o realizado não deve passar do teto.'}</div>`;
   if (!higherIsBetter) {
     const acima = d.municipios.filter(m => m.realizado_acum[ultimoIdx] > m.meta_acum[ultimoIdx]);
-    if (acima.length) html += `<div class="def-box aviso-acel" id="indAcimaTeto"><b>⚠ Acima do teto (${acima.length} cidade${acima.length > 1 ? 's' : ''}):</b> ` + acima.map(m => `<button type="button" class="ppvd-btn" data-mun="${m.nome}">${m.nome} · ${m.realizado_acum[ultimoIdx]} / ${m.meta_acum[ultimoIdx]}</button>`).join('') + `</div>`;
+    const topAlvo = (m) => { const am = DATA.cvpa_alvo_municipio || {}, k = Object.keys(am).find(x => normMun(x) === normMun(m.nome)); return key === 'cvpa' && k && am[k].length ? ' · mais: ' + am[k][0][0].toLowerCase() + ' (' + am[k][0][1] + ')' : ''; };
+    if (acima.length) html += `<div class="def-box aviso-acel" id="indAcimaTeto"><b>⚠ Acima do teto (${acima.length} cidade${acima.length > 1 ? 's' : ''}):</b> ` + acima.map(m => `<button type="button" class="ppvd-btn" data-mun="${m.nome}">${m.nome} · ${m.realizado_acum[ultimoIdx]} / ${m.meta_acum[ultimoIdx]}${topAlvo(m)}</button>`).join('') + `</div>`;
   }
   html += `<div class="table-wrap"><table class="data-table ind-tab" id="dataTable"><thead><tr>
     <th style="text-align:left">Município</th><th>Mês</th>
