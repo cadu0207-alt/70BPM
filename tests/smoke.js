@@ -1357,6 +1357,58 @@ function auditar() {
     await ctxQ.close();
   }
 
+  // ---------- 32) CVPa: lista restrita com alvo do roubo, o que foi levado e o caso de visita à vítima ----------
+  console.log('\n[32] CVPa: ocorrências (restrito) com alvo, o que foi levado, veículo e semáforo do caso');
+  {
+    const ctxR = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pr2 = await ctxR.newPage();
+    const errosR = []; pr2.on('pageerror', (e) => errosR.push(e.message));
+    await pr2.goto(base);
+    await pr2.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pr2.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}; const a = DATA.cvpa.municipios[0].nome;
+      const base = { b: 'B', c: 'VANTAGEM ECONOMICA', meio: 'ARMAS DE FOGO', loc: 'VIA DE ACESSO PUBLICA', a: false, p: false, v: 1 };
+      DATA.crimes_violentos.cvpa_ocorrencias = { [a]: [
+        { ...base, r: 'Q0', d: '10/10/2026', h: '21:00', m: 10, n: 'Roubo', l: 'BR 116', nu: '0', alvo: 'Cargas', obj: [], veic: ['Caminhao (roubado)'] },
+        { ...base, r: 'Q1', d: '05/09/2026', h: '22:00', m: 9, n: 'Roubo', l: 'Rua Dois', nu: '2', alvo: 'Transeunte', obj: ['Telefone Celular'], veic: [], a: true, v: 2 },
+        { ...base, r: 'Q2', d: '01/09/2026', h: '08:00', m: 9, n: 'Roubo', l: 'Rua Tres', nu: '3', alvo: 'Veiculo Ou Embarcacao', obj: [], veic: ['Motocicleta (roubado)'], p: true },
+        { ...base, r: 'Q8', d: '01/03/2026', h: '08:00', m: 3, n: 'Roubo', l: 'Rua Velha', nu: '8', alvo: 'Transeunte', obj: [], veic: [] },
+      ] };
+      DATA.violencia_domestica.ocorrencias = {};
+      setMunFiltro(''); goToPage('cvpa'); await esp(500);
+      out.anonimo = { aviso: /detalhe restrito/i.test(document.getElementById('main').innerText), reds: (document.getElementById('main').innerText.match(/\bQ[0-9]\b/g) || []).length };
+      const casosBanco = [{ modalidade: 'crimes_violentos', reds_numero: 'Q1', status: 'em_acompanhamento', militar_responsavel: 'Sd Fulano', gut_score: 40 }, { modalidade: 'crimes_violentos', reds_numero: 'Q2', status: 'encerrado' }];
+      const cad = (t) => { const f = {}; const o = { select: () => o, eq: (c, v) => { f[c] = v; return o; }, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => ok({ data: t === 'ppvd_casos' ? casosBanco.filter(c => !f.modalidade || c.modalidade === f.modalidade) : [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, nome: 'A' }; ppvdRestritoCarregado = true;
+      goToPage('cvpa'); await esp(900);
+      const main = document.getElementById('main');
+      const trs = [...main.querySelectorAll('#cvpaTabelaBox tbody tr')];
+      out.logado = {
+        colunas: main.querySelectorAll('#cvpaTabelaBox thead th').length,
+        ordem: trs.map(t => t.children[1].querySelector('small').textContent).join(','),
+        sems: trs.map(t => t.dataset.tags.split(' ')[0]).join(','),
+        alvo: Object.fromEntries(trs.map(t => [t.children[1].querySelector('small').textContent, t.children[4].textContent])),
+        chips: [...main.querySelectorAll('#cvpaFiltros button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(0, 6).join('|'),
+        historico: (main.querySelector('#cvpaHistorico summary') || {}).textContent || '', acoes: trs.map(t => t.querySelector('td.acao').textContent.trim()).join('|'),
+      };
+      main.querySelector('#cvpaFiltros button[data-f="carga"]').click();
+      out.carga = [...main.querySelectorAll('#cvpaTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      main.querySelector('#cvpaFiltros button[data-f="todos"]').click();
+      const busca = document.getElementById('cvpaFiltrosBusca'); busca.value = 'celular'; busca.dispatchEvent(new Event('input'));
+      out.busca = [...main.querySelectorAll('#cvpaTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      ppvdLimparDadosRestritos(); out.limpo = Object.keys(DATA.crimes_violentos.cvpa_ocorrencias || {}).length === 0;
+      return out;
+    });
+    checa(r.anonimo.aviso && r.anonimo.reds === 0, 'visitante anônimo: aviso de detalhe restrito e nenhum REDS na página do CVPa', 'anônimo: ' + JSON.stringify(r.anonimo));
+    checa(r.logado.colunas === 10 && r.logado.ordem === 'Q0,Q1,Q2' && r.logado.sems === 'vermelho,amarelo,verde', `lista por urgência com a coluna Alvo / Levado (${r.logado.ordem} / ${r.logado.sems})`, 'lista: ' + JSON.stringify(r.logado));
+    checa(/Cargas/.test(r.logado.alvo.Q0) && /Caminhao \(roubado\)/.test(r.logado.alvo.Q0) && /Telefone Celular/.test(r.logado.alvo.Q1) && /Motocicleta/.test(r.logado.alvo.Q2), 'alvo do roubo, objetos levados e veículos roubados aparecem na linha', 'alvo: ' + JSON.stringify(r.logado.alvo));
+    checa(/Roubo de carga 1/.test(r.logado.chips) && r.carga === 1 && r.busca === 1, 'filtros de carga/veículo com contagem e busca pelo que foi levado', 'filtros: ' + JSON.stringify([r.logado.chips, r.carga, r.busca]));
+    checa(/Histórico anterior ao PPVD — 1 ocorrência/.test(r.logado.historico) && /Abrir Caso/.test(r.logado.acoes) && /Ver Caso/.test(r.logado.acoes) && r.limpo, 'histórico anterior ao PPVD, Abrir/Ver Caso e esvaziamento no logout', 'resto: ' + JSON.stringify([r.logado.historico, r.logado.acoes, r.limpo]));
+    checa(errosR.length === 0, 'CVPa (ocorrências) sem erro de JavaScript', 'erros: ' + errosR.slice(0, 3).join(' | '));
+    await ctxR.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
