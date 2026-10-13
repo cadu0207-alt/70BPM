@@ -1105,7 +1105,7 @@ function auditar() {
     checa(r.furto.causa.split('/')[0] === r.furto.causa.split('/')[1] && !/[a-z]{3,} [A-Z]{3,}|PROP\./.test(r.furto.logradouros) && /PROPRIEDADE \/ COMUNIDADE RURAL/.test(r.furto.logradouros), 'Furto Rural: causa cobre o total e logradouro sem nome de propriedade/pessoa (só rodovias e agrupamento)', 'furto: ' + JSON.stringify(r.furto));
     checa(r.ano.svg && r.ano.legenda && String(r.ano.proj).replace(/\D/g, '') === String(r.ano.esperadoProj), `ano contra o teto com projeção linear (${r.ano.proj})`, 'ano: ' + JSON.stringify(r.ano));
     checa(r.quadro.linhas === 14 && r.quadro.colunas >= 3 && r.quadro.total === r.quadro.esperado, 'quadro município × mês com 13 cidades e total', 'quadro: ' + JSON.stringify(r.quadro));
-    checa(r.barras.listas === 4 && /^De 00:00/.test(r.barras.faixa) && r.barras.aviso === 0 && r.barras.empilhado, 'local e faixa em barras legíveis (faixa em ordem do dia, sem aviso de cobertura, empilhadas no celular)', 'barras: ' + JSON.stringify(r.barras));
+    checa(r.barras.listas >= 4 && /^De 00:00/.test(r.barras.faixa) && r.barras.aviso === 0 && r.barras.empilhado, 'local e faixa em barras legíveis (faixa em ordem do dia, sem aviso de cobertura, empilhadas no celular)', 'barras: ' + JSON.stringify(r.barras));
     checa(r.detalhe.mes === r.detalhe.esperado && r.detalhe.subtotais === 3 && r.detalhe.acum === r.detalhe.esperadoAcum, `detalhamento por natureza com filtro de mês fecha com a série (${r.detalhe.mes}) e traz subtotal por companhia`, 'detalhe: ' + JSON.stringify(r.detalhe));
     checa(/mês a mês/.test(r.cidade.titulo) && r.cidade.barras >= 9, 'cidade filtrada ganha painel com barras mês a mês', 'cidade: ' + JSON.stringify(r.cidade));
     checa(String(r.armas.proj).replace(/\D/g, '') === String(r.armas.esperado), `Armas: projeção do ano usa a fração fechada do mês (${r.armas.proj})`, 'armas: ' + JSON.stringify(r.armas));
@@ -1234,7 +1234,7 @@ function auditar() {
           tc: dd.tentado_consumado.tentado + dd.tentado_consumado.consumado,
           reds: dd.vitimas_por_ocorrencia['1'] + dd.vitimas_por_ocorrencia['2'] + dd.vitimas_por_ocorrencia['3+'], redsMes: dd.reds_mes.reduce((a, b) => a + b, 0),
           listas: main.querySelectorAll('.barras').length, titulos: [...main.querySelectorAll('.chart-box h3')].map(h => h.textContent).filter(t => /Causa|Meio/.test(t)).join('|'),
-          avisoCobertura: [...main.querySelectorAll('.ind-sec.charts-row .vd-recorte')].length,
+          avisoCobertura: [...main.querySelectorAll('.ind-sec.charts-row .vd-recorte')].filter(x => /desatualizada/.test(x.textContent)).length,
           cartaoTC: (cs.find(c => /Tentados × consumados/.test(c.lbl)) || {}).val, cartaoMulti: (cs.find(c => /mais de uma vítima/.test(c.lbl)) || {}).val,
         };
       }
@@ -1242,7 +1242,7 @@ function auditar() {
     });
     const cobre = ['mv', 'cvpe', 'cvpa'].every(k => { const p = r[k].dados.split('/'); return p[0] === p[2] && p[1] === p[2]; });
     checa(cobre, 'causa presumida e meio utilizado cobrem 100% do total (MV, CVPE, CVPa)', 'cobertura: ' + JSON.stringify([r.mv.dados, r.cvpe.dados, r.cvpa.dados]));
-    checa(['mv', 'cvpe', 'cvpa'].every(k => r[k].listas === 4 && /Causa presumida\|Meio utilizado/.test(r[k].titulos) && r[k].avisoCobertura === 0), 'as 3 páginas mostram as barras de causa e de meio, sem aviso de desatualização', 'barras: ' + JSON.stringify([r.mv.listas, r.cvpe.listas, r.cvpa.listas]));
+    checa(['mv', 'cvpe', 'cvpa'].every(k => r[k].listas >= 4 && /Causa presumida\|Meio utilizado/.test(r[k].titulos) && r[k].avisoCobertura === 0), 'as 3 páginas mostram as barras de causa e de meio, sem aviso de desatualização', 'barras: ' + JSON.stringify([r.mv.listas, r.cvpe.listas, r.cvpa.listas]));
     checa(['mv', 'cvpe', 'cvpa'].every(k => r[k].tc === parseInt(r[k].dados.split('/')[2]) && r[k].reds === r[k].redsMes), 'tentados + consumados fecham com o total e as ocorrências por nº de vítimas fecham com o nº de REDS', 'fechamento: ' + JSON.stringify([r.mv, r.cvpe, r.cvpa].map(x => [x.tc, x.dados, x.reds, x.redsMes])));
     checa(!r.mv.cartaoTC && !r.mv.cartaoMulti && /^\d+ × \d+$/.test(r.cvpe.cartaoTC || '') && /^\d+ × \d+$/.test(r.cvpa.cartaoTC || '') && Number(r.cvpe.cartaoMulti) > 0 && Number(r.cvpa.cartaoMulti) > 0, 'cartões "tentados × consumados" e "mais de uma vítima" aparecem no CVPE e no CVPa e não no MV (sem tentativa nem vítima múltipla)', 'cartões: ' + JSON.stringify([r.mv, r.cvpe, r.cvpa].map(x => [x.cartaoTC, x.cartaoMulti])));
     checa(errosL.length === 0, 'MV/CVPE/CVPa (onda 2) sem erro de JavaScript', 'erros: ' + errosL.slice(0, 3).join(' | '));
@@ -1310,6 +1310,51 @@ function auditar() {
     checa(r.pm === 1 && r.cidade.linhas === 1 && r.logado.lookup && r.limpo, 'filtro "Policial vítima", filtro de cidade, dados para abrir o caso e esvaziamento no logout', 'resto: ' + JSON.stringify([r.pm, r.cidade, r.logado.lookup, r.limpo]));
     checa(errosP.length === 0, 'CVPE (ocorrências) sem erro de JavaScript', 'erros: ' + errosP.slice(0, 3).join(' | '));
     await ctxP.close();
+  }
+
+  // ---------- 31) MV / CVPE / CVPa, onda 1 do CVPa: dia da semana x faixa, rodovias, alvo do roubo e cidades acima do teto ----------
+  console.log('\n[31] MV, CVPE e CVPa: dia × faixa horária, rodovias, alvo do roubo (CVPa) e cidades acima do teto');
+  {
+    const ctxQ = await novoContexto(browser, { viewport: { width: 390, height: 800 } });
+    const pq = await ctxQ.newPage();
+    const errosQ = []; pq.on('pageerror', (e) => errosQ.push(e.message));
+    await pq.goto(base);
+    await pq.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pq.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      setMunFiltro('');
+      const out = {}, ult = Math.min(MES_ATUAL_IDX, 11);
+      for (const [pg, k] of [['imv', 'mv'], ['cvpe', 'cvpe'], ['cvpa', 'cvpa'], ['furto', 'furto']]) {
+        const dd = DATA[k], df = DATA[k + '_dia_faixa'];
+        goToPage(pg); await esp(500);
+        const main = document.getElementById('main'), tab = main.querySelector('#indDiaFaixa');
+        const esperadoAcima = dd.municipios.filter(m => m.realizado_acum[ult] > m.meta_acum[ult]).map(m => m.nome);
+        const botoes = [...main.querySelectorAll('#indAcimaTeto button')].map(b => b.dataset.mun);
+        const cs = [...main.querySelectorAll('.kpi-card')].map(c => (c.querySelector('.lbl') || {}).textContent || '');
+        out[k] = {
+          somaMatriz: df ? df.matriz.flat().reduce((a, b) => a + b, 0) : null, total: dd.total_acum[11],
+          linhasHeat: tab ? tab.querySelectorAll('tbody tr').length : 0, semRolagem: tab ? tab.parentElement.scrollWidth <= tab.parentElement.clientWidth + 1 : null,
+          acimaOk: JSON.stringify(botoes) === JSON.stringify(esperadoAcima), nAcima: esperadoAcima.length, alerta: !!main.querySelector('#indAcimaTeto'),
+          rodoviaCartao: cs.some(c => /Em rodovia/.test(c)), alvo: [...main.querySelectorAll('.chart-box h3')].some(h => /Alvo do roubo/.test(h.textContent)), rodovias: [...main.querySelectorAll('.chart-box h3')].some(h => /^Rodovias$/.test(h.textContent)),
+          rodSoma: (DATA[k + '_rodovia'] || []).reduce((a, x) => a + x[1], 0),
+        };
+      }
+      out.alvoSoma = DATA.cvpa_alvo.reduce((a, x) => a + x[1], 0);
+      // clicar numa cidade acima do teto filtra a página
+      goToPage('cvpa'); await esp(500);
+      const b = document.querySelector('#indAcimaTeto button'); const cidade = b ? b.dataset.mun : null; if (b) b.click(); await esp(500);
+      out.clique = { cidade, filtro: getMunFiltro(), painel: [...document.querySelectorAll('#main .ind-tit')].some(h => /mês a mês$/.test(h.textContent.trim()) && !/município/.test(h.textContent)) };
+      setMunFiltro('');
+      return out;
+    });
+    const tres = ['mv', 'cvpe', 'cvpa'];
+    checa(tres.every(k => r[k].somaMatriz === r[k].total && r[k].linhasHeat === 8 && r[k].semRolagem), 'quadro dia da semana × faixa horária fecha com o total (MV, CVPE, CVPa) e cabe no celular', 'quadro: ' + JSON.stringify(tres.map(k => [r[k].somaMatriz, r[k].total, r[k].linhasHeat, r[k].semRolagem])));
+    checa(r.cvpa.alvo && !r.mv.alvo && !r.cvpe.alvo && r.alvoSoma === r.cvpa.total, 'CVPa mostra o alvo do roubo (e só ele), e as categorias fecham com o total', 'alvo: ' + JSON.stringify([r.cvpa.alvo, r.mv.alvo, r.alvoSoma, r.cvpa.total]));
+    checa(r.cvpe.rodoviaCartao && r.cvpa.rodoviaCartao && !r.mv.rodoviaCartao && r.cvpa.rodovias && r.cvpa.rodSoma > 0 && r.cvpa.rodSoma <= r.cvpa.total, 'rodovias: cartão e barras no CVPa (parte do total)', 'rodovias: ' + JSON.stringify([r.cvpa.rodoviaCartao, r.cvpa.rodovias, r.cvpa.rodSoma]));
+    checa(['mv', 'cvpe', 'cvpa', 'furto'].every(k => r[k].acimaOk && r[k].alerta === (r[k].nAcima > 0)), 'aviso "acima do teto" lista exatamente as cidades que passaram do teto (em todos os indicadores de teto)', 'acima do teto: ' + JSON.stringify(['mv', 'cvpe', 'cvpa', 'furto'].map(k => [k, r[k].nAcima, r[k].alerta, r[k].acimaOk])));
+    checa(r.cvpa.nAcima > 0 ? (r.clique.filtro === r.clique.cidade && r.clique.painel) : true, 'clicar numa cidade do aviso filtra a página e abre o painel dela', 'clique: ' + JSON.stringify(r.clique));
+    checa(errosQ.length === 0, 'onda 1 do CVPa sem erro de JavaScript', 'erros: ' + errosQ.slice(0, 3).join(' | '));
+    await ctxQ.close();
   }
 
   await browser.close();

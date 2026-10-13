@@ -327,6 +327,7 @@
   .ind-lim { color:#a9bccd; font-weight:400; }
   .ind-tab .par { white-space:nowrap; }
   /* Páginas de indicador — onda 2 (2026-10-13): quadro mês a mês, ano vs limite, painel da cidade, barras e detalhamento */
+  .hm2 td.hm2-n { font-weight:700; } .hm2 td, .hm2 th { padding:7px 8px; }
   .ind-sec { margin-top:30px; } .ind-sec h3.ind-tit { font-size:16px; margin:0 0 8px; }
   .hm td.hm-ok { background:rgba(33,201,138,.16); } .hm td.hm-ruim { background:rgba(230,72,79,.26); font-weight:700; } .hm td.hm-zero { color:#8aa0b4; }
   .hm td, .hm th { padding:6px 6px; } .hm tr.rank-clic.sel td { outline:1px solid rgba(232,168,60,.45); }
@@ -1676,6 +1677,8 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     if (key === 'cvpe' && DATA.cvpe_detalhado && DATA.cvpe_detalhado.total) { const pm = DATA.cvpe_detalhado.total.militar || 0; h += `<div class="kpi-card ${pm > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${pm}</div><div class="lbl">Policial militar vítima</div><div class="sub">homicídio tentado contra PM no ano</div></div>`; }
     const tcCons = d.tentado_consumado;
     if (tcCons && (tcCons.tentado > 0 || key !== 'mv')) h += `<div class="kpi-card kpi-neutral"><div class="val">${tcCons.tentado} × ${tcCons.consumado}</div><div class="lbl">Tentados × consumados (${unidade || 'vítimas'})</div><div class="sub">${tcCons.tentado + tcCons.consumado ? fmtBr(tcCons.tentado / (tcCons.tentado + tcCons.consumado) * 100, 0) + '% tentados' : ''}</div></div>`;
+    const rodv = DATA[key + '_rodovia'];
+    if (Array.isArray(rodv) && rodv.length && unidade) { const nRod = rodv.reduce((a, x) => a + x[1], 0); h += `<div class="kpi-card kpi-neutral"><div class="val">${nRod}</div><div class="lbl">Em rodovia (${unidade})</div><div class="sub">${reais[ultimoIdx] ? fmtBr(nRod / reais[ultimoIdx] * 100, 0) + '% do total' : ''}${nRod ? ' · ' + rodv.slice(0, 2).map(x => x[0] + ' ' + x[1]).join(', ') : ''}</div></div>`; }
     const vpo = d.vitimas_por_ocorrencia;
     if (vpo && (vpo['2'] + vpo['3+']) > 0) h += `<div class="kpi-card kpi-neutral"><div class="val">${vpo['2'] + vpo['3+']}</div><div class="lbl">Ocorrências com mais de uma vítima</div><div class="sub">${vpo['2']} com 2${vpo['3+'] ? ' · ' + vpo['3+'] + ' com 3 ou mais' : ''}</div></div>`;
     h += `</div>`;
@@ -1735,6 +1738,28 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
       return `<div class="chart-box"><h3>${rot}</h3>${barrasHtml(lista, false, classe)}${nota}</div>`;
     };
     return `<div class="ind-sec charts-row" style="gap:16px">${bloco(causa, 'Causa presumida', '')}${bloco(meio, 'Meio utilizado', 'verde')}</div>`;
+  }
+
+  // ---- quando e onde: dia da semana x faixa horária, rodovias e (CVPa) alvo do roubo ----
+  function quandoOndeHtml() {
+    const df = DATA[key + '_dia_faixa'], rod = DATA[key + '_rodovia'], alvo = DATA[key + '_alvo'];
+    let h = '';
+    const boxes = [];
+    if (Array.isArray(alvo) && alvo.length) boxes.push(`<div class="chart-box"><h3>Alvo do roubo (o que foi levado de quem)</h3>${barrasHtml(alvo, false, '')}</div>`);
+    if (Array.isArray(rod) && rod.length) { const n = rod.reduce((a, x) => a + x[1], 0), tot = d.total_acum[ultimoIdx]; boxes.push(`<div class="chart-box"><h3>Rodovias</h3>${barrasHtml(rod, false, 'verde')}<div class="vd-recorte">${n} de ${tot} ${unidade || 'ocorrência(s)'} (${tot ? fmtBr(n / tot * 100, 0) : 0}%) ocorreram em rodovia.</div></div>`); }
+    if (boxes.length) h += `<div class="ind-sec charts-row" style="gap:16px">${boxes.join('')}</div>`;
+    if (df && Array.isArray(df.matriz)) {
+      const max = Math.max(1, ...df.matriz.flat()), colTot = df.faixas.map((_, j) => df.matriz.reduce((a, l) => a + l[j], 0)), geral = colTot.reduce((a, b) => a + b, 0);
+      h += `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Quando acontece — dia da semana × faixa horária</h3>`;
+      h += `<div class="vd-recorte">Contagem em ${unidade || 'ocorrências'} no ano; quanto mais forte a cor, mais ocorrências. Serve para orientar escala e patrulha.</div>`;
+      h += `<div class="table-wrap"><table class="data-table hm2" id="indDiaFaixa"><thead><tr><th style="text-align:left">Dia</th>${df.faixas.map(f => `<th>${f}</th>`).join('')}<th class="col-divider">Total</th></tr></thead><tbody>`;
+      df.dias.forEach((dia, i) => {
+        const linha = df.matriz[i], tot = linha.reduce((a, b) => a + b, 0);
+        h += `<tr><td style="text-align:left">${dia}</td>${linha.map(v => `<td style="background:rgba(232,168,60,${(v / max * 0.4).toFixed(2)})"${v ? ' class="hm2-n"' : ' class="z0"'}>${v || '·'}</td>`).join('')}<td class="col-divider"><b>${tot}</b></td></tr>`;
+      });
+      h += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">Total</td>${colTot.map(v => `<td>${v}</td>`).join('')}<td class="col-divider">${geral}</td></tr></tbody></table></div></div>`;
+    }
+    return h;
   }
 
   // ---- local imediato / faixa horária (ou causa / logradouro): barras legíveis, com aviso se não cobrem o total ----
@@ -1843,6 +1868,10 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   }
   html += `<div class="pills-vd" id="indMeses" role="group" aria-label="Mês">` + mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<button type="button" data-p="${i}">${m}</button>`).join('') + `</div>`;
   html += `<div class="vd-recorte">Mês e acumulado mostram realizado / ${rotLim.toLowerCase()}${unidade ? ', contados em ' + unidade + (redsMes ? ' (uma ocorrência pode ter mais de uma)' : '') : ''}; a situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). ${higherIsBetter ? 'Meta: quanto mais, melhor; no mês em andamento a meta é proporcional aos dias já fechados.' : 'Teto: quanto menos, melhor — o realizado não deve passar do teto.'}</div>`;
+  if (!higherIsBetter) {
+    const acima = d.municipios.filter(m => m.realizado_acum[ultimoIdx] > m.meta_acum[ultimoIdx]);
+    if (acima.length) html += `<div class="def-box aviso-acel" id="indAcimaTeto"><b>⚠ Acima do teto (${acima.length} cidade${acima.length > 1 ? 's' : ''}):</b> ` + acima.map(m => `<button type="button" class="ppvd-btn" data-mun="${m.nome}">${m.nome} · ${m.realizado_acum[ultimoIdx]} / ${m.meta_acum[ultimoIdx]}</button>`).join('') + `</div>`;
+  }
   html += `<div class="table-wrap"><table class="data-table ind-tab" id="dataTable"><thead><tr>
     <th style="text-align:left">Município</th><th>Mês</th>
     <th class="col-divider">Acumulado</th><th>${comTaxa ? 'Taxa/100 mil' : '% da meta'}</th><th style="text-align:left">Situação</th>
@@ -1852,6 +1881,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   html += quadroHtml();
   if (showCharts) html += localFaixaHtml();
   html += causaMeioHtml();
+  html += quandoOndeHtml();
   const detCfg = DETALHADO_CONFIG[key];
   if (detCfg && DATA[detCfg.dataKey]) {
     html += detalhadoPorNaturezaHtml(DATA[detCfg.dataKey], detCfg.titulo, detCfg.colunas.concat(((DATA[detCfg.dataKey].total || {}).outros || 0) > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []), detCfg.defHtml, detCfg.fonteHtml, mesesLocais.slice(0, ultimoIdx + 1));
@@ -1875,6 +1905,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     setMunFiltro(normMun(getMunFiltro()) === normMun(tr.dataset.mun) ? '' : tr.dataset.mun); goToPage(currentPageKey);
   };
   document.getElementById('dataTable').addEventListener('click', filtrarPorLinha);
+  document.querySelectorAll('#indAcimaTeto button[data-mun]').forEach(b => b.addEventListener('click', () => { setMunFiltro(b.dataset.mun); goToPage(currentPageKey); }));
   document.getElementById('indQuadro').addEventListener('click', filtrarPorLinha);
   ligarDetalhado(DATA[(detCfg || {}).dataKey], detCfg ? detCfg.colunas.concat(((DATA[detCfg.dataKey] || {}).total || {}).outros > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []) : []);
 }
