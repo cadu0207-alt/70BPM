@@ -521,6 +521,20 @@ def run_local_faixa(data, report):
         validas = [r for r in rows if _num(r.get(col_total)) > 0]
         soma = sum(_num(r.get(col_total)) for r in validas)
         res = {'file': f, 'soma_indicador': soma, 'saidas': {}}
+        if chave in ('mv', 'cvpe', 'cvpa') and chave in data:
+            # MV/CVPE/CVPA contam VÍTIMAS (uma ocorrência pode ter mais de uma): guarda também quantas ocorrências (REDS) e quantas
+            # com autor preso, por mês — só números, nenhum REDS (página: 'N vítimas em M ocorrências', 'autor preso em X de M')
+            reds_m = [set() for _ in range(N_MESES)]; pris_m = [set() for _ in range(N_MESES)]
+            for r in validas:
+                mi = _num(r.get('MES_NUMERICO')) - 1
+                reds = (r.get('NUMERO_REDS') or '').strip()
+                if 0 <= mi < N_MESES and reds:
+                    reds_m[mi].add(reds)
+                    if _num(r.get('QTDE_PRISAO')) > 0:
+                        pris_m[mi].add(reds)
+            data[chave]['reds_mes'] = [len(x) for x in reds_m]
+            data[chave]['reds_prisao_mes'] = [len(x) for x in pris_m]
+            res['reds'] = sum(data[chave]['reds_mes']); res['reds_com_prisao'] = sum(data[chave]['reds_prisao_mes'])
         for dkey, col, limite in saidas:
             cont = collections.Counter()
             for r in validas:
