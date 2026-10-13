@@ -2455,9 +2455,10 @@ function renderViolenciaDomesticaPage() {
     // ficam num histórico recolhido (o PPVD só existe desde Ago/Set).
     const casoDe = (o) => (o.r ? (casosMap[o.r] || null) : null);
     const antes = (o) => o.m < HOME_VD_MES_INICIO; // anterior ao PPVD: finalizado (verde), visitas sem registro no sistema
-    const semDe = (o) => { if (antes(o)) return 'verde'; const c = casoDe(o); return c ? ppvdSemaforoVD(c) : 'sem'; };
-    const principais = periodo === 'acum' ? lista.filter(o => !antes(o)) : lista;
-    const historico = periodo === 'acum' ? lista.filter(antes) : [];
+    const velhoSemCaso = (o) => antes(o) && !casoDe(o);
+    const semDe = (o) => { if (velhoSemCaso(o)) return 'verde'; const c = casoDe(o); return c ? ppvdSemaforoVD(c) : 'sem'; };
+    const principais = periodo === 'acum' ? lista.filter(o => !velhoSemCaso(o)) : lista;
+    const historico = periodo === 'acum' ? lista.filter(velhoSemCaso) : [];
     // mais urgente primeiro: vermelho (novos/atrasados), amarelo, azul, verde; dentro de cada grupo, o mais antigo em aberto
     const ordemSem = { vermelho: 0, sem: 0, amarelo: 1, azul: 2, verde: 3 };
     const horasDe = (o) => { const x = auditoriaHorasDesde(o.d); return x === null ? 0 : Math.max(0, x); };
@@ -2472,7 +2473,7 @@ function renderViolenciaDomesticaPage() {
         window.ppvdOcorrenciaLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, fonar_feito: !!o.fonar_feito };
       }
       const caso = casoDe(o);
-      const velho = antes(o);
+      const velho = velhoSemCaso(o);
       const sem = velho ? 'verde' : ppvdSemaforoVD(caso);
       const sugestao = !caso && !velho ? ppvdSugerirResponsavel(nome) : null;
       const respNome = caso ? (caso.militar_responsavel || '—') : (sugestao ? `<span class="sugerido" title="Sugestão do cadastro de militares — ainda não foi designado">${msgEsc(sugestao.nome)} (sugerido)</span>` : '—');
@@ -2488,7 +2489,7 @@ function renderViolenciaDomesticaPage() {
       const acomp = [o.fonar_feito ? mk('FONAR ✓', 'FONAR preenchido', 'ok') : '', caso && caso.visita_autor_feita ? mk('Autor ✓', 'Visita ao autor feita', 'ok') : '', caso && caso.visita_vitima_feita ? mk('Vítima ✓', 'Visita à vítima feita', 'ok') : ''].join('') || '—';
       const podeAbrir = ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_abrir_caso);
       let acaoBtn = '—';
-      if (o.r && !(velho && !caso)) {
+      if (o.r && !velho) {
         if (!caso) acaoBtn = podeAbrir ? `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Abrir Caso ▸</button>` : `<span class="ppvd-badge ppvd-badge-semcaso">sem caso</span>`;
         else acaoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Ver Caso ▸</button>`;
       }
@@ -2496,7 +2497,7 @@ function renderViolenciaDomesticaPage() {
     };
     const cont = { todos: principais.length, vermelho: 0, amarelo: 0, azul: 0, verde: 0, sem: 0 };
     principais.forEach(o => { const x = semDe(o); cont[x === 'vermelho' ? 'vermelho' : x]++; });
-    if (periodo === 'acum') h += `<div class="vd-recorte">Contando só a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]}: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao PPVD ficam finalizadas (verde), no histórico abaixo` : ''}.</div>`;
+    if (periodo === 'acum') h += `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos ainda abertos no PPVD: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao PPVD, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}.</div>`;
     const chipF = (f, rot) => `<button type="button" data-f="${f}" class="${f === 'todos' ? 'on' : ''}">${rot} <b>${cont[f]}</b></button>`;
     h += `<div class="vd-filtros" id="vdFiltros">${chipF('todos', 'Todos')}${chipF('vermelho', '✕ Novos/atraso')}${chipF('amarelo', '! Iniciado')}${chipF('azul', '◆ Acompanhamento')}${chipF('verde', '✓ Estabilizado')}${chipF('sem', 'Sem caso')}<input type="search" id="vdBusca" placeholder="Buscar REDS, rua ou natureza" aria-label="Buscar na tabela"></div>`;
     h += `<div style="overflow-x:auto" id="vdTabelaBox">${cabecalho}`;
@@ -4900,13 +4901,10 @@ function ppvdRenderAguardando() {
 // Atraso: visita despachada (1ª ou retorno) sem resposta há mais de 72h (prazo máximo da mensagem de
 // despacho) volta a vermelho; `_pendenteDesde` vem de ppvdBuscarCasosVD.
 const PPVD_PRAZO_RETORNO_HORAS = 72;
-// O PPVD só passou a valer em Setembro/2026: o que aconteceu antes conta como finalizado (verde), com a ressalva de que
-// as visitas daquele período foram feitas sem registro no sistema (pedido de Eduardo em 2026-10-13).
-const PPVD_VD_DESDE_ISO = '2026-09-01';
+// O PPVD só passou a valer em Setembro/2026: ocorrência anterior SEM caso conta como finalizada (verde), com a ressalva de
+// que as visitas daquele período foram feitas sem registro no sistema. Caso anterior que já existe no PPVD e segue aberto
+// continua aberto, com a situação real, para cada responsável resolver (decisão de Eduardo em 2026-10-13).
 const PPVD_OBS_ANTERIOR = 'anterior ao PPVD — visitas feitas sem o registro no sistema';
-function ppvdAnteriorAoPpvdVD(caso) {
-  return !!(caso && caso.reds_data && String(caso.reds_data).slice(0, 10) < PPVD_VD_DESDE_ISO);
-}
 function ppvdEmAcompanhamentoVD(caso) {
   return !!caso && caso.status !== 'estabilizada' && ((caso.qtd_retornos || 0) >= 1 || caso.status === 'retorno' || caso.status === 'em_acompanhamento');
 }
@@ -4915,7 +4913,7 @@ function ppvdVisitaAtrasadaVD(caso) {
 }
 function ppvdSemaforoVD(caso) {
   if (!caso) return 'vermelho';
-  if (caso.status === 'estabilizada' || ppvdAnteriorAoPpvdVD(caso)) return 'verde';
+  if (caso.status === 'estabilizada') return 'verde';
   if (ppvdEmAcompanhamentoVD(caso)) return ppvdVisitaAtrasadaVD(caso) ? 'vermelho' : 'azul';
   if (caso.status === 'em_visita') return ppvdVisitaAtrasadaVD(caso) ? 'vermelho' : 'amarelo';
   if (caso.status === 'decisao_cmd') return 'amarelo';
@@ -5066,9 +5064,6 @@ function ppvdProximaAcaoVD(caso, visitas) {
   const fmtH = (h) => (h >= 48 ? (h / 24).toFixed(1).replace('.', ',') + ' dias' : Math.round(h) + 'h');
   const retorno = (caso.qtd_retornos || 0) >= 1;
   const gutOk = !!(caso.gravidade && caso.urgencia && caso.tendencia);
-  if (ppvdAnteriorAoPpvdVD(caso) && caso.status !== 'estabilizada') {
-    return { cor: 'g', rotulo: 'Situação do caso', titulo: 'Caso finalizado — anterior ao PPVD', detalhe: 'Fato de ' + caso.reds_data + ', antes do PPVD (Setembro/2026): ' + PPVD_OBS_ANTERIOR + '.' };
-  }
   if (caso.status === 'estabilizada') {
     return { cor: 'g', rotulo: 'Situação do caso', titulo: 'Caso estabilizado', detalhe: caso.estabilizado_em ? 'Estabilizado em ' + ppvdFmtDT(caso.estabilizado_em) + (caso.estabilizado_por ? ' por ' + caso.estabilizado_por : '') + '.' : 'Nenhuma ação pendente.' };
   }
@@ -5099,7 +5094,7 @@ function ppvdPassosVD(caso, visitas) {
   const lista = visitas || [];
   const pend = lista.some(v => v.despachado_em && !v.visita_realizada_em);
   let atual;
-  if (caso.status === 'estabilizada' || ppvdAnteriorAoPpvdVD(caso)) atual = 5;
+  if (caso.status === 'estabilizada') atual = 5;
   else if (pend) atual = 2;
   else if (caso.status === 'decisao_cmd') atual = 3;
   else atual = 1;
@@ -5130,8 +5125,7 @@ async function ppvdRenderCaso(caso) {
   // 2) a ação em si vem logo abaixo (despachar / aguardar / decidir) — antes dos dados
   let acoes = '';
   const semVisitaPendente = !visitas || visitas.every(v => v.visita_realizada_em);
-  const velho = ehVD && ppvdAnteriorAoPpvdVD(caso);
-  if (ehVD && semVisitaPendente && caso.status !== 'estabilizada' && !velho) {
+  if (ehVD && semVisitaPendente && caso.status !== 'estabilizada') {
     const sugestao = ppvdSugerirResponsavel(caso.municipio);
     const ehRetorno = caso.status === 'decisao_cmd';
     acoes += `<div class="ppvd-card" id="casoAcaoDespachar"><b>Despachar visita — ${ehRetorno ? 'Retorno' : 'Visita inicial'}</b><br><br>`;
@@ -5160,7 +5154,7 @@ async function ppvdRenderCaso(caso) {
     acoes += `</details></div>`;
   }
 
-  if (ehVD && caso.status === 'decisao_cmd' && !velho) {
+  if (ehVD && caso.status === 'decisao_cmd') {
     const ultima = (visitas || []).find(v => v.visita_realizada_em);
     acoes += `<div class="ppvd-card" style="border-color:var(--amber)" id="casoAcaoDecisao"><b>⚠ Decisão do Comandante</b><br><br>`;
     if (ultima) {
@@ -5233,7 +5227,7 @@ async function ppvdRenderCaso(caso) {
   dados += `</details>`;
 
   // Caso novo sem classificação: classificar vem antes de despachar. Nos demais, a ação vem antes dos dados.
-  html += !gutOk && ehVD && caso.status !== 'estabilizada' && !velho ? dados + acoes : acoes + dados;
+  html += !gutOk && ehVD && caso.status !== 'estabilizada' ? dados + acoes : acoes + dados;
   html += fato;
   html += `<details class="ppvd-card caso-dados"><summary>Status e correções <small>${ehVD ? ppvdStatusLabelVD(caso.status) : caso.status}</small></summary><br>${statusBloco}</details>`;
 

@@ -704,8 +704,8 @@ function auditar() {
     });
     checa(r.grids === 1 && r.kpis === 5, 'os 5 KPIs ficam num grid só (sem cartão sobrando)', `grids=${r.grids}, kpis=${r.kpis}`);
     checa(r.metodoFechado, 'metodologia começa recolhida', 'a metodologia está aberta no topo');
-    checa(r.linhas.join() === 'V2,V4', `tabela conta só de Setembro em diante (${r.linhas.join(', ')}); V1 e V3 (antes de Setembro) vão pro histórico`, 'linhas da tabela: ' + r.linhas.join(', '));
-    checa(r.historicoLinhas === 2 && r.historicoVerde === 2 && r.historicoObs === 2, 'histórico anterior ao PPVD: tudo finalizado (verde) com a observação de visitas sem registro no sistema', `histórico: ${JSON.stringify({ l: r.historicoLinhas, v: r.historicoVerde, o: r.historicoObs })}`);
+    checa(r.linhas.join() === 'V2,V4,V3', `tabela: Setembro em diante + caso antigo que existe no PPVD (${r.linhas.join(', ')}); só V1 (antes de Setembro, sem caso) vai pro histórico`, 'linhas da tabela: ' + r.linhas.join(', '));
+    checa(r.historicoLinhas === 1 && r.historicoVerde === 1 && r.historicoObs === 1, 'histórico anterior ao PPVD: ocorrência sem caso finalizada (verde) com a observação de visitas sem registro no sistema', `histórico: ${JSON.stringify({ l: r.historicoLinhas, v: r.historicoVerde, o: r.historicoObs })}`);
     checa(r.enderecosAntesDaTabela, 'endereços com reincidência aparecem antes da tabela', 'endereços reincidentes continuam depois da tabela');
     checa(r.temEmAbertoHa && r.atraso, '"aberto há" na coluna Situação, com destaque de atraso (>72h)', 'sem o "aberto há" / atraso');
     checa(/Sd Antigo/.test(r.sugerido || '') && /sugerido/.test(r.sugerido || ''), 'responsável sugerido identificado e, entre duplicados, o mais antigo', 'responsável sugerido: ' + r.sugerido);
@@ -786,8 +786,8 @@ function auditar() {
       out.pendente = await ver({ ...base, status: 'em_visita', gravidade: 3, urgencia: 3, tendencia: 3 }, [{ id: 'v1', despachado_em: hh(80), guarnicao: 'Sd Fulano', token: 't' }]);
       out.decisao = await ver({ ...base, status: 'decisao_cmd', gravidade: 3, urgencia: 3, tendencia: 3, qtd_retornos: 1 }, [{ id: 'v1', despachado_em: hh(60), visita_realizada_em: hh(20), guarnicao: 'Sd Fulano' }]);
       out.estab = await ver({ ...base, status: 'estabilizada', gravidade: 3, urgencia: 3, tendencia: 3 }, []);
-      out.velho = await ver({ ...base, reds_data: '2026-05-10', status: 'em_visita', gravidade: 3, urgencia: 3, tendencia: 3 }, []);
-      out.velhoSemAcao = !document.getElementById('casoAcaoDespachar');
+      out.velho = await ver({ ...base, reds_data: '2026-05-10', status: 'aberto', gravidade: 3, urgencia: 3, tendencia: 3 }, []);
+      out.velhoComAcao = !!document.getElementById('casoAcaoDespachar');
       // salvamento único: classificação parcial é recusada; completa grava GUT + identificação numa chamada só
       await ver({ ...base, gravidade: null }, []);
       const alertas = []; window.alert = (m) => alertas.push(m);
@@ -806,7 +806,7 @@ function auditar() {
     checa(/Aguardando Sd Fulano/.test(r.pendente.titulo) && /atrasada/.test(r.pendente.det) && /caso-prox v/.test(r.pendente.cor) && r.pendente.ok === 2, 'visita pendente há 80h: em atraso (prazo de 72h), com o nome do militar', 'pendente: ' + JSON.stringify(r.pendente));
     checa(/Decida/.test(r.decisao.titulo) && /caso-prox z/.test(r.decisao.cor) && /Decisão do comandante/.test(r.decisao.atual) && r.decisao.ordem.startsWith('casoAcaoDespachar') && r.decisao.ordem.includes('casoAcaoDecisao'), 'decisão do comandante: azul (há retorno), ação antes dos dados', 'decisão: ' + JSON.stringify(r.decisao));
     checa(/estabilizado/i.test(r.estab.titulo) && r.estab.ok === 5 && /caso-prox g/.test(r.estab.cor), 'caso estabilizado: tudo concluído e em verde', 'estabilizado: ' + JSON.stringify(r.estab));
-    checa(/anterior ao PPVD/.test(r.velho.titulo) && /sem o registro no sistema/.test(r.velho.det) && r.velho.ok === 5 && r.velhoSemAcao, 'caso anterior a Setembro: finalizado, com a observação, sem botão de despachar', 'caso antigo: ' + JSON.stringify(r.velho));
+    checa(/Despache/.test(r.velho.titulo) && r.velho.ok === 1 && r.velhoComAcao, 'caso anterior a Setembro que segue aberto no PPVD: continua aberto, com a ação pendente pra resolver', 'caso antigo: ' + JSON.stringify(r.velho));
     checa(r.novo.botoesSalvar === 1, 'um botão só salva classificação e identificação', `botões de salvar: ${r.novo.botoesSalvar}`);
     checa(r.parcial.alertas === 1 && r.parcial.gravou === 0, 'classificação pela metade é recusada com aviso', 'parcial: ' + JSON.stringify(r.parcial));
     checa(r.completo.n === 1 && /gravidade/.test(r.completo.campos) && /vitima_nome/.test(r.completo.campos) && r.completo.vit === 'M.A.S.', 'salvar grava GUT e identificação numa chamada só', 'salvamento: ' + JSON.stringify(r.completo));
