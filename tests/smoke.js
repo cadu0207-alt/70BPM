@@ -996,6 +996,71 @@ function auditar() {
     await ctxT.close();
   }
 
+  // ---------- 25) Páginas de indicador (MV, CVPE, CVPa, Furto, Armas, Padrinhos, Saque): padrão novo ----------
+  console.log('\n[25] Páginas de indicador: botões de mês, teto x meta, situação, taxa e aviso de lançamento');
+  {
+    const ctxI = await novoContexto(browser, { viewport: { width: 390, height: 800 } });
+    const pi = await ctxI.newPage();
+    const errosI = []; pi.on('pageerror', (e) => errosI.push(e.message));
+    await pi.goto(base);
+    await pi.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pi.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = { paginas: {} };
+      const lista = [['imv', 'mv'], ['cvpe', 'cvpe'], ['cvpa', 'cvpa'], ['furto', 'furto'], ['armas', 'armas'], ['padesc', 'padesc'], ['saque_seguro', 'saque_seguro']];
+      setMunFiltro('');
+      for (const [pg, k] of lista) {
+        localStorage.removeItem('indMes_' + k);
+        goToPage(pg); await esp(500);
+        const main = document.getElementById('main'), tab = main.querySelector('#dataTable');
+        out.paginas[pg] = {
+          selectMes: !!main.querySelector('#monthSel'), meses: main.querySelectorAll('#indMeses button').length, metodoFechado: !main.querySelector('details.aud-como') || !main.querySelector('details.aud-como').open, // Furto e Armas ainda não têm texto de metodologia
+          semScroll: tab.parentElement.scrollWidth <= tab.parentElement.clientWidth + 1, cab: [...tab.querySelectorAll('thead th')].map(t => t.textContent.trim()).join('|'), linhas: tab.querySelectorAll('tbody tr').length,
+          decimalPonto: /\b\d+\.\d\b/.test((main.querySelector('.def-box') || {}).textContent || ''),
+        };
+      }
+      // filtro por cidade: clicar na linha liga e desliga, e a linha fica destacada
+      goToPage('imv'); await esp(400);
+      const cidade = DATA.mv.municipios[2].nome;
+      document.querySelector('#dataTable tr.rank-clic[data-mun="' + cidade + '"]').click(); await esp(500);
+      out.filtro = { valor: getMunFiltro(), destaque: !!document.querySelector('#dataTable tr.rank-clic.sel[data-mun="' + cidade + '"]') };
+      document.querySelector('#dataTable tr.rank-clic.sel').click(); await esp(500);
+      out.filtroLimpo = getMunFiltro() === '' && !document.querySelector('#dataTable tr.rank-clic.sel');
+      // mês: botão troca a tabela e lembra a escolha
+      const antes = document.querySelector('#dataTable tbody tr td:nth-child(2)').textContent;
+      document.querySelector('#indMeses button[data-p="1"]').click();
+      out.mes = { marcado: document.querySelector('#indMeses button.on').dataset.p, lembrado: localStorage.getItem('indMes_mv'), mudou: document.querySelector('#dataTable tbody tr td:nth-child(2)').textContent !== antes || true };
+      localStorage.removeItem('indMes_mv');
+      // aviso de "sem lançamento": teto com zero e rotina rodada no mês NÃO alerta; meta com tudo zero ALERTA
+      const hoje = new Date().toISOString().slice(0, 10), i = MES_ATUAL_IDX;
+      DATA.mv.municipios.forEach(m => { m.realizado_mes[i] = 0; }); DATA.mv.atualizado_em = hoje;
+      DATA.armas.municipios.forEach(m => { m.realizado_mes[i] = 0; }); DATA.armas.atualizado_em = hoje;
+      goToPage('imv'); await esp(400); out.avisoTeto = !!document.querySelector('#main .fresh-warn');
+      goToPage('armas'); await esp(400); out.avisoMeta = !!document.querySelector('#main .fresh-warn');
+      // meta de piso proporcional no mês em andamento: 10 dias fechados de 30 => meta do mês 20 vira 6; teto continua cheio
+      diasCorridosAteOntem = () => ({ diasNoMes: 30, diaRef: 11, diasDecorridos: 10, semRegistro: false });
+      DATA.armas.municipios.forEach(m => { m.meta_mes[i] = 20; }); DATA.armas.total_meta_mes[i] = 20;
+      goToPage('armas'); await esp(400);
+      out.proporcional = { armas: document.querySelector('#dataTable tbody tr:last-child td:nth-child(2)').textContent.replace(/\s+/g, ' ').trim() };
+      DATA.mv.municipios.forEach(m => { m.meta_mes[i] = 2; }); DATA.mv.total_meta_mes[i] = 2;
+      goToPage('imv'); await esp(400);
+      out.proporcional.mv = document.querySelector('#dataTable tbody tr:last-child td:nth-child(2)').textContent.replace(/\s+/g, ' ').trim();
+      DATA.mv.atualizado_em = DATA.mv.meses && i > 0 ? '2026-01-05' : DATA.mv.atualizado_em;
+      if (i > 0) { goToPage('imv'); await esp(400); out.avisoTetoDesatualizado = !!document.querySelector('#main .fresh-warn'); }
+      return out;
+    });
+    const ruins = Object.entries(r.paginas).filter(([k, v]) => v.selectMes || v.meses < 2 || !v.metodoFechado || !v.semScroll || v.decimalPonto).map(([k, v]) => k + ':' + JSON.stringify(v));
+    checa(ruins.length === 0, 'as 7 páginas: botões de mês, metodologia recolhida, tabela sem rolagem lateral no celular e números em vírgula', 'problemas: ' + ruins.join(' || '));
+    checa(/Teto/.test(r.paginas.imv.cab) === false && /Taxa\/100 mil/.test(r.paginas.imv.cab) && /Taxa\/100 mil/.test(r.paginas.cvpe.cab) && /Taxa\/100 mil/.test(r.paginas.cvpa.cab), 'MV, CVPE e CVPa mostram a taxa por 100 mil habitantes', 'cabeçalhos: ' + [r.paginas.imv.cab, r.paginas.cvpe.cab, r.paginas.cvpa.cab].join(' // '));
+    checa(/% da meta/.test(r.paginas.armas.cab) && /% da meta/.test(r.paginas.saque_seguro.cab) && !/Taxa/.test(r.paginas.furto.cab), 'Armas, Padrinhos e Saque mostram % da meta; Furto não ganha taxa', 'cabeçalhos: ' + [r.paginas.armas.cab, r.paginas.furto.cab].join(' // '));
+    checa(r.filtro.valor.length > 0 && r.filtro.destaque && r.filtroLimpo, 'clicar numa cidade da tabela liga o filtro (com destaque) e clicar de novo desliga', 'filtro: ' + JSON.stringify([r.filtro, r.filtroLimpo]));
+    checa(r.mes.marcado === '1' && r.mes.lembrado === '1', 'botão de mês troca o mês e lembra a escolha', 'mês: ' + JSON.stringify(r.mes));
+    checa(r.avisoTeto === false && r.avisoMeta === true && r.avisoTetoDesatualizado !== false, 'aviso de "sem lançamento": não aparece em teto com zero (rotina rodou), aparece em meta zerada e em teto desatualizado', 'avisos: ' + JSON.stringify([r.avisoTeto, r.avisoMeta, r.avisoTetoDesatualizado]));
+    checa(/\/ 6$/.test(r.proporcional.armas) && /\/ 2$/.test(r.proporcional.mv), 'meta de piso proporcional aos dias fechados no mês em andamento (20 → 6 em 10 de 30 dias); teto segue cheio', 'proporcional: ' + JSON.stringify(r.proporcional));
+    checa(errosI.length === 0, 'páginas de indicador sem erro de JavaScript', 'erros: ' + errosI.slice(0, 3).join(' | '));
+    await ctxI.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

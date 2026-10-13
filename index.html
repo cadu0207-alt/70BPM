@@ -320,6 +320,12 @@
   /* Páginas de análise no padrão da Violência Doméstica (onda 1, 2026-10-13) */
   table.vd-casos tr[hidden] { display:none !important; }
   .pg-resumo-linha { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
+  /* Páginas de indicador (MV, CVPE, CVPa, Furto Rural, Armas, Padrinhos, Saque) — onda 1, 2026-10-13 */
+  .link-sigop { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--amber); border:1px solid var(--panel-border); border-radius:999px; padding:4px 12px; margin:0 0 12px; text-decoration:none; font-family:var(--sans); }
+  .link-sigop:hover { border-color:var(--amber); } .link-sigop:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
+  tr.rank-clic.sel td:first-child { color:var(--amber); font-weight:700; }
+  .ind-lim { color:#a9bccd; font-weight:400; }
+  .ind-tab .par { white-space:nowrap; }
   .data-table .spark { display:inline-block; width:92px; height:22px; color:var(--text); overflow:visible; vertical-align:middle; }
   .tend-up { color:var(--alert-text); font-weight:700; } .tend-dn { color:var(--signal); font-weight:700; } .tend-ig { color:var(--muted); }
   .aviso-acel { border-color:var(--alert); margin:0 0 12px; } .aviso-acel button { margin:2px 6px 2px 0; }
@@ -788,9 +794,13 @@ const MES_MAIS_RECENTE_IDX = Math.min(ultimoMesGlobal(), MES_ATUAL_IDX);
 // isso o freshBadge só olhava o tamanho do array de meses (quase sempre pré-cadastrado até
 // Dezembro) e dizia "Atualizado até Setembro" mesmo quando setembro ainda estava zerado em
 // tudo, só porque ninguém tinha rodado aquele export ainda. Achado por Eduardo em 2026-09-04.
-function indicadorSemDadoNoMes(d, monthIdx) {
+function indicadorSemDadoNoMes(d, monthIdx, zeroValido) {
   if (!d || !Array.isArray(d.municipios)) return false;
-  return d.municipios.every(m => !Array.isArray(m.realizado_mes) || !m.realizado_mes[monthIdx]);
+  const todosZero = d.municipios.every(m => !Array.isArray(m.realizado_mes) || !m.realizado_mes[monthIdx]);
+  if (!todosZero || !zeroValido) return todosZero;
+  // indicador de teto: zero em todas as cidades é resultado possível; só vira alerta se a rotina nem rodou no mês
+  const dt = dataAtualizacaoIndicador(d);
+  return !dt || dt.getMonth() < monthIdx;
 }
 function freshBadge(ultimoMes, opts = {}) {
   const idx = MESES.indexOf(ultimoMes);
@@ -814,6 +824,7 @@ function freshBadge(ultimoMes, opts = {}) {
 
 // Textos oficiais extraídos das caixas de definição do Power BI original (Report/Layout do .pbix)
 const DEFS = {
+  mv: '<b>Naturezas do IMV (Mortes Violentas)</b><br>Homicídio Consumado (<code>B01121</code>) &middot; Roubo com Lesão Fatal (<code>C01157</code>) &middot; Lesão Corporal seguida de morte (<code>B01129</code>) &middot; Feminicídio (<code>B01504</code>) &middot; Sequestro (<code>B01148</code>) &middot; Tortura (<code>B02001</code>). O indicador é de <b>teto</b>: quanto menos mortes, melhor. A taxa é por 100 mil habitantes (acumulado do ano).',
   cvpe: '<b>Naturezas CVPe</b><br>Homicídio (B01.121) &middot; Feminicídio (B01.504) &middot; Sequestro e Cárcere Privado (B01.148) &middot; Tortura (B02.001). Consumados e tentados, desde que não resultem em lesão fatal.',
   cvpa: '<b>Naturezas CVPa (qtde de vítimas)</b><br><code>C01.157</code> Roubo &middot; <code>C01.158</code> Extorsão &middot; <code>C01.159</code> Extorsão mediante sequestro. Consumados e tentados, desde que não resultem em lesão fatal.',
   pog: '<b>Naturezas das operações de POG</b><br><code>Y04009</code> Operação Trânsito Seguro &middot; <code>Y07001</code> Batida Policial &middot; <code>Y07002</code> Operação Presença &middot; <code>Y07003</code> Incursão em Zona Quente de Criminalidade &middot; <code>Y07010</code> Divisas Seguras &middot; <code>Y10001</code> Cumprimento de Busca e Apreensão de Objetos, Pessoas e/ou Animais.',
@@ -946,12 +957,12 @@ function bannerAcompanhamentoDiario(itens) {
     const refTxt = s.semRegistro
       ? `<span style="color:var(--amber)">sem data de atualização registrada — assumindo hoje</span>`
       : (s.diaRef === 0 ? `<span style="color:var(--amber)">nenhum lançamento neste mês ainda</span>` : `atualizado até o dia ${s.diaRef}`);
-    linhas += `<div>${it.label}: ${s.rotuloMeta} (${refTxt}) <b>${s.metaAjustada.toFixed(1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${s.cls}">${s.statusTxt}</span></div>`;
+    linhas += `<div>${it.label}: ${s.rotuloMeta} (${refTxt}) <b>${fmtBr(s.metaAjustada, 1)}</b> (de ${it.meta}/mês) &middot; realizado até agora <b>${it.realizado}</b> &middot; <span class="${s.cls}">${s.statusTxt}</span></div>`;
   });
   return `<div class="def-box" style="border-color:var(--amber);margin-bottom:14px">
     <b>📅 Acompanhamento diário</b> — cada indicador é ponderado pela sua própria data de atualização, não por "hoje" fixo.
     ${linhas}
-    <span style="color:var(--muted);font-size:12px">Vale só pro mês em andamento — meses fechados no seletor abaixo continuam comparando com a meta cheia normalmente.</span>
+    <span style="color:var(--muted);font-size:12px">Vale só pro mês em andamento — meses fechados nos botões abaixo continuam comparando com a meta cheia normalmente.</span>
   </div>`;
 }
 
@@ -1521,76 +1532,80 @@ function drawBarChart(canvasId, labels, values, color) {
   });
 }
 
+function popMunicipio(nome) {
+  for (const k of ['violencia_domestica', 'reincidencia', 'crimes_violentos']) {
+    const c = ((DATA[k] || {}).municipios || []).find(x => normMun(x.nome) === normMun(nome));
+    if (c && c.pop) return c.pop;
+  }
+  return 0;
+}
+
 function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=false, showDailyBanner=false) {
   const d = DATA[key];
   const mesesLocais = d.meses || MESES.slice(0, d.total_mes.length);
-  let monthIdx = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1); // mês mais recente disponível pra esse indicador, capado no mês atual real
+  const ultimoIdx = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1); // mês mais recente disponível pra esse indicador, capado no mês atual real
+  let monthIdx = ultimoIdx;
+  try { const s = localStorage.getItem('indMes_' + key); if (/^\d+$/.test(s || '') && parseInt(s) <= ultimoIdx) monthIdx = parseInt(s); } catch (e) {}
   const showCharts = !!(localKey && faixaKey && DATA[localKey] && DATA[faixaKey]);
+  const comTaxa = ['mv', 'cvpe', 'cvpa'].includes(key); // indicadores de crime têm taxa por 100 mil habitantes
+  const rotLim = higherIsBetter ? 'Meta' : 'Teto'; // MV/CVPE/CVPa/Furto são TETO (menor é melhor); Armas/Padrinhos/Saque são META
+  const munFiltro = normMun(getMunFiltro());
 
-  function fmtPctPolarity(v) {
-    const good = higherIsBetter ? v >= 0 : v <= 0;
-    const cls = good ? 'neg' : 'pos'; // 'neg' = verde, 'pos' = vermelho (ver fmtPct/kpiCard)
-    const sign = v > 0 ? '+' : '';
-    return `<span class="${cls}">${sign}${v.toFixed(1)}%</span>`;
+  // Situação contra o limite: teto = folga/estouro; meta = cumprida/faltam. Verde ✓ / vermelho ✕ (mesma convenção do painel).
+  // Com tetos de 0 a 5 o percentual ("+200%", "−100%") só assustava; a diferença em unidades diz o que importa.
+  function situacao(real, lim) {
+    const saldo = higherIsBetter ? real - lim : lim - real;
+    if (higherIsBetter) return saldo >= 0 ? `<span class="neg">cumprida${saldo > 0 ? ' (+' + saldo + ')' : ''}</span>` : `<span class="pos">faltam ${-saldo}</span>`;
+    return saldo > 0 ? `<span class="neg">folga de ${saldo}</span>` : (saldo === 0 ? `<span class="neg">no teto</span>` : `<span class="pos">estourou em ${-saldo}</span>`);
   }
-  // Saldo: quanto falta (ruim) ou quanto passou (bom) da meta/teto acumulado. Corrigido em
-  // 2026-09-04 (achado por Eduardo em Saque Seguro) — antes calculava sempre meta-real, o que
-  // só faz sentido pra indicador de teto (mv/cvpe/cvpa/furto: positivo = folga antes de
-  // estourar). Pra indicador de meta (armas/padesc/saque_seguro), isso invertia o sinal —
-  // exceder a meta aparecia como saldo negativo sem cor, dando a entender que estava atrasado.
-  function fmtSaldo(realAcum, metaAcum) {
-    const saldo = higherIsBetter ? (realAcum - metaAcum) : (metaAcum - realAcum);
-    const cls = saldo >= 0 ? 'neg' : 'pos'; // 'neg' = verde, 'pos' = vermelho (mesma convenção do painel)
-    const sign = saldo > 0 ? '+' : '';
-    return `<span class="${cls}">${sign}${saldo}</span>`;
-  }
+  const par = (real, lim) => `<span class="par"><b>${real}</b> <span class="ind-lim">/ ${lim}</span></span>`;
+  const pctMeta = (real, lim) => (lim ? fmtBr(real / lim * 100, 0) + '%' : '—');
+  const taxa = (real, pop) => (pop ? fmtBr(real / pop * 100000, 1) : '—');
 
+  // META (piso) no mês em andamento é proporcional aos dias já fechados — mesma regra do quadro e do cartão da Home; com a meta cheia,
+  // "faltam 39" num mês de 13 dias era um número que ninguém conseguiria cumprir. TETO segue com o teto cheio (mais tolerante).
+  const limMes = (meta, f) => (higherIsBetter ? Math.floor(meta * f + 1e-9) : meta);
+  const limAcum = (metaAcum, metaMes, f) => (higherIsBetter ? Math.floor(metaAcum - metaMes * (1 - f) + 1e-9) : metaAcum);
   function table(mi) {
-    let rows = '';
+    let rows = '', popTotal = 0;
+    const f = higherIsBetter ? fatorMesEmAndamento(d, mi) : 1;
     d.municipios.forEach(m => {
-      const realMes = m.realizado_mes[mi];
-      const metaMes = m.meta_mes[mi];
-      const realAcum = m.realizado_acum[mi];
-      const metaAcum = m.meta_acum[mi];
-      const pctAcum = pct(realAcum, metaAcum);
-      rows += `<tr>
+      const pop = comTaxa ? popMunicipio(m.nome) : 0; popTotal += pop;
+      const lMes = limMes(m.meta_mes[mi], f), lAcum = limAcum(m.meta_acum[mi], m.meta_mes[mi], f);
+      rows += `<tr class="rank-clic${normMun(m.nome) === munFiltro ? ' sel' : ''}" data-mun="${m.nome}" title="Filtrar por ${m.nome}">
         <td style="text-align:left">${m.nome}</td>
-        <td>${realMes}</td>
-        <td>${metaMes}</td>
-        <td class="col-divider">${realAcum}</td>
-        <td>${metaAcum}</td>
-        <td>${fmtPctPolarity(pctAcum)}</td>
-        <td>${fmtSaldo(realAcum, metaAcum)}</td>
+        <td>${par(m.realizado_mes[mi], lMes)}</td>
+        <td class="col-divider">${par(m.realizado_acum[mi], lAcum)}</td>
+        <td>${comTaxa ? taxa(m.realizado_acum[mi], pop) : pctMeta(m.realizado_acum[mi], lAcum)}</td>
+        <td style="text-align:left">${situacao(m.realizado_acum[mi], lAcum)}</td>
       </tr>`;
     });
-    const totRealAcum = d.total_acum[mi], totMetaAcum = d.total_meta_acum[mi];
-    const totPct = pct(totRealAcum, totMetaAcum);
+    const totRealAcum = d.total_acum[mi], totMetaAcum = limAcum(d.total_meta_acum[mi], d.total_meta_mes[mi], f);
     rows += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)">
         <td style="text-align:left">TOTAL</td>
-        <td>${d.total_mes[mi]}</td>
-        <td>${d.total_meta_mes[mi]}</td>
-        <td class="col-divider">${totRealAcum}</td>
-        <td>${totMetaAcum}</td>
-        <td>${fmtPctPolarity(totPct)}</td>
-        <td>${fmtSaldo(totRealAcum, totMetaAcum)}</td>
+        <td>${par(d.total_mes[mi], limMes(d.total_meta_mes[mi], f))}</td>
+        <td class="col-divider">${par(totRealAcum, totMetaAcum)}</td>
+        <td>${comTaxa ? taxa(totRealAcum, popTotal) : pctMeta(totRealAcum, totMetaAcum)}</td>
+        <td style="text-align:left">${situacao(totRealAcum, totMetaAcum)}</td>
       </tr>`;
     return rows;
   }
 
   let html = `<div class="page-title">${title}</div>`;
-  html += freshBadge(mesesLocais[monthIdx], { semDadoReal: indicadorSemDadoNoMes(d, monthIdx) });
-  html += sigopButton(key);
-  if (DEFS[key]) html += `<div class="def-box">${DEFS[key]}</div>`;
+  // zero no mês só é "sem lançamento" em indicador de META; em indicador de TETO zero é o bom resultado (vale se a rotina já rodou no mês)
+  html += freshBadge(mesesLocais[ultimoIdx], { semDadoReal: indicadorSemDadoNoMes(d, ultimoIdx, !higherIsBetter) });
+  const urlSigop = SIGOP_LINKS[key];
+  if (urlSigop) html += `<a class="link-sigop" href="${urlSigop}" target="_blank" rel="noopener noreferrer">${SIGOP_LABELS[key] || key.toUpperCase()} · fonte oficial no SiGOp ↗</a><br>`;
+  if (DEFS[key]) html += `<details class="aud-como"><summary>Metodologia e definições</summary><div>${DEFS[key]}</div></details>`;
   if (showDailyBanner) {
     html += bannerAcompanhamentoDiario([{ label: title, meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], higherIsBetter, dataAtualizacao: dataAtualizacaoIndicador(d) }]);
   }
-  html += `<select class="month-select" id="monthSel">`;
-  mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===monthIdx?'selected':''}>${m}</option>`);
-  html += `</select>`;
-  html += `<table class="data-table" id="dataTable"><thead><tr>
-    <th style="text-align:left">Município</th><th>Realizado Mês</th><th>Meta Mês</th>
-    <th class="col-divider">Realizado Acum</th><th>Meta Acum</th><th>% vs Meta (Acum)</th><th>Saldo</th>
-  </tr></thead><tbody>${table(monthIdx)}</tbody></table>`;
+  html += `<div class="pills-vd" id="indMeses" role="group" aria-label="Mês">` + mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<button type="button" data-p="${i}">${m}</button>`).join('') + `</div>`;
+  html += `<div class="vd-recorte">Mês e acumulado mostram realizado / ${rotLim.toLowerCase()}; a situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). ${higherIsBetter ? 'Meta: quanto mais, melhor; no mês em andamento a meta é proporcional aos dias já fechados.' : 'Teto: quanto menos, melhor — o realizado não deve passar do teto.'}</div>`;
+  html += `<div class="table-wrap"><table class="data-table ind-tab" id="dataTable"><thead><tr>
+    <th style="text-align:left">Município</th><th>Mês</th>
+    <th class="col-divider">Acumulado</th><th>${comTaxa ? 'Taxa/100 mil' : '% da meta'}</th><th style="text-align:left">Situação</th>
+  </tr></thead><tbody>${table(monthIdx)}</tbody></table></div>`;
   if (showCharts) {
     const labelLocal = key === 'furto' ? 'Causa' : 'Local Imediato';
     const labelFaixa = key === 'furto' ? 'Logradouro' : 'Faixa Horária';
@@ -1605,8 +1620,17 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   }
   document.getElementById('main').innerHTML = html;
 
-  document.getElementById('monthSel').addEventListener('change', (e) => {
-    document.querySelector('#dataTable tbody').innerHTML = table(parseInt(e.target.value));
+  const marcarMes = () => document.querySelectorAll('#indMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === monthIdx));
+  marcarMes();
+  document.getElementById('indMeses').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    monthIdx = parseInt(b.dataset.p); try { localStorage.setItem('indMes_' + key, String(monthIdx)); } catch (er) {}
+    marcarMes(); document.querySelector('#dataTable tbody').innerHTML = table(monthIdx);
+  });
+  // clicar numa cidade liga/desliga o filtro global (o mesmo dos botões do topo) e redesenha a página
+  document.getElementById('dataTable').addEventListener('click', (e) => {
+    const tr = e.target.closest('tr.rank-clic'); if (!tr) return;
+    setMunFiltro(normMun(getMunFiltro()) === normMun(tr.dataset.mun) ? '' : tr.dataset.mun); goToPage(currentPageKey);
   });
 
   if (showCharts) {
