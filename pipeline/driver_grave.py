@@ -538,6 +538,48 @@ def run_local_faixa(data, report):
         report['local_faixa_' + chave] = res
 
 
+
+# ---- Ocorrências de MV (RESTRITO: REDS, data/hora, endereço) ----
+# Alimenta a seção "Ocorrências de MV" da página de Mortes Violentas, só para PPVD aprovado. Vai em data['crimes_violentos']['mv_ocorrencias']
+# (chave restrita: sai do data.json público e vai pro Supabase junto do bloco crimes_violentos).
+def run_mv_ocorrencias(data, report):
+    f = latest_csv('MV')
+    if not f or 'crimes_violentos' not in data:
+        report['mv_ocorrencias'] = {'skipped': True, 'reason': 'sem export em entrada/MV' if not f else 'bloco crimes_violentos inexistente'}
+        return
+    rows = read_csv(f, encoding='latin-1')
+    aj.neutralizar_mv(rows, 'MV (ocorrências)', report)
+    saida, vistos = {}, set()
+    for r in rows:
+        if _num(r.get('IMV_TOTAL')) <= 0:
+            continue
+        reds = (r.get('NUMERO_REDS') or '').strip()
+        if not reds or reds in vistos:
+            continue
+        vistos.add(reds)
+        mes = _num(r.get('MES_NUMERICO'))
+        if not (1 <= mes <= N_MESES):
+            continue
+        nat = (r.get('DESCR_NATUREZA_PRINCIPAL') or '').strip().title()
+        if (r.get('TENTADO_CONSUMADO_PRINCIPAL') or '').strip().upper() == 'TENTADO':
+            nat = 'Tentativa de ' + nat
+        meio = (r.get('DESCRICAO_MEIO_UTILIZADO') or '').strip()
+        arma = _num(r.get('QTDE_ARMAS_FOGO')) > 0 or 'ARMA' in meio.upper() and 'FOGO' in meio.upper()
+        saida.setdefault((r.get('MUNICIPIO') or '').strip().upper(), []).append({
+            'r': reds, 'd': (r.get('DATA_FATO') or '').strip(), 'h': (r.get('HORARIO_FATO') or '').strip()[:5], 'm': mes, 'n': nat,
+            'c': (r.get('CAUSA_PRESUMIDA') or '').strip(), 'meio': meio, 'loc': (r.get('DESCRICAO_LOCAL_IMEDIATO') or '').strip(),
+            'b': (r.get('BAIRRO') or '').strip() or (r.get('BAIRRO_NAO_CADASTRADO') or '').strip(),
+            'l': (r.get('LOGRADOURO') or '').strip() or (r.get('LOGRADOURO_NAO_CADASTRADO') or '').strip(),
+            'nu': (r.get('NUMERO_LOGRADOURO') or '').strip() or (r.get('NUMERO_LOGRADOURO_NAO_CADASTRADO') or '').strip() or '0',
+            'a': bool(arma), 'p': _num(r.get('QTDE_PRISAO')) > 0,
+        })
+    total = sum(len(v) for v in saida.values())
+    antes = sum(len(v) for v in (data['crimes_violentos'].get('mv_ocorrencias') or {}).values())
+    data['crimes_violentos']['mv_ocorrencias'] = saida
+    report['mv_ocorrencias'] = {'file': f, 'antes': antes, 'depois': total, 'total_mv_do_indicador': sum(data['mv']['total_mes']),
+                                'confere': total == sum(data['mv']['total_mes'])}
+
+
 def main():
     data = pr.carregar()  # data_completo.json (com blocos restritos); ver publicar_restrito.py
     report = {}
@@ -559,6 +601,7 @@ def main():
         run_detalhados(data, rows_bo, report)
 
     run_local_faixa(data, report)
+    run_mv_ocorrencias(data, report)
 
     # Carimba atualizado_em em todo bloco tocado (e não pulado) nesta rodada — mesmo
     # motivo do aggregate.py (ver 2026-09-28): sem isso o campo ficava parado na última
