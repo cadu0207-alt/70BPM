@@ -867,7 +867,16 @@
       0,
       0,
       0
-    ]
+    ],
+    "tentado_consumado": {
+      "tentado": 0,
+      "consumado": 22
+    },
+    "vitimas_por_ocorrencia": {
+      "1": 22,
+      "2": 0,
+      "3+": 0
+    }
   },
   "cvpe": {
     "meses": [
@@ -1737,7 +1746,16 @@
       0,
       0,
       0
-    ]
+    ],
+    "tentado_consumado": {
+      "tentado": 15,
+      "consumado": 4
+    },
+    "vitimas_por_ocorrencia": {
+      "1": 14,
+      "2": 1,
+      "3+": 1
+    }
   },
   "cvpa": {
     "meses": [
@@ -2607,7 +2625,16 @@
       0,
       0,
       0
-    ]
+    ],
+    "tentado_consumado": {
+      "tentado": 2,
+      "consumado": 38
+    },
+    "vitimas_por_ocorrencia": {
+      "1": 26,
+      "2": 7,
+      "3+": 0
+    }
   },
   "mv_local": [
     [
@@ -24353,5 +24380,153 @@
       276
     ],
     "atualizado_em": "2026-10-13"
-  }
+  },
+  "mv_causa": [
+    [
+      "BRIGA / ATRITO",
+      6
+    ],
+    [
+      "VINGANCA",
+      4
+    ],
+    [
+      "IGNORADO",
+      3
+    ],
+    [
+      "PASSIONAL",
+      3
+    ],
+    [
+      "ACAO DE GANGUES / FACCOES CRIMINOSAS",
+      2
+    ],
+    [
+      "ENVOLVIMENTO COM DROGAS",
+      2
+    ],
+    [
+      "OUTRAS MOTIVACOES/CAUSAS",
+      2
+    ]
+  ],
+  "mv_meio": [
+    [
+      "ARMAS DE FOGO",
+      11
+    ],
+    [
+      "INST.CONTUNDENTE/CORTANTE/PERFURANTE (ARMA BRANCA)",
+      10
+    ],
+    [
+      "OUTROS MEIOS",
+      1
+    ]
+  ],
+  "cvpe_causa": [
+    [
+      "ACAO DE GANGUES / FACCOES CRIMINOSAS",
+      5
+    ],
+    [
+      "ENVOLVIMENTO COM DROGAS",
+      4
+    ],
+    [
+      "ATRITO FAMILIAR",
+      3
+    ],
+    [
+      "OUTRAS MOTIVACOES/CAUSAS",
+      3
+    ],
+    [
+      "BRIGA / ATRITO",
+      1
+    ],
+    [
+      "EMBRIAGUEZ",
+      1
+    ],
+    [
+      "PASSIONAL",
+      1
+    ],
+    [
+      "SOFRIMENTO MENTAL",
+      1
+    ]
+  ],
+  "cvpe_meio": [
+    [
+      "ARMAS DE FOGO",
+      12
+    ],
+    [
+      "INST.CONTUNDENTE/CORTANTE/PERFURANTE (ARMA BRANCA)",
+      4
+    ],
+    [
+      "AGRESSAO FISICA SEM EMPREGO DE INSTRUMENTOS",
+      1
+    ],
+    [
+      "IGNORADO",
+      1
+    ],
+    [
+      "OUTROS MEIOS",
+      1
+    ]
+  ],
+  "cvpa_causa": [
+    [
+      "VANTAGEM ECONOMICA",
+      35
+    ],
+    [
+      "NAO INFORMADO",
+      3
+    ],
+    [
+      "ENVOLVIMENTO COM DROGAS",
+      1
+    ],
+    [
+      "OUTRAS MOTIVACOES/CAUSAS",
+      1
+    ]
+  ],
+  "cvpa_meio": [
+    [
+      "ARMAS DE FOGO",
+      17
+    ],
+    [
+      "AMEACA",
+      8
+    ],
+    [
+      "OUTROS MEIOS",
+      8
+    ],
+    [
+      "NAO INFORMADO",
+      3
+    ],
+    [
+      "INST.CONTUNDENTE/CORTANTE/PERFURANTE (ARMA BRANCA)",
+      2
+    ],
+    [
+      "AGRESSAO FISICA SEM EMPREGO DE INSTRUMENTOS",
+      1
+    ],
+    [
+      "MEIO ELETRONICO (INTERNET OU SMS)",
+      1
+    ]
+  ]
 }

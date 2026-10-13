@@ -491,9 +491,9 @@ def run_detalhados(data, rows_bo, report):
 # grava no campo (ex.: "FAZENDA ... PROP. <nome de pessoa>") são dado pessoal e NÃO vão pro arquivo público: só rodovias
 # (BR/MG/LMG...) ficam com o nome; o resto vira "PROPRIEDADE / COMUNIDADE RURAL".
 LOCAL_FAIXA = {
-    'mv': ('MV', 'IMV_TOTAL', [('mv_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('mv_faixa', 'FAIXA_HORA_6', None)]),
-    'cvpe': ('CVPE', 'ICVPE_TOTAL', [('cvpe_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('cvpe_faixa', 'FAIXA_HORA_6', None)]),
-    'cvpa': ('CVPA', 'ICVPA_TOTAL', [('cvpa_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('cvpa_faixa', 'FAIXA_HORA_6', None)]),
+    'mv': ('MV', 'IMV_TOTAL', [('mv_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('mv_faixa', 'FAIXA_HORA_6', None), ('mv_causa', 'CAUSA_PRESUMIDA', None), ('mv_meio', 'DESCRICAO_MEIO_UTILIZADO', None)]),
+    'cvpe': ('CVPE', 'ICVPE_TOTAL', [('cvpe_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('cvpe_faixa', 'FAIXA_HORA_6', None), ('cvpe_causa', 'CAUSA_PRESUMIDA', None), ('cvpe_meio', 'DESCRICAO_MEIO_UTILIZADO', None)]),
+    'cvpa': ('CVPA', 'ICVPA_TOTAL', [('cvpa_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('cvpa_faixa', 'FAIXA_HORA_6', None), ('cvpa_causa', 'CAUSA_PRESUMIDA', None), ('cvpa_meio', 'DESCRICAO_MEIO_UTILIZADO', None)]),
     'furto': ('FURTO RURAL', 'IFZR', [('furto_causa', 'CAUSA_PRESUMIDA', None), ('furto_logradouro', 'LOGRADOURO', 10)]),
 }
 _RODOVIA = re.compile(r'^(BR|MG|LMG|AMG|CMG|MGC)[\s-]?\d+')
@@ -532,6 +532,15 @@ def run_local_faixa(data, report):
                     reds_m[mi].add(reds)
                     if _num(r.get('QTDE_PRISAO')) > 0:
                         pris_m[mi].add(reds)
+            # tentado x consumado (em vítimas) e quantas ocorrências têm 1, 2 ou 3+ vítimas — agregado, sem REDS
+            tc = {'tentado': 0, 'consumado': 0}; vpo = {'1': 0, '2': 0, '3+': 0}; vistos_v = set()
+            for r in validas:
+                tot = _num(r.get(col_total)); reds = (r.get('NUMERO_REDS') or '').strip()
+                tc['tentado' if (r.get('TENTADO_CONSUMADO_PRINCIPAL') or '').strip().upper() == 'TENTADO' else 'consumado'] += tot
+                if reds and reds not in vistos_v:
+                    vistos_v.add(reds); vpo['1' if tot <= 1 else ('2' if tot == 2 else '3+')] += 1
+            data[chave]['tentado_consumado'] = tc
+            data[chave]['vitimas_por_ocorrencia'] = vpo
             data[chave]['reds_mes'] = [len(x) for x in reds_m]
             data[chave]['reds_prisao_mes'] = [len(x) for x in pris_m]
             res['reds'] = sum(data[chave]['reds_mes']); res['reds_com_prisao'] = sum(data[chave]['reds_prisao_mes'])
@@ -543,10 +552,11 @@ def run_local_faixa(data, report):
             if limite:
                 lista = lista[:limite]
             confere = limite is not None or sum(v for _, v in lista) == soma
-            if not confere or dkey not in data:
+            criavel = dkey.endswith('_causa') or dkey.endswith('_meio')
+            if not confere or (dkey not in data and not criavel):
                 res['saidas'][dkey] = {'skipped': True, 'reason': 'soma não confere com o total do indicador' if not confere else 'bloco inexistente'}
                 continue
-            antes = sum(x[1] for x in data[dkey])
+            antes = sum(x[1] for x in data.get(dkey, []))
             data[dkey] = [[k, v] for k, v in lista]
             res['saidas'][dkey] = {'total_antes': antes, 'total_depois': sum(v for _, v in lista), 'categorias': len(lista)}
         report['local_faixa_' + chave] = res
