@@ -566,16 +566,18 @@ def run_local_faixa(data, report):
 # ---- Ocorrências de MV (RESTRITO: REDS, data/hora, endereço) ----
 # Alimenta a seção "Ocorrências de MV" da página de Mortes Violentas, só para PPVD aprovado. Vai em data['crimes_violentos']['mv_ocorrencias']
 # (chave restrita: sai do data.json público e vai pro Supabase junto do bloco crimes_violentos).
-def run_mv_ocorrencias(data, report):
-    f = latest_csv('MV')
+def _lista_ocorrencias(data, report, pasta, col_total, chave_dado, chave_rep, col_pm=None):
+    f = latest_csv(pasta)
     if not f or 'crimes_violentos' not in data:
-        report['mv_ocorrencias'] = {'skipped': True, 'reason': 'sem export em entrada/MV' if not f else 'bloco crimes_violentos inexistente'}
+        report[chave_rep] = {'skipped': True, 'reason': f'sem export em entrada/{pasta}' if not f else 'bloco crimes_violentos inexistente'}
         return
     rows = read_csv(f, encoding='latin-1')
-    aj.neutralizar_mv(rows, 'MV (ocorrências)', report)
+    if pasta == 'MV':
+        aj.neutralizar_mv(rows, 'MV (ocorrências)', report)
     saida, vistos = {}, set()
     for r in rows:
-        if _num(r.get('IMV_TOTAL')) <= 0:
+        vit = _num(r.get(col_total))
+        if vit <= 0:
             continue
         reds = (r.get('NUMERO_REDS') or '').strip()
         if not reds or reds in vistos:
@@ -589,19 +591,34 @@ def run_mv_ocorrencias(data, report):
             nat = 'Tentativa de ' + nat
         meio = (r.get('DESCRICAO_MEIO_UTILIZADO') or '').strip()
         arma = _num(r.get('QTDE_ARMAS_FOGO')) > 0 or 'ARMA' in meio.upper() and 'FOGO' in meio.upper()
-        saida.setdefault((r.get('MUNICIPIO') or '').strip().upper(), []).append({
+        item = {
             'r': reds, 'd': (r.get('DATA_FATO') or '').strip(), 'h': (r.get('HORARIO_FATO') or '').strip()[:5], 'm': mes, 'n': nat,
             'c': (r.get('CAUSA_PRESUMIDA') or '').strip(), 'meio': meio, 'loc': (r.get('DESCRICAO_LOCAL_IMEDIATO') or '').strip(),
             'b': (r.get('BAIRRO') or '').strip() or (r.get('BAIRRO_NAO_CADASTRADO') or '').strip(),
             'l': (r.get('LOGRADOURO') or '').strip() or (r.get('LOGRADOURO_NAO_CADASTRADO') or '').strip(),
             'nu': (r.get('NUMERO_LOGRADOURO') or '').strip() or (r.get('NUMERO_LOGRADOURO_NAO_CADASTRADO') or '').strip() or '0',
             'a': bool(arma), 'p': _num(r.get('QTDE_PRISAO')) > 0,
-        })
+        }
+        if col_pm:
+            item['v'] = int(vit)
+            item['pm'] = _num(r.get(col_pm)) > 0
+        saida.setdefault((r.get('MUNICIPIO') or '').strip().upper(), []).append(item)
     total = sum(len(v) for v in saida.values())
-    antes = sum(len(v) for v in (data['crimes_violentos'].get('mv_ocorrencias') or {}).values())
-    data['crimes_violentos']['mv_ocorrencias'] = saida
-    report['mv_ocorrencias'] = {'file': f, 'antes': antes, 'depois': total, 'total_mv_do_indicador': sum(data['mv']['total_mes']),
-                                'confere': total == sum(data['mv']['total_mes'])}
+    antes = sum(len(v) for v in (data['crimes_violentos'].get(chave_dado) or {}).values())
+    data['crimes_violentos'][chave_dado] = saida
+    esperado = sum(data['mv' if pasta == 'MV' else 'cvpe']['reds_mes']) if 'reds_mes' in data.get('mv' if pasta == 'MV' else 'cvpe', {}) else sum(data['mv' if pasta == 'MV' else 'cvpe']['total_mes'])
+    report[chave_rep] = {'file': f, 'antes': antes, 'depois': total, 'esperado': esperado, 'confere': total == esperado}
+
+
+# ---- Ocorrências de MV e de CVPE (RESTRITO: REDS, data/hora, endereço) ----
+# Alimentam as seções "Ocorrências de MV/CVPE" das páginas de Mortes Violentas e CVPE, só para PPVD aprovado. Ficam dentro do bloco restrito
+# 'crimes_violentos' (a função do Supabase só aceita 4 chaves fixas) e saem do data.json público.
+def run_mv_ocorrencias(data, report):
+    _lista_ocorrencias(data, report, 'MV', 'IMV_TOTAL', 'mv_ocorrencias', 'mv_ocorrencias')
+
+
+def run_cvpe_ocorrencias(data, report):
+    _lista_ocorrencias(data, report, 'CVPE', 'ICVPE_TOTAL', 'cvpe_ocorrencias', 'cvpe_ocorrencias', col_pm='ICVPE_B01121_MILITAR')
 
 
 def main():
@@ -626,6 +643,7 @@ def main():
 
     run_local_faixa(data, report)
     run_mv_ocorrencias(data, report)
+    run_cvpe_ocorrencias(data, report)
 
     # Carimba atualizado_em em todo bloco tocado (e não pulado) nesta rodada — mesmo
     # motivo do aggregate.py (ver 2026-09-28): sem isso o campo ficava parado na última
