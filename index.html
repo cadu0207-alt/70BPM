@@ -1724,6 +1724,37 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     return `<div class="ind-sec charts-row" style="gap:16px">${bloco(DATA[localKey], rotulos[0], false, '')}${bloco(DATA[faixaKey], rotulos[1], key !== 'furto', 'verde')}</div>`;
   }
 
+  // ---- ocorrências de MV (RESTRITO: só PPVD aprovado; REDS e endereço vêm do Supabase, nunca do arquivo público) ----
+  function mvOcorrenciasHtml() {
+    const nomeFiltro = munFiltro ? ((d.municipios.find(x => normMun(x.nome) === munFiltro) || {}).nome || getMunFiltro()) : '';
+    let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Ocorrências de MV${nomeFiltro ? ' — ' + nomeFiltro : ''}</h3>`;
+    if (!ppvdDadosRestritosLiberados()) return h + ppvdAvisoRestrito() + `</div>`;
+    const oc = (DATA.crimes_violentos || {}).mv_ocorrencias || {};
+    const vdReds = new Set(), vd = (DATA.violencia_domestica || {}).ocorrencias || {};
+    Object.keys(vd).forEach(c => (vd[c] || []).forEach(x => { if (x.r) vdReds.add(x.r); }));
+    const reincKeys = new Set(), re = (DATA.reincidencia || {}).enderecos || {};
+    Object.keys(re).forEach(c => (re[c] || []).forEach(e => { const k = pgEndChave(c, e); if (k) reincKeys.add(k); }));
+    let lista = [];
+    Object.keys(oc).forEach(cid => (oc[cid] || []).forEach(o => lista.push({ cid, o })));
+    if (munFiltro) lista = lista.filter(x => normMun(x.cid) === munFiltro);
+    const dk = (s) => (s || '').split('/').reverse().join('');
+    lista.sort((a, b) => dk(b.o.d).localeCompare(dk(a.o.d)) || (b.o.h || '').localeCompare(a.o.h || ''));
+    const info = lista.map(({ cid, o }) => ({ cid, o, vdCtx: vdReds.has(o.r), nVd: vdNoEndereco(cid, o, o.r), reinc: reincKeys.has(pgEndChave(cid, o)) }));
+    if (!info.length) return h + `<div class="pending-box">Nenhuma ocorrência de MV${nomeFiltro ? ' em ' + nomeFiltro : ''} no ano.</div></div>`;
+    const acentua = (t) => String(t || '').replace(/Homicidio/g, 'Homicídio').replace(/Feminicidio/g, 'Feminicídio').replace(/Lesao/g, 'Lesão');
+    const cont = (f) => info.filter(x => (f === 'vdctx' && x.vdCtx) || (f === 'vdend' && x.nVd > 0) || (f === 'reinc' && x.reinc) || (f === 'arma' && x.o.a)).length;
+    h += `<div class="vd-recorte">${info.length} ocorrência(s) no ano, da mais recente para a mais antiga. "Contexto VD" = o REDS também está na lista de Violência Doméstica; "VD no endereço" = há chamado de Violência Doméstica no mesmo endereço; "Reincidente" = endereço com 2+ chamados em 60 dias.</div>`;
+    h += pgFiltrosHtml('mvFiltros', [['todos', 'Todas', info.length], ['vdctx', 'Contexto VD', cont('vdctx')], ['vdend', 'VD no endereço', cont('vdend')], ['reinc', 'Endereço reincidente', cont('reinc')], ['arma', 'Com arma', cont('arma')]], 'Buscar REDS, rua, natureza ou causa');
+    h += `<div style="overflow-x:auto" id="mvTabelaBox"><table class="data-table vd-casos"><thead><tr><th>Data / REDS</th><th>Município</th><th>Natureza / Causa</th><th>Local / Meio</th><th>Endereço</th><th>Marcadores</th></tr></thead><tbody>`;
+    info.forEach(({ cid, o, vdCtx, nVd, reinc }) => {
+      const end = pgEndereco(o);
+      const marc = [vdCtx ? pgMk('Contexto VD', 'O REDS também está na lista de Violência Doméstica', 'risco') : '', nVd ? pgMk('VD ×' + nVd, 'Há ' + nVd + ' chamado(s) de violência doméstica neste endereço', 'risco') : '', reinc ? pgMk('⚠ Reincid.', 'Endereço reincidente', 'risco') : '', o.a ? pgMk('Arma', 'Arma de fogo envolvida', 'risco') : '', o.p ? pgMk('Prisão', 'Houve prisão') : ''].join('') || '—';
+      const tags = [vdCtx ? 'vdctx' : '', nVd ? 'vdend' : '', reinc ? 'reinc' : '', o.a ? 'arma' : ''].filter(Boolean).join(' ') || 'sem';
+      h += `<tr data-tags="${tags}" data-busca="${msgEsc(((o.r || '') + ' ' + end + ' ' + (o.n || '') + ' ' + (o.c || '')).toLowerCase())}"><td data-l="Data / REDS">${msgEsc(o.d)}${o.h ? ' ' + msgEsc(o.h) : ''}<br><small>${msgEsc(o.r)}</small></td><td data-l="Município">${msgEsc(cid)}</td><td data-l="Natureza / Causa">${msgEsc(acentua(o.n))}${o.c ? '<br><small>' + msgEsc(o.c) + '</small>' : ''}</td><td data-l="Local / Meio">${msgEsc(o.loc) || '—'}${o.meio ? '<br><small>' + msgEsc(o.meio) + '</small>' : ''}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Marcadores">${marc}</td></tr>`;
+    });
+    return h + `</tbody></table></div></div>`;
+  }
+
   let html = `<div class="page-title">${title}</div>`;
   // zero no mês só é "sem lançamento" em indicador de META; em indicador de TETO zero é o bom resultado (vale se a rotina já rodou no mês)
   html += freshBadge(mesesLocais[ultimoIdx], { semDadoReal: indicadorSemDadoNoMes(d, ultimoIdx, !higherIsBetter) });
@@ -1747,7 +1778,9 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   if (detCfg && DATA[detCfg.dataKey]) {
     html += detalhadoPorNaturezaHtml(DATA[detCfg.dataKey], detCfg.titulo, detCfg.colunas.concat(((DATA[detCfg.dataKey].total || {}).outros || 0) > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []), detCfg.defHtml, detCfg.fonteHtml, mesesLocais.slice(0, ultimoIdx + 1));
   }
+  if (key === 'mv') html += mvOcorrenciasHtml();
   document.getElementById('main').innerHTML = html;
+  if (document.getElementById('mvFiltros')) pgLigarFiltros('mvFiltros', 'mvTabelaBox');
 
   const marcarMes = () => document.querySelectorAll('#indMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === monthIdx));
   marcarMes();
@@ -5094,7 +5127,7 @@ const PPVD_RESTRITO_VAZIO = () => ({
   violencia_domestica: { ocorrencias: {}, enderecos_reincidentes: {} },
   analise_preditiva: { ocorrencias_graves: {}, enderecos_reincidentes: {} },
   reincidencia: { enderecos: {} },
-  crimes_violentos: { ocorrencias: {} },
+  crimes_violentos: { ocorrencias: {}, mv_ocorrencias: {} },
 });
 function ppvdDadosRestritosLiberados() { return ppvdRestritoCarregado; }
 function ppvdAvisoRestrito() {
@@ -5117,7 +5150,7 @@ function ppvdLimparDadosRestritos() {
   window.ppvdOcorrenciaLookup = {}; window.ppvdCVLookup = {}; window.ppvdReincLookup = {};
   ppvdRestritoCarregado = false;
 }
-const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens'];
+const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv'];
 
 async function ppvdInit() {
   if (!ppvdSupa) return;

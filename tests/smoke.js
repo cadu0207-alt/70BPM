@@ -1113,6 +1113,65 @@ function auditar() {
     await ctxJ.close();
   }
 
+  // ---------- 27) Mortes Violentas: lista restrita de ocorrências ----------
+  console.log('\n[27] Mortes Violentas: ocorrências (restrito), cruzamentos com Violência Doméstica e endereço reincidente');
+  {
+    const ctxM = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pm = await ctxM.newPage();
+    const errosM = []; pm.on('pageerror', (e) => errosM.push(e.message));
+    await pm.goto(base);
+    await pm.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pm.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {};
+      // anônimo: aviso e nenhum REDS (mesmo que o dado estivesse na memória)
+      DATA.crimes_violentos.mv_ocorrencias = { [DATA.mv.municipios[0].nome]: [{ r: '2026-000000001-001', d: '01/03/2026', m: 3, n: 'Homicidio', l: 'Rua A', nu: '1' }] };
+      goToPage('imv'); await esp(500);
+      out.anonimo = { aviso: /detalhe restrito/i.test(document.getElementById('main').innerText), reds: (document.getElementById('main').innerText.match(/20\d\d-\d{9}-\d{3}/g) || []).length, tabela: !!document.getElementById('mvTabelaBox') };
+      // logado
+      const cad = () => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, nome: 'A' }; ppvdRestritoCarregado = true;
+      const a = DATA.mv.municipios[0].nome, b = DATA.mv.municipios[1].nome;
+      DATA.crimes_violentos.mv_ocorrencias = {
+        [a]: [
+          { r: 'M1', d: '10/09/2026', h: '22:10', m: 9, n: 'Homicidio', c: 'BRIGA / ATRITO', meio: 'ARMAS DE FOGO', loc: 'CASA', b: 'B', l: 'Rua Um', nu: '1', a: true, p: false },
+          { r: 'M2', d: '05/05/2026', h: '03:00', m: 5, n: 'Feminicidio', c: 'PASSIONAL', meio: 'ARMA BRANCA', loc: 'CASA', b: 'B', l: 'Rua Dois', nu: '2', a: false, p: true },
+          { r: 'M3', d: '01/02/2026', h: '', m: 2, n: 'Homicidio', c: 'VINGANCA', meio: 'ARMAS DE FOGO', loc: 'VIA DE ACESSO PUBLICA', b: 'B', l: 'Rua Tres', nu: '3', a: true, p: false },
+        ],
+        [b]: [{ r: 'M4', d: '07/07/2026', h: '12:00', m: 7, n: 'Homicidio', c: 'IGNORADO', meio: 'OUTROS', loc: 'BAR', b: 'B', l: 'Rua Quatro', nu: '4', a: false, p: false }],
+      };
+      DATA.violencia_domestica.ocorrencias = { [a]: [{ r: 'M2', d: '05/05/2026', m: 5, n: 'Ameaça', g: 'media', l: 'Rua Dois', nu: '2' }, { r: 'V9', d: '01/01/2026', m: 1, n: 'Ameaça', g: 'media', l: 'Rua Um', nu: '1' }] };
+      DATA.reincidencia.enderecos = { [a]: [{ b: 'B', l: 'Rua Tres', nu: '3', q: 2, naturezas: ['Ameaça'], reds: ['x'] }] };
+      setMunFiltro('');
+      goToPage('imv'); await esp(500);
+      const main = document.getElementById('main');
+      const linhas = [...main.querySelectorAll('#mvTabelaBox tbody tr')];
+      out.logado = { ordem: linhas.map(t => t.children[0].querySelector('small').textContent).join(','), chips: [...main.querySelectorAll('#mvFiltros button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).join('|'), marcM2: linhas[2].children[5].textContent, marcM1: linhas[0].children[5].textContent, marcM3: linhas[3] ? linhas[3].children[5].textContent : '', natAcento: linhas[0].children[2].textContent };
+      main.querySelector('#mvFiltros button[data-f="vdctx"]').click();
+      out.logado.vdctx = [...main.querySelectorAll('#mvTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      main.querySelector('#mvFiltros button[data-f="todos"]').click();
+      const busca = document.getElementById('mvFiltrosBusca'); busca.value = 'rua quatro'; busca.dispatchEvent(new Event('input'));
+      out.logado.busca = [...main.querySelectorAll('#mvTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      // filtro de cidade
+      setMunFiltro(b); goToPage('imv'); await esp(500);
+      out.cidade = { linhas: document.querySelectorAll('#mvTabelaBox tbody tr').length, titulo: [...document.querySelectorAll('#main .ind-tit')].map(h => h.textContent).find(t => /Ocorrências de MV/.test(t)) };
+      setMunFiltro('');
+      // logout: o bloco é esvaziado
+      ppvdLimparDadosRestritos();
+      out.limpo = Object.keys(DATA.crimes_violentos.mv_ocorrencias || {}).length === 0;
+      return out;
+    });
+    checa(r.anonimo.aviso && r.anonimo.reds === 0 && !r.anonimo.tabela, 'visitante anônimo: aviso de detalhe restrito e nenhum REDS na página de MV', 'anônimo: ' + JSON.stringify(r.anonimo));
+    checa(r.logado.ordem === 'M1,M4,M2,M3', `lista da mais recente para a mais antiga (${r.logado.ordem})`, 'ordem: ' + r.logado.ordem);
+    checa(/Contexto VD/.test(r.logado.marcM2) && /Arma/.test(r.logado.marcM1) && /VD ×1/.test(r.logado.marcM1) && /Reincid/.test(r.logado.marcM3), 'marcadores: contexto VD, VD no endereço, endereço reincidente e arma', 'marcadores: ' + JSON.stringify(r.logado));
+    checa(/Todas 4\|Contexto VD 1\|VD no endereço 1\|Endereço reincidente 1\|Com arma 2/.test(r.logado.chips) && r.logado.vdctx === 1 && r.logado.busca === 1, 'filtros com contagem e busca por rua', 'filtros: ' + JSON.stringify(r.logado));
+    checa(/Homicídio/.test(r.logado.natAcento), 'natureza com acento (o SiGOp manda sem)', 'natureza: ' + r.logado.natAcento);
+    checa(r.cidade.linhas === 1 && /MV — /.test(r.cidade.titulo), 'cidade filtrada mostra só as ocorrências dela', 'cidade: ' + JSON.stringify(r.cidade));
+    checa(r.limpo, 'ao sair da conta o bloco de ocorrências de MV é esvaziado', 'logout não limpou mv_ocorrencias');
+    checa(errosM.length === 0, 'MV (ocorrências) sem erro de JavaScript', 'erros: ' + errosM.slice(0, 3).join(' | '));
+    await ctxM.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
