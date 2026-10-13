@@ -3780,8 +3780,16 @@ function auditoriaSugestoes(nomeMunicipio) {
     vistos.add(fone); return true;
   });
 }
+// admin, operador da Auditoria (pode_editar_frase: Thomaz) e o comandante da própria cidade cadastram/editam os responsáveis (RLS do banco confere)
+function auditoriaPodeGerir(nomeMunicipio) {
+  return !!(ppvdPerfil && (ppvdPerfil.is_admin || ppvdPerfil.pode_editar_frase || normMun(ppvdPerfil.cidade) === normMun(nomeMunicipio)));
+}
+function auditoriaErroPermissao(error, nomeMunicipio) {
+  return /row-level security|permission denied/i.test(error.message || '') ? 'Sem permissão para cadastrar responsáveis de ' + nomeMunicipio + '. Isso é do admin, do operador da Auditoria ou do comandante da própria cidade.' : error.message;
+}
 function auditoriaRespHtml(nome, muniIdx, temPendencia) {
-  const lista = auditoriaRespDe(nome), sug = auditoriaSugestoes(nome);
+  const lista = auditoriaRespDe(nome), sug = auditoriaPodeGerir(nome) ? auditoriaSugestoes(nome) : [];
+  const podeGerir = auditoriaPodeGerir(nome);
   const ultimoDe = (r) => auditoriaLembretesDe(nome, r.id)[0];
   const ultimoHoje = (r) => { const u = ultimoDe(r); return !!u && auditoriaMesmoDia(u.created_at); };
   const ultimoTxt = (r) => { const u = ultimoDe(r); return u ? `lembrete ${auditoriaQuando(u.created_at)}${u.enviado_por_nome ? ' · ' + msgEsc(u.enviado_por_nome) : ''}` : 'nenhum lembrete enviado'; };
@@ -3793,13 +3801,14 @@ function auditoriaRespHtml(nome, muniIdx, temPendencia) {
     h += `<div class="resp-linha"><span class="resp-func ${r.funcao}">${AUDIT_FUNCOES[r.funcao] || msgEsc(r.funcao)}</span><span class="nome">${msgEsc(r.nome)}</span><span class="fone">${auditoriaFoneFmt(r.whatsapp)}</span>
       <span class="ultimo ${ultimoHoje(r) ? 'hoje' : ''}">${ultimoTxt(r)}</span>
       <span class="acoes"><button class="ppvd-btn ${temPendencia ? 'ppvd-btn-primary' : ''}" ${temPendencia ? '' : 'disabled style="opacity:.45;cursor:not-allowed"'} title="${temPendencia ? 'Abrir o WhatsApp com o lembrete (fica registrado)' : 'Sem pendência agora'}" onclick="auditoriaEnviarLembrete('${r.id}')">${ultimoHoje(r) ? '↻ Reenviar' : '📱 Enviar lembrete'}</button>
-      <button class="ppvd-btn" onclick="auditoriaRespEditar('${r.id}', ${muniIdx})">✏ Editar</button><button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert-text)" onclick="auditoriaRespRemover('${r.id}', ${muniIdx})">Remover</button></span></div>`;
+      ${podeGerir ? `<button class="ppvd-btn" onclick="auditoriaRespEditar('${r.id}', ${muniIdx})">✏ Editar</button><button class="ppvd-btn" style="border-color:var(--alert);color:var(--alert-text)" onclick="auditoriaRespRemover('${r.id}', ${muniIdx})">Remover</button>` : ''}</span></div>`;
   });
-  h += `<div class="resp-form"><input type="hidden" id="audId-${muniIdx}">
+  if (podeGerir) h += `<div class="resp-form"><input type="hidden" id="audId-${muniIdx}">
     <div class="ppvd-field" style="min-width:150px"><label>Função</label><select id="audFuncao-${muniIdx}">${opcoes}</select></div>
     <div class="ppvd-field" style="flex:1;min-width:170px"><label>Nome</label><input id="audNome-${muniIdx}" placeholder="Ex: Ten. Diego Silva" maxlength="120"></div>
     <div class="ppvd-field" style="flex:1;min-width:150px"><label>WhatsApp (com DDD)</label><input id="audWhats-${muniIdx}" placeholder="Ex: 33999999999"></div>
     <button class="ppvd-btn" onclick="auditoriaRespSalvar(${muniIdx})">💾 Salvar</button></div>`;
+  else h += `<div class="resp-vazio">Só o admin, o operador da Auditoria ou o comandante de ${nome} cadastram os responsáveis desta cidade.</div>`;
   if (lista.length && temPendencia) h += `<div style="margin-top:8px"><button class="ppvd-btn" onclick="auditoriaCopiarLembrete('${nome}')" title="Copia o texto do lembrete pra colar num grupo do WhatsApp">📋 Copiar mensagem (grupo)</button></div>`;
   const hist = auditoriaLembretesDe(nome).slice(0, 8);
   if (hist.length) {
@@ -3830,7 +3839,7 @@ async function auditoriaRespSalvar(muniIdx) {
   const q = id ? ppvdSupa.from('auditoria_responsaveis').update({ funcao, nome: nomePessoa, whatsapp: whats }).eq('id', id)
               : ppvdSupa.from('auditoria_responsaveis').insert({ municipio: nome, funcao, nome: nomePessoa, whatsapp: whats, ativo: true });
   const { error } = await q;
-  if (error) { alert(/duplicate|unique/i.test(error.message) ? 'Essa pessoa já está cadastrada nessa função para ' + nome + '.' : 'Erro ao salvar: ' + error.message); return; }
+  if (error) { alert(/duplicate|unique/i.test(error.message) ? 'Essa pessoa já está cadastrada nessa função para ' + nome + '.' : 'Erro ao salvar: ' + auditoriaErroPermissao(error, nome)); return; }
   await auditoriaCarregarResponsaveis();
   auditoriaRespRepintar(muniIdx);
 }

@@ -560,6 +560,19 @@ function auditar() {
     checa(r.tabelas.includes('insert:auditoria_responsaveis') && !r.tabelas.some(t => t.endsWith('militares_responsaveis')), 'adicionar responsável grava só em auditoria_responsaveis (não mexe no da VD)', 'tabelas escritas: ' + r.tabelas.join(', '));
     checa(r.depois === 4, 'lista da cidade atualiza depois de adicionar', `linhas depois de adicionar: ${r.depois}`);
     checa(/Bom dia, Ten\. Pelotão \(inventado\) \(Cmt de Pelotão\)!/.test(r.msg || ''), 'lembrete cumprimenta a pessoa com a função', 'mensagem do lembrete: ' + String(r.msg).slice(0, 80));
+    const perm = await pa.evaluate(() => {
+      const idxA = MUNICIPIOS_CANONICAL.indexOf('Araçuaí'), idxI = MUNICIPIOS_CANONICAL.indexOf('Itinga');
+      const forma = () => ({ araucai: !!document.getElementById('audResp-' + idxA).querySelector('.resp-form'), itinga: !!document.getElementById('audResp-' + idxI).querySelector('.resp-form') });
+      const salvo = ppvdPerfil; const out = {};
+      ppvdPerfil = { aprovado: true, is_admin: false, pode_editar_frase: false, nome: 'C', cargo: 'Cmt', cidade: 'Itinga' };
+      MUNICIPIOS_CANONICAL.forEach((m, i) => auditoriaRespRepintar(i)); out.comandanteDeItinga = forma();
+      ppvdPerfil = { aprovado: true, is_admin: false, pode_editar_frase: true, nome: 'T', cargo: 'Militar da Seção', cidade: 'Araçuaí' };
+      MUNICIPIOS_CANONICAL.forEach((m, i) => auditoriaRespRepintar(i)); out.operador = forma();
+      ppvdPerfil = salvo; MUNICIPIOS_CANONICAL.forEach((m, i) => auditoriaRespRepintar(i));
+      return out;
+    });
+    checa(!perm.comandanteDeItinga.araucai && perm.comandanteDeItinga.itinga, 'comandante de Itinga cadastra só em Itinga (Araçuaí fica só para leitura)', 'permissão do comandante: ' + JSON.stringify(perm.comandanteDeItinga));
+    checa(perm.operador.araucai && perm.operador.itinga, 'operador da Auditoria (Thomaz) cadastra responsáveis de todas as cidades', 'permissão do operador: ' + JSON.stringify(perm.operador));
     checa(errosA.length === 0, 'Auditoria sem erro de JavaScript', 'erros: ' + errosA.slice(0, 3).join(' | '));
     await ctxA.close();
   }
