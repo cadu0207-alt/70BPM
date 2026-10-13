@@ -44,6 +44,8 @@ NÃO cobre ainda:
 
 USO: python3 driver_grave.py  (roda a partir da pasta onde está data.json)
 """
+import collections
+import re
 import csv, json, os, glob, datetime
 import aggregate_grave as ag
 import publicar_restrito as pr
@@ -481,6 +483,61 @@ def run_detalhados(data, rows_bo, report):
                          'confere': total['total'] + soma_fora == soma_total}
 
 
+
+# ---- Local imediato / faixa horária / causa (MV, CVPE, CVPA, Furto Rural) ----
+# Até 2026-10-13 essas listas eram um retrato antigo, parado (MV somava 19 com 22 mortes; CVPE 13 de 19; CVPA 31 de 40; Furto 77 de 101).
+# Agora saem do export de cada indicador a cada rodada, contando pela coluna de total do próprio indicador (vítimas no CVPE/CVPA).
+# Só categorias agregadas — nenhum REDS nem endereço. Logradouro do Furto Rural: os nomes de propriedade/proprietário que o SiGOp
+# grava no campo (ex.: "FAZENDA ... PROP. <nome de pessoa>") são dado pessoal e NÃO vão pro arquivo público: só rodovias
+# (BR/MG/LMG...) ficam com o nome; o resto vira "PROPRIEDADE / COMUNIDADE RURAL".
+LOCAL_FAIXA = {
+    'mv': ('MV', 'IMV_TOTAL', [('mv_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('mv_faixa', 'FAIXA_HORA_6', None)]),
+    'cvpe': ('CVPE', 'ICVPE_TOTAL', [('cvpe_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('cvpe_faixa', 'FAIXA_HORA_6', None)]),
+    'cvpa': ('CVPA', 'ICVPA_TOTAL', [('cvpa_local', 'DESCRICAO_LOCAL_IMEDIATO', None), ('cvpa_faixa', 'FAIXA_HORA_6', None)]),
+    'furto': ('FURTO RURAL', 'IFZR', [('furto_causa', 'CAUSA_PRESUMIDA', None), ('furto_logradouro', 'LOGRADOURO', 10)]),
+}
+_RODOVIA = re.compile(r'^(BR|MG|LMG|AMG|CMG|MGC)[\s-]?\d+')
+
+
+def _rotulo_local(chave_dado, bruto):
+    r = (bruto or '').strip()
+    if chave_dado == 'furto_logradouro':
+        up = r.upper()
+        if not r or up.startswith('INV') or len(up) <= 2:
+            return 'NAO INFORMADO'
+        return r if _RODOVIA.match(up) else 'PROPRIEDADE / COMUNIDADE RURAL'
+    return r or 'NAO INFORMADO'
+
+
+def run_local_faixa(data, report):
+    for chave, (pasta, col_total, saidas) in LOCAL_FAIXA.items():
+        f = latest_csv(pasta)
+        if not f:
+            report['local_faixa_' + chave] = {'skipped': True, 'reason': f'sem export em entrada/{pasta}'}
+            continue
+        rows = read_csv(f, encoding='latin-1')
+        if pasta == 'MV':
+            aj.neutralizar_mv(rows, 'MV (local/faixa)', report)
+        validas = [r for r in rows if _num(r.get(col_total)) > 0]
+        soma = sum(_num(r.get(col_total)) for r in validas)
+        res = {'file': f, 'soma_indicador': soma, 'saidas': {}}
+        for dkey, col, limite in saidas:
+            cont = collections.Counter()
+            for r in validas:
+                cont[_rotulo_local(dkey, r.get(col))] += _num(r.get(col_total))
+            lista = sorted(cont.items(), key=lambda kv: (-kv[1], kv[0]))
+            if limite:
+                lista = lista[:limite]
+            confere = limite is not None or sum(v for _, v in lista) == soma
+            if not confere or dkey not in data:
+                res['saidas'][dkey] = {'skipped': True, 'reason': 'soma não confere com o total do indicador' if not confere else 'bloco inexistente'}
+                continue
+            antes = sum(x[1] for x in data[dkey])
+            data[dkey] = [[k, v] for k, v in lista]
+            res['saidas'][dkey] = {'total_antes': antes, 'total_depois': sum(v for _, v in lista), 'categorias': len(lista)}
+        report['local_faixa_' + chave] = res
+
+
 def main():
     data = pr.carregar()  # data_completo.json (com blocos restritos); ver publicar_restrito.py
     report = {}
@@ -500,6 +557,8 @@ def main():
         run_crimes_violentos(data, rows_bo, report)
         run_reincidencia(data, rows_bo, report)
         run_detalhados(data, rows_bo, report)
+
+    run_local_faixa(data, report)
 
     # Carimba atualizado_em em todo bloco tocado (e não pulado) nesta rodada — mesmo
     # motivo do aggregate.py (ver 2026-09-28): sem isso o campo ficava parado na última

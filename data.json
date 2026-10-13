@@ -2528,15 +2528,19 @@
   "mv_local": [
     [
       "VIA DE ACESSO PUBLICA",
-      9
+      10
     ],
     [
       "CASA",
-      6
+      7
     ],
     [
       "BAR / LANCHONETE / RESTAURANTE / SIMILAR",
       2
+    ],
+    [
+      "OUTROS - IMOVEIS RURAIS",
+      1
     ],
     [
       "OUTROS - RESIDENCIAS URBANAS",
@@ -2549,12 +2553,12 @@
   ],
   "mv_faixa": [
     [
-      "De 18:00 as 23:59",
-      6
+      "De 00:00 as 05:59",
+      7
     ],
     [
-      "De 00:00 as 05:59",
-      6
+      "De 18:00 as 23:59",
+      7
     ],
     [
       "De 12:00 as 17:59",
@@ -2562,95 +2566,99 @@
     ],
     [
       "De 06:00 as 11:59",
-      2
+      3
     ]
   ],
   "cvpe_local": [
     [
       "VIA DE ACESSO PUBLICA",
-      6
+      9
     ],
     [
       "CASA",
-      4
-    ],
-    [
-      "HOTEL/APART-HOTEL/POUSADA/PENSAO",
-      1
+      6
     ],
     [
       "BAR / LANCHONETE / RESTAURANTE / SIMILAR",
-      1
+      2
     ],
     [
       "ESCRITORIO",
+      1
+    ],
+    [
+      "HOTEL/APART-HOTEL/POUSADA/PENSAO",
       1
     ]
   ],
   "cvpe_faixa": [
     [
+      "De 12:00 as 17:59",
+      7
+    ],
+    [
       "De 18:00 as 23:59",
       5
     ],
     [
+      "De 00:00 as 05:59",
+      4
+    ],
+    [
       "De 06:00 as 11:59",
       3
-    ],
-    [
-      "De 12:00 as 17:59",
-      3
-    ],
-    [
-      "De 00:00 as 05:59",
-      2
     ]
   ],
   "cvpa_local": [
     [
       "VIA DE ACESSO PUBLICA",
-      21
+      26
     ],
     [
       "CASA",
-      5
+      6
+    ],
+    [
+      "OUTROS - ESTABELECIMENTOS COMERCIAIS / SERVIC",
+      2
+    ],
+    [
+      "POSTO DE COMBUSTIVEL",
+      2
+    ],
+    [
+      "BAR / LANCHONETE / RESTAURANTE / SIMILAR",
+      1
     ],
     [
       "FEIRA LIVRE",
       1
     ],
     [
-      "POSTO DE COMBUSTIVEL",
-      1
-    ],
-    [
-      "BAR / LANCHONETE / RESTAURANTE / SIMILAR",
+      "RESIDENCIA RURAL",
       1
     ],
     [
       "VIA DE ACESSO PARTICULAR/PRIVADA",
-      1
-    ],
-    [
-      "RESIDENCIA RURAL",
       1
     ]
   ],
   "cvpa_faixa": [
     [
       "De 18:00 as 23:59",
-      13
+      14
     ],
     [
       "De 00:00 as 05:59",
-      10
+      13
     ],
     [
       "De 12:00 as 17:59",
-      5
+      8
     ],
     [
       "De 06:00 as 11:59",
-      3
+      5
     ]
   ],
   "armas": {
@@ -4340,15 +4348,15 @@
   "furto_causa": [
     [
       "VANTAGEM ECONOMICA",
-      53
+      67
     ],
     [
-      "OUTRAS MOTIVACOES/CAUSAS ",
-      14
+      "OUTRAS MOTIVACOES/CAUSAS",
+      19
     ],
     [
       "IGNORADO",
-      9
+      14
     ],
     [
       "ENVOLVIMENTO COM DROGAS",
@@ -4357,43 +4365,27 @@
   ],
   "furto_logradouro": [
     [
+      "PROPRIEDADE / COMUNIDADE RURAL",
+      77
+    ],
+    [
       "BR 116",
-      6
+      10
+    ],
+    [
+      "NAO INFORMADO",
+      7
     ],
     [
       "BR 367",
       5
     ],
     [
-      "PPR0022 - POVOADO CORREGO DA CRUZETA - ZONA RURAL - PADRE PARAISO",
-      3
-    ],
-    [
-      "INVÁLIDO",
-      3
-    ],
-    [
-      "ACI0035 - BAIXA QUENTE - COMUNIDADE BAIXA",
-      2
-    ],
-    [
-      "A",
+      "LMG 646",
       1
     ],
     [
-      "ACI0102 - COMUNIDADE TESOURAS DO MEIO",
-      1
-    ],
-    [
-      "ACI0221 - FAZENDA SANTA LUZIA - PIAUI POCO DANTAS - ARACUAI - MG",
-      1
-    ],
-    [
-      "MDN0100 - ROCHEDO - MEDINA",
-      1
-    ],
-    [
-      "WALLACE RHIGHI PAMPOLINE",
+      "MGC 342",
       1
     ]
   ],
