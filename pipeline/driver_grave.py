@@ -621,6 +621,58 @@ def run_cvpe_ocorrencias(data, report):
     _lista_ocorrencias(data, report, 'CVPE', 'ICVPE_TOTAL', 'cvpe_ocorrencias', 'cvpe_ocorrencias', col_pm='ICVPE_B01121_MILITAR')
 
 
+
+# ---- Dia da semana x faixa horária, rodovias e (CVPA) alvo do roubo — MV, CVPE, CVPA ----
+# Só agregados públicos (nenhum REDS nem endereço de casa: "rodovia" guarda só o nome da via, ex. "BR 116").
+DIAS_SEMANA = [('SEG', 'Segunda'), ('TER', 'Terça'), ('QUA', 'Quarta'), ('QUI', 'Quinta'), ('SEX', 'Sexta'), ('SAB', 'Sábado'), ('DOM', 'Domingo')]
+FAIXAS_6H = ['00h–06h', '06h–12h', '12h–18h', '18h–24h']
+
+
+def run_extras_indicadores(data, report):
+    for chave in ('mv', 'cvpe', 'cvpa'):
+        pasta, col_total, _saidas = LOCAL_FAIXA[chave]
+        f = latest_csv(pasta)
+        if not f:
+            report['extras_' + chave] = {'skipped': True, 'reason': f'sem export em entrada/{pasta}'}
+            continue
+        rows = read_csv(f, encoding='latin-1')
+        if pasta == 'MV':
+            aj.neutralizar_mv(rows, 'MV (extras)', report)
+        validas = [r for r in rows if _num(r.get(col_total)) > 0]
+        soma = sum(_num(r.get(col_total)) for r in validas)
+        matriz = [[0] * 4 for _ in range(7)]
+        rodov, alvo = collections.Counter(), collections.Counter()
+        for r in validas:
+            tot = _num(r.get(col_total))
+            pref = (r.get('DIA_DA_SEMANA_FATO') or '').strip().upper()[:3]
+            i_d = next((i for i, (pf, _) in enumerate(DIAS_SEMANA) if pf == pref), None)
+            m = re.search(r'(\d\d):', r.get('FAIXA_HORA_6') or '')
+            i_f = int(m.group(1)) // 6 if m else None
+            if i_d is not None and i_f is not None and i_f < 4:
+                matriz[i_d][i_f] += tot
+            if (r.get('TIPO_LOGRADOURO') or '').strip().upper() == 'RODOVIA':
+                via = re.sub(r'[\s-]+', ' ', (r.get('LOGRADOURO') or '').strip().upper())  # "BR-251" e "BR 251" são a mesma via
+                rodov['NAO INFORMADO' if not via or via.startswith('INV') else via] += tot
+            if chave == 'cvpa':
+                rot = (r.get('COMPLEMENTO_NATUREZA') or '').strip() or 'NAO INFORMADO'
+                alvo[re.sub(r'^BENS/VALORES( DE)? ', '', rot.split(' (')[0])] += tot  # o SiGOp escreve a mesma categoria com e sem "BENS/VALORES DE"
+        res = {'file': f, 'soma_indicador': soma, 'em_rodovia': sum(rodov.values())}
+        if sum(sum(l) for l in matriz) == soma:
+            data[chave + '_dia_faixa'] = {'dias': [n for _, n in DIAS_SEMANA], 'faixas': FAIXAS_6H, 'matriz': matriz}
+            res['dia_faixa'] = 'ok'
+        else:
+            res['dia_faixa'] = f'não confere ({sum(sum(l) for l in matriz)} de {soma}) — mantido o anterior'
+        data[chave + '_rodovia'] = [[k, v] for k, v in sorted(rodov.items(), key=lambda kv: (-kv[1], kv[0]))]
+        if chave == 'cvpa':
+            ordenado = sorted(alvo.items(), key=lambda kv: (-kv[1], kv[0]))
+            if sum(v for _, v in ordenado) == soma:
+                data['cvpa_alvo'] = [[k, v] for k, v in ordenado]
+                res['alvo'] = 'ok'
+            else:
+                res['alvo'] = 'não confere'
+        report['extras_' + chave] = res
+
+
 def main():
     data = pr.carregar()  # data_completo.json (com blocos restritos); ver publicar_restrito.py
     report = {}
@@ -642,6 +694,7 @@ def main():
         run_detalhados(data, rows_bo, report)
 
     run_local_faixa(data, report)
+    run_extras_indicadores(data, report)
     run_mv_ocorrencias(data, report)
     run_cvpe_ocorrencias(data, report)
 
