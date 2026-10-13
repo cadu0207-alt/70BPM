@@ -320,6 +320,8 @@
   /* Páginas de análise no padrão da Violência Doméstica (onda 1, 2026-10-13) */
   table.vd-casos tr[hidden] { display:none !important; }
   .pg-resumo-linha { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
+  .vd-outras { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; } .vd-outras:empty { display:none; }
+  .vd-outras .ppvd-btn { font-weight:400; text-align:left; } .vd-outras .ppvd-btn b { font-weight:700; }
   /* Página do caso de VD, onda 3 (2026-10-13) */
   .caso-prox { border:1px solid var(--panel-border); border-left:5px solid var(--alert); border-radius:6px; background:var(--panel); padding:14px 18px; margin:14px 0 12px; }
   .caso-prox.a { border-left-color:var(--amber); } .caso-prox.z { border-left-color:#5b9bd5; } .caso-prox.g { border-left-color:var(--signal); }
@@ -1063,7 +1065,14 @@ async function homeVdCarregar() {
       <div class="vd-cont g"><div class="n">${c.g}</div><div class="t">✓ Estabilizados</div><div class="s">caso encerrado com êxito</div></div>
     </div>
     ${topo.length ? `<div class="vd-cidades">Mais casos em vermelho: ${topo.map(([m, n]) => `<button type="button" data-mun="${m}" title="Abrir Violência Doméstica em ${m}">${m} · ${n}</button>`).join('')}</div>` : ''}
+    <div class="vd-outras" id="homeOutras"></div>
     <div class="vd-acoes"><button type="button" class="ppvd-btn" data-ir="violencia_domestica">Abrir Violência Doméstica</button><button type="button" class="ppvd-btn" data-ir="auditoria">Painel de Auditoria</button></div>`;
+  // Crimes Violentos e Reincidência (mesmo semáforo, só vermelho/amarelo/verde): uma linha cada, preenchida depois
+  outrasSituacaoCasos().then(sit => {
+    const el = document.getElementById('homeOutras'); if (!el || el.closest('#homeVD') !== alvo) return;
+    const linha = (rot, pagina, c) => `<button type="button" class="ppvd-btn" data-ir="${pagina}" title="Abrir ${rot}"><b>${rot}</b> — ✕ ${c.v} sem caso/novo · ! ${c.a} em acompanhamento · ✓ ${c.g} encerrados</button>`;
+    el.innerHTML = linha('Crimes Violentos', 'crimes_violentos', sit.cv.total) + linha('Reincidência de Endereço', 'reincidencia', sit.re.total);
+  });
   alvo.onclick = (e) => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.mun) { setMunFiltro(b.dataset.mun); goToPage('violencia_domestica'); }
@@ -2599,6 +2608,61 @@ function renderViolenciaDomesticaPage() {
   });
 }
 
+// ===== Situação dos casos de Crimes Violentos e de Reincidência de Endereço (PPVD) =====
+// Esses casos têm um fluxo curto (wizard GUT): novo -> em_acompanhamento -> encerrado/recusa. Cores (pedido de Eduardo, 2026-10-13):
+// vermelho = sem caso ou novo, amarelo = em acompanhamento, verde = encerrado (inclui recusa). Como na VD, o que é anterior a
+// Setembro/2026 e NÃO tem caso conta como finalizado (as visitas daquele período foram feitas sem registro no sistema); caso
+// antigo que já existe no PPVD mantém a situação real.
+const PPVD_DESDE_MS = new Date(2026, 8, 1).getTime();
+function ppvdSemaforoOutros(caso) {
+  if (!caso) return 'vermelho';
+  if (caso.status === 'em_acompanhamento') return 'amarelo';
+  if (caso.status === 'encerrado' || caso.status === 'recusa') return 'verde';
+  return 'vermelho';
+}
+function ppvdStatusLabelOutros(status) {
+  return { novo: 'Novo', em_acompanhamento: 'Em acompanhamento', encerrado: 'Encerrado', recusa: 'Recusa' }[status] || status || 'Sem caso';
+}
+const pgBadgeCls = (sem) => (sem === 'verde' ? 'ppvd-badge-verde' : (sem === 'azul' ? 'ppvd-badge-azul' : (sem === 'amarelo' ? 'ppvd-badge-alta' : 'ppvd-badge-critica')));
+const cvAnterior = (o) => o.m < HOME_VD_MES_INICIO;
+const reAnterior = (e) => e.dias_desde_ultimo != null && (Date.now() - e.dias_desde_ultimo * 86400000) < PPVD_DESDE_MS;
+const reChave = (nome, e) => [nome, e.b || '', e.l || '', e.nu || ''].join('|');
+async function ppvdBuscarCasosOutros(modalidade) {
+  if (!ppvdSupa || !ppvdUser || !ppvdPerfil || !ppvdPerfil.aprovado) return {};
+  const col = modalidade === 'reincidencia' ? 'endereco_key' : 'reds_numero';
+  const { data, error } = await ppvdSupa.from('ppvd_casos').select('*').eq('modalidade', modalidade);
+  const mapa = {};
+  (!error && data ? data : []).forEach(c => { if (c[col]) mapa[c[col]] = c; });
+  return mapa;
+}
+// contagem por cidade (vermelho/amarelo/verde) de Crimes Violentos e Reincidência, usada nos rankings e na Home
+async function outrasSituacaoCasos() {
+  const [cvCasos, reCasos] = await Promise.all([ppvdBuscarCasosOutros('crimes_violentos'), ppvdBuscarCasosOutros('reincidencia')]);
+  const novo = () => ({ v: 0, a: 0, g: 0 });
+  const conta = (alvo, sem) => { alvo[sem === 'vermelho' ? 'v' : (sem === 'amarelo' ? 'a' : 'g')]++; };
+  const out = { cv: { porCidade: {}, total: novo(), casos: cvCasos }, re: { porCidade: {}, total: novo(), casos: reCasos } };
+  const cvOc = (DATA.crimes_violentos || {}).ocorrencias || {};
+  Object.keys(cvOc).forEach(nome => (cvOc[nome] || []).forEach(o => {
+    const caso = o.r ? (cvCasos[o.r] || null) : null;
+    const sem = !caso && cvAnterior(o) ? 'verde' : ppvdSemaforoOutros(caso);
+    conta(out.cv.porCidade[nome] = out.cv.porCidade[nome] || novo(), sem); conta(out.cv.total, sem);
+  }));
+  const reEnd = (DATA.reincidencia || {}).enderecos || {};
+  Object.keys(reEnd).forEach(nome => (reEnd[nome] || []).forEach(e => {
+    const caso = reCasos[reChave(nome, e)] || null;
+    const sem = !caso && reAnterior(e) ? 'verde' : ppvdSemaforoOutros(caso);
+    conta(out.re.porCidade[nome] = out.re.porCidade[nome] || novo(), sem); conta(out.re.total, sem);
+  }));
+  return out;
+}
+function pgSitCelulasVazias() { return '<td class="sit-cel z" data-s="v">·</td><td class="sit-cel z" data-s="a">·</td><td class="sit-cel z" data-s="g">·</td>'; }
+function pgSitPreencher(tabelaId, totalId, porCidade, total, canonicas) {
+  const tab = document.getElementById(tabelaId); if (!tab) return;
+  const poe = (tr, c) => ['v', 'a', 'g'].forEach(k => { const td = tr.querySelector(`td[data-s="${k}"]`); if (td) { td.textContent = c[k]; td.className = 'sit-cel ' + (c[k] ? (k === 'v' ? 'pv' : '') : 'z'); } });
+  tab.querySelectorAll('tr.rank-clic').forEach(tr => poe(tr, porCidade[tr.dataset.mun] || { v: 0, a: 0, g: 0 }));
+  const tot = document.getElementById(totalId); if (tot) poe(tot, total);
+}
+
 function renderCrimesViolentosPage() {
   const d = DATA.crimes_violentos;
   const mesesLocais = d.meses;
@@ -2610,6 +2674,7 @@ function renderCrimesViolentosPage() {
   const popTotal = municipiosData.reduce((s, m) => s + (m.pop || 0), 0);
   const taxaGeral = popTotal ? (totalGeral / popTotal * 100000) : 0;
   const subTotal = iUlt > 0 ? `${mesesLocais[iUlt]}${parcial ? ' (até agora)' : ''}: ${d.panorama.total_mes[iUlt]} · ${mesesLocais[iUlt - 1]}: ${d.panorama.total_mes[iUlt - 1]}` : '';
+  const comSituacao = ppvdDadosRestritosLiberados();
 
   let html = `<div class="page-title">Crimes Violentos</div>`;
   html += `<details class="aud-como"><summary>Metodologia e definições — como o universo de crimes violentos é montado</summary><div>${DEFS.crimes_violentos}</div></details>`;
@@ -2620,15 +2685,16 @@ function renderCrimesViolentosPage() {
   html += `</div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ranking por Município (taxa por 100 mil habitantes)</div>`;
-  html += `<div class="vd-recorte">Clique numa cidade para ver as ocorrências dela abaixo.</div>`;
+  html += `<div class="vd-recorte">Clique numa cidade para ver as ocorrências dela abaixo.${comSituacao ? ' As colunas de situação contam as ocorrências desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' e os casos antigos já abertos no PPVD.' : ''}</div>`;
   const ranking = municipiosData.slice().sort((a, b) => b.taxa_100k - a.taxa_100k);
   const munFiltroAtual = normMun(getMunFiltro());
-  html += `<div class="table-wrap"><table class="data-table" id="cvRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th></tr></thead><tbody>`;
+  html += `<div class="table-wrap"><table class="data-table" id="cvRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th>${comSituacao ? '<th title="Sem caso ou novo">✕ Sem caso/novo</th><th title="Em acompanhamento">! Acomp.</th><th title="Encerrados">✓ Encerr.</th>' : ''}</tr></thead><tbody>`;
+  const sitVazia = comSituacao ? pgSitCelulasVazias() : '';
   ranking.forEach((m, i) => {
     const c = rankColor(i, ranking.length, true);
-    html += `<tr class="rank-clic${normMun(m.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${m.nome}" title="Ver as ocorrências de ${m.nome}"><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td></tr>`;
+    html += `<tr class="rank-clic${normMun(m.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${m.nome}" title="Ver as ocorrências de ${m.nome}"><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td>${sitVazia}</tr>`;
   });
-  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td></tr>`;
+  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)" id="cvRankingTotal"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td>${sitVazia}</tr>`;
   html += `</tbody></table></div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Série Mensal — 70º BPM</div>`;
@@ -2650,7 +2716,10 @@ function renderCrimesViolentosPage() {
 
   document.getElementById('main').innerHTML = html;
 
-  function renderMuniPanel(muniIdx, periodo) {
+  let casosPromessa = null;
+  const casosCv = () => (casosPromessa = casosPromessa || ppvdBuscarCasosOutros('crimes_violentos'));
+
+  async function renderMuniPanel(muniIdx, periodo) {
     const m = municipiosData[muniIdx];
     const nome = m.nome;
     let total;
@@ -2664,31 +2733,47 @@ function renderCrimesViolentosPage() {
     h += `</div>`;
     const alvo = document.getElementById('cvMuniPanel');
 
+    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); alvo.innerHTML = h; return; }
+    const casos = await casosCv();
     const listaAll = d.ocorrencias[nome] || [];
     const lista = (periodo === 'acum') ? listaAll.slice() : listaAll.filter(o => o.m === parseInt(periodo) + 1);
-    const ordemGrav = { critica: 0, alta: 1, media: 2 };
+    const casoDe = (o) => (o.r ? (casos[o.r] || null) : null);
+    const velhoSemCaso = (o) => cvAnterior(o) && !casoDe(o);
+    const semDe = (o) => (velhoSemCaso(o) ? 'verde' : ppvdSemaforoOutros(casoDe(o)));
+    const principais = periodo === 'acum' ? lista.filter(o => !velhoSemCaso(o)) : lista;
+    const historico = periodo === 'acum' ? lista.filter(velhoSemCaso) : [];
+    const ordemSem = { vermelho: 0, amarelo: 1, verde: 2 }, ordemGrav = { critica: 0, alta: 1, media: 2 };
     const dk = s => (s || '').split('/').reverse().join('');
-    lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
+    principais.sort((a, b) => (ordemSem[semDe(a)] - ordemSem[semDe(b)]) || (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); alvo.innerHTML = h; return; }
+    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>REDS / Data</th><th>Natureza / Gravidade</th><th>Endereço</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
     const linha = (o) => {
       const end = pgEndereco(o);
       window.ppvdCVLookup = window.ppvdCVLookup || {};
       if (o.r) {
         window.ppvdCVLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, _origem: { arma_fogo: o.a, tentativa_homicidio: (o.n || '').includes('Tentativa'), autor_preso: o.p, dias_desde_reds: ppvdDiasDesde(o.d) } };
       }
+      const caso = casoDe(o), velho = velhoSemCaso(o), sem = semDe(o);
+      const horas = sem === 'verde' ? null : auditoriaHorasDesde(o.d);
+      const abertoHa = horas === null ? '' : `<br><span class="aberto-ha ${horas > 72 ? 'atraso' : ''}" title="Tempo desde o fato, enquanto o caso não está encerrado">aberto há ${Math.max(0, horas) >= 24 ? (Math.max(0, horas) / 24).toFixed(1) + 'd' : Math.max(0, horas).toFixed(0) + 'h'}</span>`;
+      const situacao = `<span class="ppvd-badge ${pgBadgeCls(sem)}">${velho ? 'Finalizado' : ppvdStatusLabelOutros(caso && caso.status)}</span>${velho ? '<br><small>' + PPVD_OBS_ANTERIOR + '</small>' : abertoHa}`;
       const marc = [o.a ? pgMk('Arma', 'Arma de fogo envolvida', 'risco') : '', o.p ? pgMk('Prisão', 'Autor preso') : ''].join('') || '—';
-      const casoBtn = o.r ? `<button class="ppvd-btn" onclick="ppvdAbrirCasoCV('${o.r}')">Abrir Caso ▸</button>` : '—';
-      const tags = [o.g, o.a ? 'arma' : '', o.p ? 'prisao' : ''].filter(Boolean).join(' ');
-      return `<tr data-tags="${tags}" data-busca="${msgEsc(((o.r || '') + ' ' + end + ' ' + (o.n || '') + ' ' + (o.c || '')).toLowerCase())}"><td data-l="REDS / Data">${msgEsc(o.r || '—')}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${msgEsc(o.n)}<br>${gravBadge(o.g)}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Causa">${msgEsc(o.c) || '—'}</td><td data-l="Marcadores">${marc}</td><td class="acao">${casoBtn}</td></tr>`;
+      const resp = caso ? (msgEsc(caso.militar_responsavel) || '—') + (caso.gut_score ? `<br><small>GUT ${caso.gut_score}</small>` : '') : '—';
+      const acao = !o.r ? '—' : (caso ? `<button class="ppvd-btn" onclick="ppvdAbrirCasoCV('${o.r}')">Ver Caso ▸</button>` : (velho ? '—' : `<button class="ppvd-btn" onclick="ppvdAbrirCasoCV('${o.r}')">Abrir Caso ▸</button>`));
+      const tags = [sem, o.g, o.a ? 'arma' : '', o.p ? 'prisao' : ''].filter(Boolean).join(' ');
+      return `<tr class="vd-row-${sem}" data-tags="${tags}" data-busca="${msgEsc(((o.r || '') + ' ' + end + ' ' + (o.n || '') + ' ' + (o.c || '')).toLowerCase())}"><td data-l="Situação">${situacao}</td><td data-l="REDS / Data">${msgEsc(o.r || '—')}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${msgEsc(o.n)}<br>${gravBadge(o.g)}${o.c ? '<br><small>' + msgEsc(o.c) + '</small>' : ''}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Marcadores">${marc}</td><td data-l="Responsável">${resp}</td><td class="acao">${acao}</td></tr>`;
     };
-    const cont = (f) => lista.filter(o => o.g === f || (f === 'arma' && o.a) || (f === 'prisao' && o.p)).length;
-    h += pgFiltrosHtml('cvFiltros', [['todos', 'Todas', lista.length], ['critica', 'Crítica', cont('critica')], ['alta', 'Alta', cont('alta')], ['media', 'Média', cont('media')], ['arma', 'Com arma', cont('arma')], ['prisao', 'Autor preso', cont('prisao')]], 'Buscar REDS, rua, natureza ou causa');
-    h += `<div style="overflow-x:auto" id="cvTabelaBox"><table class="data-table vd-casos"><thead><tr><th>REDS / Data</th><th>Natureza / Gravidade</th><th>Endereço</th><th>Causa</th><th>Marcadores</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
-    h += lista.length ? lista.map(linha).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
+    const cont = (f) => principais.filter(o => semDe(o) === f || o.g === f || (f === 'arma' && o.a) || (f === 'prisao' && o.p)).length;
+    if (periodo === 'acum') h += `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no PPVD: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao PPVD, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}.</div>`;
+    h += pgFiltrosHtml('cvFiltros', [['todos', 'Todas', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')], ['critica', 'Crítica', cont('critica')], ['arma', 'Com arma', cont('arma')]], 'Buscar REDS, rua, natureza ou causa');
+    h += `<div style="overflow-x:auto" id="cvTabelaBox">${cabecalho}`;
+    h += principais.length ? principais.map(linha).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
     h += `</tbody></table></div>`;
+    if (historico.length) h += `<details class="vd-historico" id="cvHistorico"><summary>Histórico anterior ao PPVD — ${historico.length} ocorrência(s) finalizadas (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
     alvo.innerHTML = h;
     pgLigarFiltros('cvFiltros', 'cvTabelaBox');
+    const det = document.getElementById('cvHistorico');
+    if (det) det.addEventListener('toggle', () => { const c = det.querySelector('.vd-historico-corpo'); if (det.open && !c.dataset.pronto) { c.innerHTML = cabecalho + historico.map(linha).join('') + '</tbody></table>'; c.dataset.pronto = '1'; } });
   }
 
   if (!cid.ausente) {
@@ -2697,12 +2782,14 @@ function renderCrimesViolentosPage() {
     pgLigarPeriodo('cvPeriodos', 'cvPeriodo', periodoInicial, (p) => renderMuniPanel(cid.idx, p));
   }
   pgRankingClicavel('cvRanking', 'crimes_violentos');
+  if (comSituacao) outrasSituacaoCasos().then(sit => pgSitPreencher('cvRanking', 'cvRankingTotal', sit.cv.porCidade, sit.cv.total));
 }
 
 function renderReincidenciaPage() {
   const d = DATA.reincidencia;
   const municipiosData = d.municipios;
   const totalGeral = d.panorama.total_enderecos;
+  const comSituacao = ppvdDadosRestritosLiberados();
 
   let html = `<div class="page-title">Preditiva por Reincidência de Endereço</div>`;
   html += `<details class="aud-como"><summary>Metodologia e definições — o que é um endereço reincidente</summary><div>${DEFS.reincidencia}</div></details>`;
@@ -2712,15 +2799,16 @@ function renderReincidenciaPage() {
   html += `</div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ranking por Município (Nº de Endereços Reincidentes)</div>`;
-  html += `<div class="vd-recorte">Clique numa cidade para ver os endereços dela abaixo.</div>`;
+  html += `<div class="vd-recorte">Clique numa cidade para ver os endereços dela abaixo.${comSituacao ? ' As colunas de situação contam os endereços com chamado desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' e os casos antigos já abertos no PPVD.' : ''}</div>`;
   const ranking = municipiosData.slice().sort((a, b) => b.enderecos_reincidentes - a.enderecos_reincidentes);
   const munFiltroAtual = normMun(getMunFiltro());
-  html += `<div class="table-wrap"><table class="data-table" id="reRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Endereços Reincidentes</th></tr></thead><tbody>`;
+  html += `<div class="table-wrap"><table class="data-table" id="reRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Endereços Reincidentes</th>${comSituacao ? '<th title="Sem caso ou novo">✕ Sem caso/novo</th><th title="Em acompanhamento">! Acomp.</th><th title="Encerrados">✓ Encerr.</th>' : ''}</tr></thead><tbody>`;
+  const sitVazia = comSituacao ? pgSitCelulasVazias() : '';
   ranking.forEach((m, i) => {
     const c = rankColor(i, ranking.length, true);
-    html += `<tr class="rank-clic${normMun(m.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${m.nome}" title="Ver os endereços de ${m.nome}"><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.enderecos_reincidentes}</td></tr>`;
+    html += `<tr class="rank-clic${normMun(m.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${m.nome}" title="Ver os endereços de ${m.nome}"><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.enderecos_reincidentes}</td>${sitVazia}</tr>`;
   });
-  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(municipiosData.reduce((s, m) => s + (m.pop || 0), 0), 0)}</td><td>${totalGeral}</td></tr>`;
+  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)" id="reRankingTotal"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(municipiosData.reduce((s, m) => s + (m.pop || 0), 0), 0)}</td><td>${totalGeral}</td>${sitVazia}</tr>`;
   html += `</tbody></table></div>`;
 
   const cid = pgCidade(municipiosData, ranking);
@@ -2734,13 +2822,9 @@ function renderReincidenciaPage() {
 
   document.getElementById('main').innerHTML = html;
 
-  function renderMuniPanel(muniIdx) {
+  async function renderMuniPanel(muniIdx) {
     const m = municipiosData[muniIdx];
     const nome = m.nome;
-    // mais recente primeiro (0 dias = hoje também conta; antes um "0" caía pro fim da lista)
-    const diasDe = (e) => (e.dias_desde_ultimo == null ? 9999 : e.dias_desde_ultimo);
-    const enderecos = (d.enderecos[nome] || []).slice().sort((a, b) => diasDe(a) - diasDe(b));
-    const urgenteDe = (e) => e.dias_desde_ultimo != null && e.dias_desde_ultimo <= 10;
 
     let h = `<div class="kpi-grid">`;
     h += `<div class="kpi-card ${m.enderecos_reincidentes > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${m.enderecos_reincidentes}</div><div class="lbl">Endereços com Reincidência</div></div>`;
@@ -2749,34 +2833,54 @@ function renderReincidenciaPage() {
     const alvo = document.getElementById('reMuniPanel');
 
     if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); alvo.innerHTML = h; return; }
-    const linha = (e, ei) => {
+    const casos = await ppvdBuscarCasosOutros('reincidencia');
+    // mais recente primeiro (0 dias = hoje também conta; antes um "0" caía pro fim da lista)
+    const diasDe = (e) => (e.dias_desde_ultimo == null ? 9999 : e.dias_desde_ultimo);
+    const todos = (d.enderecos[nome] || []).slice().sort((a, b) => diasDe(a) - diasDe(b));
+    const casoDe = (e) => casos[reChave(nome, e)] || null;
+    const velhoSemCaso = (e) => reAnterior(e) && !casoDe(e);
+    const semDe = (e) => (velhoSemCaso(e) ? 'verde' : ppvdSemaforoOutros(casoDe(e)));
+    const urgenteDe = (e) => e.dias_desde_ultimo != null && e.dias_desde_ultimo <= 10;
+    const principais = todos.filter(e => !velhoSemCaso(e)), historico = todos.filter(velhoSemCaso);
+    const ordemSem = { vermelho: 0, amarelo: 1, verde: 2 };
+    principais.sort((a, b) => (ordemSem[semDe(a)] - ordemSem[semDe(b)]) || (diasDe(a) - diasDe(b)));
+
+    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>Endereço</th><th>Chamados</th><th>Último chamado</th><th>Naturezas</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
+    const linha = (e) => {
       const end = pgEndereco(e);
-      const urgente = urgenteDe(e);
-      const lookupId = `${nome}__${muniIdx}__${ei}`;
+      const caso = casoDe(e), velho = velhoSemCaso(e), sem = semDe(e), urgente = urgenteDe(e);
+      const lookupId = `${nome}__${muniIdx}__${todos.indexOf(e)}`;
       window.ppvdReincLookup = window.ppvdReincLookup || {};
       window.ppvdReincLookup[lookupId] = {
-        endereco_key: [nome, e.b || '', e.l || '', e.nu || ''].join('|'),
+        endereco_key: reChave(nome, e),
         municipio: nome, bairro: e.b, logradouro: e.l, numero: e.nu,
         natureza: (e.naturezas || []).join(', '), reds_relacionados: (e.reds || []).join(', '),
         _origem: { arma_fogo: e.arma_fogo, qtd_chamados_60d: e.q, dias_desde_ultimo_chamado: e.dias_desde_ultimo, intervalo_dias_entre_chamados: e.intervalo_min_dias, naturezas_distintas: (e.naturezas || []).length },
       };
+      const situacao = `<span class="ppvd-badge ${pgBadgeCls(sem)}">${velho ? 'Finalizado' : ppvdStatusLabelOutros(caso && caso.status)}</span>${velho ? '<br><small>' + PPVD_OBS_ANTERIOR + '</small>' : ''}`;
       const marc = [urgente ? pgMk('✕ Urgente', 'Último chamado há 10 dias ou menos', 'risco') : '', e.arma_fogo ? pgMk('⚠ Arma', 'Arma de fogo envolvida', 'risco') : '', e.q >= 3 ? pgMk('3+ chamados', 'Três ou mais chamados no período') : ''].join('') || '—';
       const ultimo = e.dias_desde_ultimo == null ? '—' : (e.dias_desde_ultimo === 0 ? 'hoje' : 'há ' + e.dias_desde_ultimo + ' dia(s)');
-      const tags = [urgente ? 'urgente' : '', e.arma_fogo ? 'arma' : '', e.q >= 3 ? 'tres' : '', (e.naturezas || []).length >= 2 ? 'multi' : ''].filter(Boolean).join(' ');
-      const casoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCasoReinc('${lookupId}')">Abrir Caso ▸</button>`;
-      return `<tr class="${urgente ? 'vd-row-vermelho' : ''}" data-tags="${tags}" data-busca="${msgEsc((end + ' ' + (e.naturezas || []).join(' ')).toLowerCase())}"><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Chamados">${e.q}<br><small>intervalo mín. ${e.intervalo_min_dias != null ? e.intervalo_min_dias + ' dia(s)' : '—'}</small></td><td data-l="Último chamado">${ultimo}</td><td data-l="Naturezas" class="larga">${msgEsc((e.naturezas || []).join(', ')) || '—'}</td><td data-l="Marcadores">${marc}</td><td class="acao">${casoBtn}</td></tr>`;
+      const resp = caso ? (msgEsc(caso.militar_responsavel) || '—') + (caso.gut_score ? `<br><small>GUT ${caso.gut_score}</small>` : '') : '—';
+      const acao = caso ? `<button class="ppvd-btn" onclick="ppvdAbrirCasoReinc('${lookupId}')">Ver Caso ▸</button>` : (velho ? '—' : `<button class="ppvd-btn" onclick="ppvdAbrirCasoReinc('${lookupId}')">Abrir Caso ▸</button>`);
+      const tags = [sem, urgente ? 'urgente' : '', e.arma_fogo ? 'arma' : '', e.q >= 3 ? 'tres' : '', (e.naturezas || []).length >= 2 ? 'multi' : ''].filter(Boolean).join(' ');
+      return `<tr class="vd-row-${sem}" data-tags="${tags}" data-busca="${msgEsc((end + ' ' + (e.naturezas || []).join(' ')).toLowerCase())}"><td data-l="Situação">${situacao}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Chamados">${e.q}<br><small>intervalo mín. ${e.intervalo_min_dias != null ? e.intervalo_min_dias + ' dia(s)' : '—'}</small></td><td data-l="Último chamado">${ultimo}</td><td data-l="Naturezas" class="larga">${msgEsc((e.naturezas || []).join(', ')) || '—'}</td><td data-l="Marcadores">${marc}</td><td data-l="Responsável">${resp}</td><td class="acao">${acao}</td></tr>`;
     };
-    const cont = (f) => enderecos.filter(e => (f === 'urgente' && urgenteDe(e)) || (f === 'arma' && e.arma_fogo) || (f === 'tres' && e.q >= 3) || (f === 'multi' && (e.naturezas || []).length >= 2)).length;
-    h += pgFiltrosHtml('reFiltros', [['todos', 'Todos', enderecos.length], ['urgente', '✕ Urgentes (≤10 dias)', cont('urgente')], ['arma', 'Arma de fogo', cont('arma')], ['tres', '3+ chamados', cont('tres')], ['multi', 'Várias naturezas', cont('multi')]], 'Buscar rua, bairro ou natureza');
-    h += `<div style="overflow-x:auto" id="reTabelaBox"><table class="data-table vd-casos"><thead><tr><th>Endereço</th><th>Chamados</th><th>Último chamado</th><th>Naturezas</th><th>Marcadores</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
-    h += enderecos.length ? enderecos.map(linha).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
+    const cont = (f) => principais.filter(e => semDe(e) === f || (f === 'urgente' && urgenteDe(e)) || (f === 'arma' && e.arma_fogo) || (f === 'tres' && e.q >= 3) || (f === 'multi' && (e.naturezas || []).length >= 2)).length;
+    h += `<div class="vd-recorte">Contando endereços com chamado desde ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no PPVD: ${principais.length}${historico.length ? ` · ${historico.length} com último chamado antes do PPVD, sem caso, ficam finalizados (verde) no histórico abaixo` : ''}.</div>`;
+    h += pgFiltrosHtml('reFiltros', [['todos', 'Todos', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')], ['urgente', 'Urgentes (≤10 dias)', cont('urgente')], ['arma', 'Arma de fogo', cont('arma')], ['tres', '3+ chamados', cont('tres')], ['multi', 'Várias naturezas', cont('multi')]], 'Buscar rua, bairro ou natureza');
+    h += `<div style="overflow-x:auto" id="reTabelaBox">${cabecalho}`;
+    h += principais.length ? principais.map(linha).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
     h += `</tbody></table></div>`;
+    if (historico.length) h += `<details class="vd-historico" id="reHistorico"><summary>Histórico anterior ao PPVD — ${historico.length} endereço(s) finalizados (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
     alvo.innerHTML = h;
     pgLigarFiltros('reFiltros', 'reTabelaBox');
+    const det = document.getElementById('reHistorico');
+    if (det) det.addEventListener('toggle', () => { const c = det.querySelector('.vd-historico-corpo'); if (det.open && !c.dataset.pronto) { c.innerHTML = cabecalho + historico.map(linha).join('') + '</tbody></table>'; c.dataset.pronto = '1'; } });
   }
 
   if (!cid.ausente) renderMuniPanel(cid.idx);
   pgRankingClicavel('reRanking', 'reincidencia');
+  if (comSituacao) outrasSituacaoCasos().then(sit => pgSitPreencher('reRanking', 'reRankingTotal', sit.re.porCidade, sit.re.total));
 }
 
 // invertido=true: pra rankings ordenados do PIOR pro melhor (ex: taxa de violência, onde

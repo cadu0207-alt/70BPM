@@ -857,7 +857,7 @@ function auditar() {
       out.cv.ausente = { pendente: !!mainEl().querySelector('.pending-box'), semPainel: !document.getElementById('cvMuniPanel'), titulo: (mainEl().querySelectorAll('.page-title')[3] || {}).textContent };
       setMunFiltro(a);
       goToPage('reincidencia'); await esp(600);
-      out.re = { selects: mainEl().querySelectorAll('select').length, ordem: [...mainEl().querySelectorAll('#reTabelaBox tbody tr')].map(t => t.children[2].textContent.trim()).join('|'), chips: [...mainEl().querySelectorAll('#reFiltros button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).join('|') };
+      out.re = { selects: mainEl().querySelectorAll('select').length, ordem: [...mainEl().querySelectorAll('#reTabelaBox tbody tr')].map(t => t.children[3].textContent.trim()).join('|'), chips: [...mainEl().querySelectorAll('#reFiltros button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).join('|') };
       mainEl().querySelector('#reFiltros button[data-f="urgente"]').click();
       out.re.urgentes = [...mainEl().querySelectorAll('#reTabelaBox tbody tr')].filter(t => !t.hidden).length;
       mainEl().querySelector('#reFiltros button[data-f="arma"]').click();
@@ -870,9 +870,68 @@ function auditar() {
     checa(r.cv.selects === 0 && r.cv.periodos >= 2 && r.cv.linhas === 4 && r.cv.acao === 4 && r.cv.serie <= 10, `Crimes Violentos: botões, ${r.cv.linhas} linhas com "Abrir Caso" fixo e série sem meses futuros`, 'CV: ' + JSON.stringify(r.cv));
     checa(r.cv.ausente.pendente && r.cv.ausente.semPainel && /não tem|Ocorrências de/.test(r.cv.ausente.titulo || ''), 'cidade sem registros na página mostra aviso em vez de outra cidade', 'cidade ausente: ' + JSON.stringify(r.cv.ausente));
     checa(r.re.selects === 0 && r.re.ordem === 'hoje|há 8 dia(s)|há 40 dia(s)', `Reincidência: botões e ordem do mais recente ("${r.re.ordem}") — 0 dias não cai mais pro fim`, 'ordem: ' + r.re.ordem);
-    checa(r.re.chips === 'Todos 3|✕ Urgentes (≤10 dias) 2|Arma de fogo 1|3+ chamados 1|Várias naturezas 1' && r.re.urgentes === 2 && r.re.arma === 1, 'filtros de urgência/arma/3+ chamados com contagem', 'Reincidência filtros: ' + JSON.stringify(r.re));
+    checa(r.re.chips === 'Todos 3|✕ Sem caso/novo 3|! Em acompanhamento 0|✓ Encerrados 0|Urgentes (≤10 dias) 2|Arma de fogo 1|3+ chamados 1|Várias naturezas 1' && r.re.urgentes === 2 && r.re.arma === 1, 'filtros de urgência/arma/3+ chamados com contagem', 'Reincidência filtros: ' + JSON.stringify(r.re));
     checa(errosY.length === 0, 'as três páginas sem erro de JavaScript', 'erros: ' + errosY.slice(0, 3).join(' | '));
     await ctxY.close();
+  }
+
+  // ---------- 23) Crimes Violentos e Reincidência: situação dos casos do PPVD ----------
+  console.log('\n[23] Crimes Violentos / Reincidência: semáforo dos casos (vermelho, amarelo, verde)');
+  {
+    const ctxZ = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pz = await ctxZ.newPage();
+    const errosZ = []; pz.on('pageerror', (e) => errosZ.push(e.message));
+    await pz.goto(base);
+    await pz.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pz.evaluate(async () => {
+      const casosBanco = [
+        { modalidade: 'crimes_violentos', reds_numero: 'CV1', status: 'em_acompanhamento', militar_responsavel: 'Sd Fulano', gut_score: 40 },
+        { modalidade: 'crimes_violentos', reds_numero: 'CV2', status: 'encerrado' },
+        { modalidade: 'crimes_violentos', reds_numero: 'CV9', status: 'novo' }, // caso antigo (antes de setembro) ainda aberto
+        { modalidade: 'reincidencia', endereco_key: '#CID#|B|R1|1', status: 'em_acompanhamento', militar_responsavel: 'Cb Beltrano' },
+      ];
+      const chamadas = [];
+      const cad = (t) => { const f = {}; const o = { select: () => o, eq: (c, v) => { f[c] = v; return o; }, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => { chamadas.push(JSON.stringify(f)); ok({ data: t === 'ppvd_casos' ? casosBanco.filter(c => !f.modalidade || c.modalidade === f.modalidade) : [], error: null, count: 0 }); } }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, pode_abrir_caso: true, nome: 'A' }; ppvdRestritoCarregado = true;
+      const cv = DATA.crimes_violentos, re = DATA.reincidencia;
+      const a = cv.municipios[0].nome; localStorage.removeItem('cvPeriodo'); setMunFiltro(a);
+      casosBanco[3].endereco_key = casosBanco[3].endereco_key.replace('#CID#', a);
+      const oc = (r, m, g, extra) => Object.assign({ r, d: '10/' + String(m).padStart(2, '0') + '/2026', m, n: 'Roubo', g, b: 'B', l: 'Rua ' + r, nu: '1', c: 'Patr' }, extra || {});
+      cv.ocorrencias = { [a]: [oc('CV0', 10, 'alta'), oc('CV1', 10, 'critica', { a: true }), oc('CV2', 9, 'alta'), oc('CV8', 3, 'alta'), oc('CV9', 4, 'alta')] };
+      re.enderecos = { [a]: [
+        { b: 'B', l: 'R1', nu: '1', q: 3, intervalo_min_dias: 5, dias_desde_ultimo: 3, naturezas: ['Ameaça'], arma_fogo: false, reds: ['x'] },
+        { b: 'B', l: 'R2', nu: '2', q: 2, intervalo_min_dias: 9, dias_desde_ultimo: 5, naturezas: ['Ameaça'], arma_fogo: false, reds: ['y'] },
+        { b: 'B', l: 'R3', nu: '3', q: 2, intervalo_min_dias: 9, dias_desde_ultimo: 120, naturezas: ['Ameaça'], arma_fogo: false, reds: ['z'] },
+      ] };
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const main = () => document.getElementById('main');
+      const out = {};
+      goToPage('crimes_violentos'); await esp(800);
+      const linhasCv = [...main().querySelectorAll('#cvTabelaBox tbody tr')];
+      out.cv = { ordem: linhasCv.map(t => t.dataset.tags.split(' ')[0]).join(','), reds: linhasCv.map(t => t.children[1].firstChild.textContent.trim()).join(','), resp: linhasCv.map(t => t.children[5].textContent.trim()).join('|'), acoes: linhasCv.map(t => t.querySelector('td.acao').textContent.trim()).join('|'), chips: [...main().querySelectorAll('#cvFiltros button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).slice(0, 4).join('|') };
+      const det = document.getElementById('cvHistorico'); out.cv.historico = det ? det.querySelector('summary').textContent : null;
+      if (det) { det.open = true; await esp(100); out.cv.histLinha = det.querySelector('tbody tr') ? det.querySelector('tbody tr').textContent.replace(/\s+/g, ' ') : ''; }
+      const tot = [...document.querySelectorAll('#cvRankingTotal td.sit-cel')].map(t => t.textContent).join('/');
+      out.cv.rankingTotal = tot;
+      document.querySelector('#cvFiltros button[data-f="verde"]').click();
+      out.cv.verdes = [...main().querySelectorAll('#cvTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      goToPage('reincidencia'); await esp(800);
+      const linhasRe = [...main().querySelectorAll('#reTabelaBox tbody tr')];
+      out.re = { ordem: linhasRe.map(t => t.dataset.tags.split(' ')[0]).join(','), resp: linhasRe.map(t => t.children[6].textContent.trim()).join('|'), historico: !!document.getElementById('reHistorico'), rankingTotal: [...document.querySelectorAll('#reRankingTotal td.sit-cel')].map(t => t.textContent).join('/') };
+      goToPage('home'); await esp(1200);
+      out.home = (document.getElementById('homeOutras') || {}).textContent || '';
+      out.chamadas = chamadas.filter(c => /modalidade/.test(c)).length;
+      return out;
+    });
+    checa(r.cv.ordem === 'vermelho,amarelo,verde,vermelho' || r.cv.ordem === 'vermelho,vermelho,amarelo,verde', `Crimes Violentos: mais urgente primeiro (${r.cv.ordem})`, 'ordem CV: ' + JSON.stringify(r.cv));
+    checa(/Sd Fulano/.test(r.cv.resp) && /Ver Caso/.test(r.cv.acoes) && /Abrir Caso/.test(r.cv.acoes), 'caso existente mostra responsável e "Ver Caso"; sem caso mostra "Abrir Caso"', 'CV resp/ação: ' + JSON.stringify(r.cv));
+    checa(/Histórico anterior ao PPVD — 1 ocorrência/.test(r.cv.historico || '') && /Finalizado/.test(r.cv.histLinha || '') && /sem o registro no sistema/.test(r.cv.histLinha || ''), 'ocorrência anterior a setembro sem caso vai pro histórico como finalizada, com a observação', 'histórico CV: ' + JSON.stringify(r.cv));
+    checa(r.cv.reds.split(',').includes('CV9'), 'caso antigo (abril) que ainda está aberto no PPVD continua na lista principal', 'REDS na tabela: ' + r.cv.reds);
+    checa(r.cv.rankingTotal === '2/1/2' && r.cv.verdes === 1, `ranking com a situação dos casos (✕/!/✓ = ${r.cv.rankingTotal}) e filtro "Encerrados"`, 'ranking CV: ' + JSON.stringify(r.cv));
+    checa(/vermelho,amarelo,verde|amarelo/.test(r.re.ordem) && /Cb Beltrano/.test(r.re.resp) && r.re.historico && r.re.rankingTotal === '1/1/1', 'Reincidência: caso em acompanhamento com responsável, endereço antigo no histórico e ranking com a situação', 'Reincidência: ' + JSON.stringify(r.re));
+    checa(/Crimes Violentos — ✕ 2 sem caso\/novo · ! 1 em acompanhamento · ✓ 2 encerrados/.test(r.home) && /Reincidência de Endereço — ✕ 1/.test(r.home), 'Home resume Crimes Violentos e Reincidência', 'Home: ' + r.home);
+    checa(errosZ.length === 0, 'situação dos casos sem erro de JavaScript', 'erros: ' + errosZ.slice(0, 3).join(' | '));
+    await ctxZ.close();
   }
 
   await browser.close();
