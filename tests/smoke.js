@@ -189,7 +189,7 @@ function auditar() {
       kpisHome: document.querySelectorAll('#main .kpi-grid-home .kpi-card').length, mainTag: (document.getElementById('main') || {}).tagName, navTag: (document.getElementById('sidebar') || {}).tagName,
       h1: document.querySelectorAll('#main [role=heading][aria-level="1"]').length, filtroRotulo: (document.getElementById('munFiltroGlobal') || {}).ariaLabel };
   });
-  checa(home.linhas === 13 && home.kpis >= 4, `quadro com 13 municípios e ${home.kpis} KPIs`, 'Home incompleta: ' + JSON.stringify(home));
+  checa(home.linhas === 14 && home.kpis >= 4, `quadro com 13 municípios + linha do batalhão e ${home.kpis} KPIs`, 'Home incompleta: ' + JSON.stringify(home));
   checa(!!home.status && !/Verificando/.test(home.status), `indicador de atualização calculado ("${home.status}")`, 'indicador de atualização não foi calculado');
   checa(home.kpisHome === 9, 'Home com os 9 cartões de KPI num grid só', `Home com ${home.kpisHome} cartões no grid (esperava 9)`);
   checa(home.mainTag === 'MAIN' && home.navTag === 'NAV', 'páginas com <main> e <nav> (leitor de tela)', `marcos de página: main=${home.mainTag} nav=${home.navTag}`);
@@ -393,6 +393,45 @@ function auditar() {
     checa(r.semRede === 0 && r.perfilMantido, 'falha de rede ao voltar mantém o perfil e a tela', 'sem rede derrubou o perfil/tela: ' + JSON.stringify(r));
     checa(r.signedOut === 1, 'sair da conta (SIGNED_OUT) ainda refaz a tela', 'SIGNED_OUT não refez a tela: ' + JSON.stringify(r));
     await ctxS.close();
+  }
+
+  // ---------- 13) Home (onda 1): KPIs coerentes com o quadro, colunas novas, total do batalhão, legenda única ----------
+  console.log('\n[13] Home: KPIs coerentes com o quadro e quadro completo');
+  {
+    const ctxH = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const ph = await ctxH.newPage();
+    await ph.goto(base);
+    await ph.waitForFunction(() => typeof goToPage === 'function');
+    await ph.evaluate(() => goToPage('home'));
+    await ph.waitForTimeout(300);
+    const h = await ph.evaluate(() => {
+      const caixas = [...document.querySelectorAll('#main .chart-box')].filter(c => c.querySelector('h3') && /Quadro de Cumprimento/.test(c.querySelector('h3').textContent));
+      const cabec = caixas[0] ? [...caixas[0].querySelectorAll('thead th')].map(t => t.textContent.trim()) : [];
+      const acum = caixas[1];
+      const idx = (nome) => cabec.indexOf(nome);
+      const totalAcum = acum ? [...acum.querySelectorAll('tbody tr.linha-total td')] : [];
+      const cor = (td) => (td && /rgba\(([^)]*)\)/.exec(td.getAttribute('style') || '') || [])[1] || '';
+      const kpi = (rotulo) => [...document.querySelectorAll('#main .kpi-grid-home .kpi-card')].find(k => k.textContent.toUpperCase().includes(rotulo));
+      const classeKpi = (k) => (k ? ['kpi-green', 'kpi-amber', 'kpi-red'].find(c => k.classList.contains(c)) : null);
+      const corDe = (td) => (/230,72,79/.test(cor(td)) ? 'kpi-red' : (/212,194,42/.test(cor(td)) ? 'kpi-amber' : 'kpi-green'));
+      return {
+        colunas: cabec.length, temArmas: idx('Armas') > 0, temPrisoes: idx('Prisões furto') > 0, temRolez: idx('Rolezinho') > 0,
+        totalLinhas: totalAcum.length, legendas: [...document.querySelectorAll('#main .updated')].filter(e => /Verde \S+ = cumpriu a meta · Amarelo/.test(e.textContent)).length,
+        posicao: !!document.querySelector('#main .posicao-dados'), fontes: !!document.querySelector('#main details.fontes-home'),
+        pogKpi: classeKpi(kpi('POG ACUM')), pogQuadro: totalAcum.length ? corDe(totalAcum[idx('POG')]) : null,
+        armasKpi: classeKpi(kpi('ARMAS')), armasQuadro: totalAcum.length ? corDe(totalAcum[idx('Armas')]) : null,
+        padKpi: classeKpi(kpi('PAD. ESCOLAR')), padQuadro: totalAcum.length ? corDe(totalAcum[idx('Pad.Escolar')]) : null,
+        saqueKpi: classeKpi(kpi('SAQUE')), saqueQuadro: totalAcum.length ? corDe(totalAcum[idx('Saque Seguro')]) : null,
+      };
+    });
+    checa(h.temArmas && h.temPrisoes && h.temRolez && h.colunas >= 17, `quadro com Armas, Prisões de furto e Rolezinho (${h.colunas} colunas)`, 'faltam colunas no quadro: ' + JSON.stringify(h));
+    checa(h.totalLinhas > 0, 'quadro com a linha do 70º BPM', 'sem linha de total do batalhão no quadro');
+    checa(h.legendas === 1, 'uma legenda só para os dois quadros', `legendas encontradas: ${h.legendas}`);
+    checa(h.posicao && h.fontes, 'linha de posição dos dados e fontes recolhidas', 'faltou a posição dos dados ou o bloco de fontes');
+    for (const [nome, k, q] of [['POG', h.pogKpi, h.pogQuadro], ['Armas', h.armasKpi, h.armasQuadro], ['Padrinhos', h.padKpi, h.padQuadro], ['Saque Seguro', h.saqueKpi, h.saqueQuadro]]) {
+      checa(!!k && k === q, `cartão de ${nome} com a mesma cor do total no quadro (${k})`, `cartão de ${nome} (${k}) diverge do quadro (${q})`);
+    }
+    await ctxH.close();
   }
 
   await browser.close();

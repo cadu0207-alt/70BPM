@@ -46,7 +46,7 @@
 
   /* ---------- SIDEBAR ---------- */
   .sidebar {
-    width: 258px; background: linear-gradient(180deg,#081019,#060b12);
+    width: 244px; background: linear-gradient(180deg,#081019,#060b12);
     border-right: 1px solid var(--panel-border);
     padding: 0; flex-shrink:0; display:flex; flex-direction:column;
     position: sticky; top:0; height:100vh; overflow-y:auto;
@@ -192,6 +192,25 @@
   .kpi-green { border-left-color: var(--signal); }
   .kpi-green .val { color: var(--signal); }
   .kpi-neutral { border-left-color: var(--muted); }
+  .kpi-amber { border-left-color: var(--caution); }
+  .kpi-amber .val { color: var(--caution); }
+  .kpi-card .sub { font-family: var(--sans); font-size: 11.5px; margin-top:6px; color: var(--muted); line-height:1.35; }
+  .kpi-amber .lbl::before { content:'!'; content:'!' / ''; font-size:.85em; font-weight:700; margin-right:4px; }
+  table.matriz-home th { padding:8px 3px; font-size:11px; letter-spacing:0.03em; }
+  table.matriz-home td { padding:6px 3px; font-size:11px; }
+  table.matriz-home td::before { margin-right:1px; }
+  @media (min-width: 901px) and (max-width: 1600px) { .main { padding-left:24px; padding-right:24px; } }
+  .dica-rolagem { display:none; font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right; margin:6px 2px 0; }
+  .dica-rolagem.on { display:block; }
+  table.data-table tr.linha-total td { border-top: 2px solid rgba(234,241,248,0.32); font-weight:700; }
+  .posicao-dados { display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center; margin:2px 0 14px; font-family:var(--mono); font-size:12.5px; color:var(--muted); }
+  .posicao-dados b { color:var(--text); font-weight:600; }
+  .posicao-dados .barra { display:inline-block; width:130px; height:7px; border-radius:4px; background:var(--bg-2); border:1px solid var(--panel-border); overflow:hidden; vertical-align:middle; margin-left:6px; }
+  .posicao-dados .barra i { display:block; height:100%; background:var(--amber); }
+  details.fontes-home { margin:0 0 20px; font-size:12.5px; color:var(--muted); font-family:var(--mono); }
+  details.fontes-home summary { cursor:pointer; padding:6px 0; color:var(--muted); }
+  details.fontes-home summary:hover { color:var(--text); }
+  details.fontes-home div { padding:6px 0 10px; line-height:1.55; border-bottom:1px solid var(--line); }
   .kpi-neutral .val { color: var(--text); }
 
   /* ---------- CONTROLS ---------- */
@@ -723,6 +742,43 @@ function kpiCard(label, val, isGoodWhenNegative=true) {
   return `<div class="kpi-card ${cls}"><div class="val">${display}</div><div class="lbl">${label}</div></div>`;
 }
 
+// ---- Home (onda 1 da revisão de 2026-10-13) ----
+// Cartão de meta de PISO (POG, Padrinhos, Saque, Armas) pela meta PROPORCIONAL aos dias já fechados — a mesma regra
+// do quadro de cumprimento. Antes o cartão comparava com a meta do mês cheio e ficava vermelho (POG 94%) enquanto o
+// quadro mostrava verde (101%) no mês em andamento.
+function kpiPisoEf(label, d, mi, tipo) {
+  const pseudo = { realizado_mes: d.total_mes, meta_mes: d.total_meta_mes, realizado_acum: d.total_acum, meta_acum: d.total_meta_acum };
+  const f = fatorMesEmAndamento(d, mi);
+  const real = d.total_acum[mi], metaCheia = d.total_meta_acum[mi];
+  const metaEf = metaPisoEfetiva(pseudo, '_acum', mi, f, tipo !== 'pog');
+  const v = metaEf ? real / metaEf * 100 : 100;
+  const st = tipo === 'pog' ? statusPog(v) : statusPiso(real, metaEf);
+  const cls = st === 'verde' ? 'kpi-green' : (st === 'amarelo' ? 'kpi-amber' : 'kpi-red');
+  const sub = f < 1 ? `${Math.round(v)}% da meta proporcional aos dias fechados · mês cheio: ${metaCheia}` : `${Math.round(v)}% da meta`;
+  const tip = f < 1 ? `Cor calculada com a meta proporcional aos dias já fechados (${Math.round(metaEf)} de ${metaCheia} no período)` : '';
+  return `<div class="kpi-card ${cls}" title="${tip}"><div class="val">${real}/${Math.round(metaEf)}</div><div class="lbl">${label}</div><div class="sub">${sub}</div></div>`;
+}
+function dataBr(dt) { return String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0'); }
+// "Dados fechados até DD/MM · Mês em andamento (N de M dias)": a data mais importante da página, que antes só aparecia no topo
+function posicaoDadosHtml() {
+  const chaves = ['mv', 'cvpe', 'cvpa', 'furto', 'armas', 'pog', 'padesc', 'saque_seguro', 'cavaloaco', 'rolezinho', 'idob', 'itvd', 'esforco_furto'];
+  const datas = chaves.map(k => dataAtualizacaoIndicador(DATA[k])).filter(Boolean);
+  if (!datas.length) return '';
+  const maisAntiga = new Date(Math.min(...datas.map(d => d.getTime())));
+  const r = diasCorridosAteOntem(maisAntiga);
+  const fechadoAte = new Date(maisAntiga.getTime() - 86400000);
+  const mes = (DATA.mv.meses || MESES)[MES_ATUAL_IDX];
+  const pctMes = r.diasNoMes ? Math.round(r.diasDecorridos / r.diasNoMes * 100) : 0;
+  return `<div class="posicao-dados"><span>Dados fechados até <b>${dataBr(fechadoAte)}</b></span><span><b>${mes}</b> em andamento: ${r.diasDecorridos} de ${r.diasNoMes} dias<span class="barra" aria-hidden="true"><i style="width:${pctMes}%"></i></span></span></div>`;
+}
+function celulaEsforco(reds, pris) {
+  const v = reds ? pris / reds * 100 : 100;
+  return semaforoCell(v >= 50 ? 'verde' : (v >= 25 ? 'amarelo' : 'vermelho'), Math.round(v) + '%', `${pris} prisões / ${reds} REDS de furto`);
+}
+function legendaCumprimentoHtml() {
+  return `<div class="updated" style="border:none;margin:4px 0 22px;padding:0">Verde (&#10003;) = cumpriu a meta · Amarelo (!) = próximo (tolerância) · Vermelho (&#10005;) = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Armas/Cavalo de Aço/Rolezinho/Pad.Escolar/Saque Seguro: quanto maior, melhor — no mês em andamento a cor usa a meta proporcional aos dias já fechados (passe o mouse na célula pra ver); meses fechados usam a meta cheia. Prisões de furto: prisões ÷ REDS de furto (≥50% verde, ≥25% amarelo). IDOB/ITVD: índice de qualidade (não é meta numérica); sem operação/ocorrência = 100%. Linha 70º BPM = total do batalhão.</div>`;
+}
+
 function renderHome() {
   const miMv = Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length-1), miCvpe = Math.min(MES_ATUAL_IDX, DATA.cvpe.total_acum.length-1), miCvpa = Math.min(MES_ATUAL_IDX, DATA.cvpa.total_acum.length-1);
   const miFurto = Math.min(MES_ATUAL_IDX, DATA.furto.total_acum.length-1), miArmas = Math.min(MES_ATUAL_IDX, DATA.armas.total_acum.length-1);
@@ -751,7 +807,8 @@ function renderHome() {
     </div>
     <div class="ap-cta-arrow">&#8594;</div>
   </div>`;
-  html += `<div class="updated"><b>Dados até ${DATA.saque_seguro.meses[Math.min(MES_ATUAL_IDX, DATA.saque_seguro.meses.length-1)]}/2026:</b> IMV, CVPe, CVPa, Furto Rural, Armas, POG, PPAG, IDOB, ITVD, Esforço-Furto, Cavalo de Aço, Rolezinho, Pad. Escolar e Saque Seguro. ITVD e Esforço-Furto saem direto do TODOS OS B.O desde 28/08/2026.<br>Ainda sem dados: IDOCA completo (faltam as vítimas MV/CVPe/CVPa do Cavalo de Aço) e Pol.Cid.Em — aguardando export específico.</div>`;
+  html += posicaoDadosHtml();
+  html += `<details class="fontes-home"><summary>Fontes e indicadores ainda sem dados</summary><div><b>Dados até ${DATA.saque_seguro.meses[Math.min(MES_ATUAL_IDX, DATA.saque_seguro.meses.length-1)]}/2026:</b> IMV, CVPe, CVPa, Furto Rural, Armas, POG, PPAG, IDOB, ITVD, Esforço-Furto, Cavalo de Aço, Rolezinho, Pad. Escolar e Saque Seguro. ITVD e Esforço-Furto saem direto do TODOS OS B.O desde 28/08/2026.<br>Ainda sem dados: IDOCA completo (faltam as vítimas MV/CVPe/CVPa do Cavalo de Aço) e Pol.Cid.Em — aguardando export específico.</div></details>`;
   // 9 cartões num grid só (3 colunas no desktop): crimes / outros indicadores / metas operacionais.
   // Antes eram 2 grids de 4 colunas e o "Saque Seguro" sobrava sozinho na última linha.
   const idobQop = DATA.idob.total_qtdeop_acum[miIdob];
@@ -763,17 +820,20 @@ function renderHome() {
   html += kpiCard('CVpe Acum', cvpePct);
   html += kpiCard('CVpa Acum', cvpaPct);
   html += kpiCard('Furto Rural Acum', furtoPct);
-  html += `<div class="kpi-card kpi-neutral"><div class="val">${armasAcum}</div><div class="lbl">Armas de Fogo e simu.</div></div>`;
+  html += kpiPisoEf('Armas de fogo e simu. (res/meta)', DATA.armas, miArmas, 'piso');
   html += `<div class="kpi-card ${idobVal>=95?'kpi-green':(idobVal>=85?'kpi-neutral':'kpi-red')}"><div class="val">${idobVal.toFixed(1)}%</div><div class="lbl">IDOB Acum</div></div>`;
-  html += `<div class="kpi-card ${pogAcum>=pogMeta?'kpi-green':'kpi-red'}"><div class="val">${pogAcum}/${pogMeta}</div><div class="lbl">POG Acum (Res/Meta)</div></div>`;
-  html += `<div class="kpi-card ${padescAcum>=padescMeta?'kpi-green':'kpi-red'}"><div class="val">${padescAcum}/${padescMeta}</div><div class="lbl">Pad. Escolar Acum (Res/Meta)</div></div>`;
-  html += `<div class="kpi-card ${saqueAcum>=saqueMeta?'kpi-green':'kpi-red'}"><div class="val">${saqueAcum}/${saqueMeta}</div><div class="lbl">Saque Seguro Acum (Res/Meta)</div></div>`;
+  html += kpiPisoEf('POG acum (res/meta)', DATA.pog, miPog, 'pog');
+  html += kpiPisoEf('Pad. Escolar acum (res/meta)', DATA.padesc, miPadesc, 'piso');
+  html += kpiPisoEf('Saque Seguro acum (res/meta)', DATA.saque_seguro, miSaque, 'piso');
   html += `</div>`;
   html += renderCumprimentoMatrix('mes');
   html += renderCumprimentoMatrix('acum');
+  html += legendaCumprimentoHtml();
   html += renderRankingTable('acum');
   document.getElementById('main').innerHTML = html;
   atencaoAgoraLigar();
+  // quadros largos: avisa quando as colunas não cabem (rolagem lateral)
+  document.querySelectorAll('#main .table-wrap').forEach(w => { if (w.scrollWidth > w.clientWidth + 2) { const d = document.createElement('div'); d.className = 'dica-rolagem on'; d.textContent = '← deslize para ver todas as colunas →'; w.insertAdjacentElement('afterend', d); } });
   document.getElementById('apCtaHome').addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     const navBtn = document.querySelector('[data-page="analise_preditiva"]');
@@ -1001,6 +1061,8 @@ function renderCumprimentoMatrix(modo) {
   const idxPadesc = idxOf(DATA.padesc.municipios), idxCav = idxOf(DATA.cavaloaco.municipios);
   const idxIdob = idxOf(DATA.idob.municipios), idxItvd = idxOf(DATA.itvd.municipios);
   const idxSaque = idxOf(DATA.saque_seguro.municipios);
+  const idxArmas = idxOf(DATA.armas.municipios), idxEsf = idxOf(DATA.esforco_furto.municipios), idxRolez = idxOf(DATA.rolezinho.municipios);
+  const miArmas = Math.min(MES_ATUAL_IDX, DATA.armas.total_mes.length-1), miEsf = Math.min(MES_ATUAL_IDX, DATA.esforco_furto.total_reds_mes.length-1), miRolez = Math.min(MES_ATUAL_IDX, DATA.rolezinho.total_mes.length-1);
 
   function calcIdobLocal(qop, vit) { return calcIdobIndice(qop, vit); }
   function calcItvdLocal(t, v) { return t ? ((t - v*2) / t) * 100 : 100; }
@@ -1022,6 +1084,11 @@ function renderCumprimentoMatrix(modo) {
     const furto = DATA.furto.municipios[idxFurto[key]];
     rows += semaforoCell(statusTeto(furto['realizado'+sufixo][miFurto], furto['meta'+sufixo][miFurto]), furto['realizado'+sufixo][miFurto]);
 
+    rows += celulaPisoEf(DATA.armas.municipios[idxArmas[key]], DATA.armas, sufixo, miArmas);
+
+    const esf = DATA.esforco_furto.municipios[idxEsf[key]];
+    rows += celulaEsforco(esf['reds'+sufixo][miEsf], esf['prisoes'+sufixo][miEsf]);
+
     const pog = DATA.pog.municipios[idxPog[key]];
     const pogR = pog['realizado'+sufixo][miPog], pogM = metaPisoEfetiva(pog, sufixo, miPog, fatorMesEmAndamento(DATA.pog, miPog), false);
     const pogPctV = pogM ? (pogR/pogM*100) : 100;
@@ -1039,6 +1106,8 @@ function renderCumprimentoMatrix(modo) {
 
     const cav = DATA.cavaloaco.municipios[idxCav[key]];
     rows += celulaPisoEf(cav, DATA.cavaloaco, sufixo, miCav);
+
+    rows += celulaPisoEf(DATA.rolezinho.municipios[idxRolez[key]], DATA.rolezinho, sufixo, miRolez);
 
     const pad = DATA.padesc.municipios[idxPadesc[key]];
     rows += celulaPisoEf(pad, DATA.padesc, sufixo, miPadesc);
@@ -1058,17 +1127,39 @@ function renderCumprimentoMatrix(modo) {
     rows += `</tr>`;
   });
 
+  // linha do batalhão (mesmos critérios de cor, aplicados aos totais)
+  {
+    const sfx = modo === 'acum' ? 'acum' : 'mes';
+    const real = (D, mi) => D['total_' + sfx][mi], meta = (D, mi) => D['total_meta_' + sfx][mi];
+    const pseudo = (D) => ({ realizado_mes: D.total_mes, meta_mes: D.total_meta_mes, realizado_acum: D.total_acum, meta_acum: D.total_meta_acum });
+    const teto = (D, mi) => semaforoCell(statusTeto(real(D, mi), meta(D, mi)), real(D, mi));
+    const piso = (D, mi) => celulaPisoEf(pseudo(D), D, sufixo, mi);
+    let t = `<tr class="linha-total"><td style="text-align:left;font-weight:700">70º BPM</td>`;
+    t += teto(DATA.mv, miMv) + teto(DATA.cvpe, miCvpe) + teto(DATA.cvpa, miCvpa) + teto(DATA.furto, miFurto);
+    t += piso(DATA.armas, miArmas);
+    t += celulaEsforco(DATA.esforco_furto['total_reds_' + sfx][miEsf], DATA.esforco_furto['total_prisoes_' + sfx][miEsf]);
+    const pogMt = meta(DATA.pog, miPog) - DATA.pog.total_meta_mes[miPog] * (1 - fatorMesEmAndamento(DATA.pog, miPog));
+    const pogVt = pogMt ? real(DATA.pog, miPog) / pogMt * 100 : 100;
+    t += semaforoCell(statusPog(pogVt), pogVt.toFixed(0) + '%');
+    t += piso(DATA.ppag.y15001, miY1) + piso(DATA.ppag.y07012, miY2) + piso(DATA.ppag.y07014, miY3);
+    t += piso(DATA.cavaloaco, miCav) + piso(DATA.rolezinho, miRolez) + piso(DATA.padesc, miPadesc) + piso(DATA.saque_seguro, miSaque);
+    const idobT = calcIdobLocal(DATA.idob['total_qtdeop_' + sfx][miIdob], DATA.idob['total_mv_' + sfx][miIdob] + DATA.idob['total_cvpe_' + sfx][miIdob] + DATA.idob['total_cvpa_' + sfx][miIdob]);
+    t += semaforoCell(statusQualidade(idobT), idobT.toFixed(0) + '%');
+    const itvdT = calcItvdLocal(DATA.itvd['total_trafico_' + sfx][miItvd], DATA.itvd['total_vit_' + sfx][miItvd]);
+    t += semaforoCell(statusQualidade(itvdT), itvdT.toFixed(0) + '%') + `</tr>`;
+    rows += t;
+  }
+
   const tituloPeriodo = modo === 'acum' ? `Acumulado Jan-${MESES[miMv]} (IMV-Furto) / Jan-${MESES[miPog]} (demais)` : `${MESES[miMv]} (IMV-Furto) / ${MESES[miPog]} (demais)`;
   let html = `<div class="chart-box" style="margin-top:4px">
     <h3>Quadro de Cumprimento por Cidade &middot; ${tituloPeriodo}</h3>
     <div class="table-wrap" style="margin-bottom:0">
-    <table class="data-table"><thead><tr>
-      <th style="text-align:left">Município</th><th>IMV</th><th>CVPe</th><th>CVPa</th><th>Furto Rural</th>
-      <th>POG</th><th>PPAG Escolar</th><th>PPAG V.Dom.</th><th>PPAG Rural</th><th>Cavalo de Aço</th>
+    <table class="data-table matriz-home"><thead><tr>
+      <th style="text-align:left">Município</th><th>IMV</th><th>CVPe</th><th>CVPa</th><th>Furto Rural</th><th>Armas</th><th title="Prisões ÷ REDS de furto">Prisões furto</th>
+      <th>POG</th><th>PPAG Escolar</th><th>PPAG V.Dom.</th><th>PPAG Rural</th><th>Cavalo de Aço</th><th>Rolezinho</th>
       <th>Pad.Escolar</th><th>Saque Seguro</th><th>IDOB</th><th>ITVD</th>
     </tr></thead><tbody>${rows}</tbody></table>
     </div>
-    <div class="updated" style="border:none;margin:10px 0 0;padding:0">Verde (&#10003;) = cumpriu a meta &middot; Amarelo (!) = próximo (tolerância) &middot; Vermelho (&#10005;) = não cumpriu. IMV/CVPe/CVPa/Furto: quanto menor, melhor (tolerância de 20% acima da meta). POG/PPAG/Cavalo de Aço/Pad.Escolar/Saque Seguro: quanto maior, melhor — no mês em andamento a cor usa a meta proporcional aos dias já fechados de cada indicador (passe o mouse na célula pra ver); meses fechados usam a meta cheia. IDOB/ITVD: índice de qualidade (não é meta numérica); sem operação/ocorrência = 100%.</div>
   </div>`;
   return html;
 }
