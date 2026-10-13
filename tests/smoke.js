@@ -814,6 +814,67 @@ function auditar() {
     await ctxX.close();
   }
 
+  // ---------- 22) Análise Preditiva, Crimes Violentos e Reincidência no padrão da Violência Doméstica ----------
+  console.log('\n[22] Análise Preditiva / Crimes Violentos / Reincidência: botões, ranking clicável, filtros e cartões');
+  {
+    const ctxY = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const py = await ctxY.newPage();
+    const errosY = []; py.on('pageerror', (e) => errosY.push(e.message));
+    await py.goto(base);
+    await py.waitForFunction(() => typeof goToPage === 'function');
+    const r = await py.evaluate(async () => {
+      const cad = () => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: () => o, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: cad }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, pode_abrir_caso: true, nome: 'A' }; ppvdRestritoCarregado = true;
+      const ap = DATA.analise_preditiva, cv = DATA.crimes_violentos, re = DATA.reincidencia;
+      const a = ap.municipios[0].nome, b = ap.municipios[1].nome;
+      localStorage.removeItem('apPeriodo'); localStorage.removeItem('cvPeriodo'); setMunFiltro(a);
+      const oc = (pref, n, g) => Array.from({ length: n }, (_, i) => ({ r: pref + i, d: '10/09/2026', m: 9, n: 'Ameaça', g: g(i), b: 'B', l: 'Rua ' + i, nu: '1', c: 'Causa', a: i === 0, p: i === 1, ri: i === 2 }));
+      ap.ocorrencias_graves = { [a]: oc('AP', 5, (i) => (i === 0 ? 'critica' : 'alta')), [b]: oc('BP', 2, () => 'media') };
+      cv.ocorrencias = { [a]: oc('CV', 4, (i) => (i < 2 ? 'critica' : 'alta')) };
+      cv.municipios = cv.municipios.filter(m => m.nome !== b); // cidade sem nenhuma vítima: não aparece na página
+      re.enderecos = { [a]: [
+        { b: 'B', l: 'R1', nu: '1', q: 3, intervalo_min_dias: 5, dias_desde_ultimo: 40, naturezas: ['Ameaça'], arma_fogo: false, reds: ['x'] },
+        { b: 'B', l: 'R2', nu: '2', q: 2, intervalo_min_dias: 9, dias_desde_ultimo: 0, naturezas: ['Ameaça', 'Furto'], arma_fogo: true, reds: ['y'] },
+        { b: 'B', l: 'R3', nu: '3', q: 2, intervalo_min_dias: 9, dias_desde_ultimo: 8, naturezas: ['Ameaça'], arma_fogo: false, reds: ['z'] },
+      ] };
+      re.municipios.forEach(m => { if (m.nome === a) m.enderecos_reincidentes = 3; });
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {};
+      goToPage('analise_preditiva'); await esp(600);
+      const mainEl = () => document.getElementById('main');
+      out.ap = { selects: mainEl().querySelectorAll('select').length, periodos: mainEl().querySelectorAll('#apPeriodos button').length, metodo: !mainEl().querySelector('details.aud-como').open, ranking: mainEl().querySelectorAll('#apRanking tr.rank-clic').length, linhas: mainEl().querySelectorAll('#apTabelaBox tbody tr').length, chips: [...mainEl().querySelectorAll('#apFiltros button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).join('|') };
+      mainEl().querySelector('#apFiltros button[data-f="critica"]').click();
+      out.ap.criticas = [...mainEl().querySelectorAll('#apTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      mainEl().querySelector('#apFiltros button[data-f="todos"]').click();
+      const busca = document.getElementById('apFiltrosBusca'); busca.value = 'ap3'; busca.dispatchEvent(new Event('input'));
+      out.ap.busca = [...mainEl().querySelectorAll('#apTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      [...mainEl().querySelectorAll('#apRanking tr.rank-clic')].find(t => t.dataset.mun === b).click(); await esp(600);
+      out.ap.depoisClique = { filtro: getMunFiltro(), linhas: mainEl().querySelectorAll('#apTabelaBox tbody tr').length };
+      setMunFiltro(a);
+      goToPage('crimes_violentos'); await esp(600);
+      out.cv = { selects: mainEl().querySelectorAll('select').length, periodos: mainEl().querySelectorAll('#cvPeriodos button').length, linhas: mainEl().querySelectorAll('#cvTabelaBox tbody tr').length, acao: mainEl().querySelectorAll('#cvTabelaBox td.acao button').length, serie: [...mainEl().querySelectorAll('table.data-table')].find(t => /Mês/.test(t.querySelector('th').textContent)).querySelectorAll('tbody tr').length };
+      setMunFiltro(b); goToPage('crimes_violentos'); await esp(600);
+      out.cv.ausente = { pendente: !!mainEl().querySelector('.pending-box'), semPainel: !document.getElementById('cvMuniPanel'), titulo: (mainEl().querySelectorAll('.page-title')[3] || {}).textContent };
+      setMunFiltro(a);
+      goToPage('reincidencia'); await esp(600);
+      out.re = { selects: mainEl().querySelectorAll('select').length, ordem: [...mainEl().querySelectorAll('#reTabelaBox tbody tr')].map(t => t.children[2].textContent.trim()).join('|'), chips: [...mainEl().querySelectorAll('#reFiltros button')].map(x => x.textContent.replace(/\s+/g, ' ').trim()).join('|') };
+      mainEl().querySelector('#reFiltros button[data-f="urgente"]').click();
+      out.re.urgentes = [...mainEl().querySelectorAll('#reTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      mainEl().querySelector('#reFiltros button[data-f="arma"]').click();
+      out.re.arma = [...mainEl().querySelectorAll('#reTabelaBox tbody tr')].filter(t => !t.hidden).length;
+      return out;
+    });
+    checa(r.ap.selects === 0 && r.ap.periodos >= 2 && r.ap.metodo && r.ap.ranking === 13, `Análise Preditiva: sem selects, ${r.ap.periodos} botões de período, metodologia recolhida e ranking clicável`, 'AP: ' + JSON.stringify(r.ap));
+    checa(r.ap.linhas === 5 && /^Todas 5\|Crítica 1\|Alta 4\|Média 0\|Com arma 1\|⚠ Reincidente 1$/.test(r.ap.chips) && r.ap.criticas === 1 && r.ap.busca === 1, 'filtros por gravidade com contagem e busca por REDS funcionam', 'AP filtros: ' + JSON.stringify(r.ap));
+    checa(r.ap.depoisClique.filtro.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().length > 0 && r.ap.depoisClique.linhas === 2, 'clicar na cidade do ranking troca o filtro e mostra as ocorrências dela', 'clique no ranking: ' + JSON.stringify(r.ap.depoisClique));
+    checa(r.cv.selects === 0 && r.cv.periodos >= 2 && r.cv.linhas === 4 && r.cv.acao === 4 && r.cv.serie <= 10, `Crimes Violentos: botões, ${r.cv.linhas} linhas com "Abrir Caso" fixo e série sem meses futuros`, 'CV: ' + JSON.stringify(r.cv));
+    checa(r.cv.ausente.pendente && r.cv.ausente.semPainel && /não tem|Ocorrências de/.test(r.cv.ausente.titulo || ''), 'cidade sem registros na página mostra aviso em vez de outra cidade', 'cidade ausente: ' + JSON.stringify(r.cv.ausente));
+    checa(r.re.selects === 0 && r.re.ordem === 'hoje|há 8 dia(s)|há 40 dia(s)', `Reincidência: botões e ordem do mais recente ("${r.re.ordem}") — 0 dias não cai mais pro fim`, 'ordem: ' + r.re.ordem);
+    checa(r.re.chips === 'Todos 3|✕ Urgentes (≤10 dias) 2|Arma de fogo 1|3+ chamados 1|Várias naturezas 1' && r.re.urgentes === 2 && r.re.arma === 1, 'filtros de urgência/arma/3+ chamados com contagem', 'Reincidência filtros: ' + JSON.stringify(r.re));
+    checa(errosY.length === 0, 'as três páginas sem erro de JavaScript', 'erros: ' + errosY.slice(0, 3).join(' | '));
+    await ctxY.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

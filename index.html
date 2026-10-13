@@ -317,6 +317,9 @@
   details.vd-historico { margin-top:14px; font-size:12.5px; color:var(--muted); }
   details.vd-historico summary { cursor:pointer; padding:6px 0; }
   .vd-recorte { font-size:12.5px; color:var(--muted); margin:0 0 8px; }
+  /* Páginas de análise no padrão da Violência Doméstica (onda 1, 2026-10-13) */
+  table.vd-casos tr[hidden] { display:none !important; }
+  .pg-resumo-linha { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
   /* Página do caso de VD, onda 3 (2026-10-13) */
   .caso-prox { border:1px solid var(--panel-border); border-left:5px solid var(--alert); border-radius:6px; background:var(--panel); padding:14px 18px; margin:14px 0 12px; }
   .caso-prox.a { border-left-color:var(--amber); } .caso-prox.z { border-left-color:#5b9bd5; } .caso-prox.g { border-left-color:var(--signal); }
@@ -363,7 +366,7 @@
     table.vd-casos td { display:block; padding:0 !important; border:0 !important; text-align:left !important; position:static !important; background:transparent !important; box-shadow:none !important; }
     table.vd-casos td::before { content:attr(data-l); display:block; font-size:11px; color:var(--muted); font-family:var(--sans); margin-bottom:1px; }
     table.vd-casos td.acao { grid-column:1 / -1; } table.vd-casos td.acao::before { display:none; }
-    table.vd-casos td:nth-child(4) { grid-column:1 / -1; }
+    table.vd-casos td.larga { grid-column:1 / -1; }
   }
   /* Home, onda 3 (2026-10-13): atalhos fixos + ações, cartão de Violência Doméstica, impressão */
   #home-atencao, #home-kpis, #homeVD, #home-quadro { scroll-margin-top: 64px; }
@@ -2207,62 +2210,125 @@ function gravBadge(g) {
   return `<span style="background:${c.bg};color:${c.fg};font-weight:700;font-size:11px;letter-spacing:0.04em;padding:4px 10px;border-radius:3px;text-transform:uppercase;white-space:nowrap">${c.label}</span>`;
 }
 
+// ===== Peças comuns das páginas de análise (padrão da Violência Doméstica): botões de cidade/período, ranking clicável,
+// filtros com contagem + busca e tabela que vira cartão no celular =====
+function pgUltimoMes(totalMes) {
+  let i = Math.min(MES_ATUAL_IDX, totalMes.length - 1);
+  while (i > 0 && !totalMes[i]) i--;
+  return { iUlt: i, parcial: i === MES_ATUAL_IDX };
+}
+function pgCidade(municipiosData, ranking) {
+  const f = normMun(getMunFiltro());
+  let idx = f ? municipiosData.findIndex(m => normMun(m.nome) === f) : -1;
+  const ausente = !!f && idx < 0; // cidade escolhida que não aparece nesta página (ex.: zero ocorrências no período)
+  const semFiltro = !f;
+  if (idx < 0) idx = ausente ? 0 : municipiosData.indexOf(ranking[0]);
+  return { idx, semFiltro, ausente, filtro: f };
+}
+function pgPeriodoSalvo(chave, iUlt) {
+  try { const s = localStorage.getItem(chave); if (s === 'acum' || (/^\d+$/.test(s || '') && parseInt(s) <= iUlt)) return s; } catch (e) {}
+  return 'acum';
+}
+function pgPillsPeriodoHtml(id, rotuloAcum, meses, iUlt, parcial) {
+  return `<div class="pills-vd" id="${id}" role="group" aria-label="Período"><button type="button" data-p="acum">${rotuloAcum}</button>` +
+    meses.slice(0, iUlt + 1).map((m, i) => `<button type="button" data-p="${i}">${m}${i === iUlt && parcial ? ' (parcial)' : ''}</button>`).join('') + `</div>`;
+}
+function pgLigarPeriodo(id, chave, inicial, aoMudar) {
+  const box = document.getElementById(id); let atual = inicial;
+  const marca = () => box.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.p === atual));
+  marca();
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    atual = b.dataset.p; try { localStorage.setItem(chave, atual); } catch (er) {}
+    marca(); aoMudar(atual);
+  });
+}
+// clicar numa cidade do ranking filtra (mesmo filtro dos botões do topo); clicar de novo limpa
+function pgRankingClicavel(tabelaId, pagina) {
+  document.querySelectorAll('#' + tabelaId + ' tr.rank-clic').forEach(tr => tr.addEventListener('click', () => {
+    setMunFiltro(normMun(getMunFiltro()) === normMun(tr.dataset.mun) ? '' : tr.dataset.mun); goToPage(pagina);
+  }));
+}
+function pgFiltrosHtml(id, chips, placeholder) {
+  return `<div class="vd-filtros" id="${id}">` + chips.map((c, i) => `<button type="button" data-f="${c[0]}" class="${i === 0 ? 'on' : ''}">${c[1]} <b>${c[2]}</b></button>`).join('') +
+    `<input type="search" id="${id}Busca" placeholder="${placeholder}" aria-label="Buscar na tabela"></div>`;
+}
+function pgLigarFiltros(id, caixaId) {
+  const aplicar = () => {
+    const on = document.querySelector('#' + id + ' button.on'), f = on ? on.dataset.f : 'todos';
+    const q = (document.getElementById(id + 'Busca').value || '').trim().toLowerCase();
+    document.querySelectorAll('#' + caixaId + ' tbody tr[data-tags]').forEach(tr => { tr.hidden = !((f === 'todos' || tr.dataset.tags.split(' ').includes(f)) && (!q || tr.dataset.busca.includes(q))); });
+  };
+  document.getElementById(id).addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-f]'); if (!b) return;
+    document.querySelectorAll('#' + id + ' button').forEach(x => x.classList.toggle('on', x === b)); aplicar();
+  });
+  document.getElementById(id + 'Busca').addEventListener('input', aplicar);
+}
+const pgMk = (txt, titulo, cls) => `<span class="mk ${cls || ''}" title="${titulo}">${txt}</span>`;
+const pgEndereco = (o) => `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
+
 function renderAnalisePreditivaPage() {
   const d = DATA.analise_preditiva;
   const mesesLocais = d.meses;
   const municipiosData = d.municipios;
   const sum = arr => arr.reduce((a, b) => a + b, 0);
+  const pano = d.panorama;
+  const { iUlt, parcial } = pgUltimoMes(pano.total_mes);
 
-  const totalGeral = sum(d.panorama.total_mes);
-  const precGeral = sum(d.panorama.prec_mes);
-  const mpGeral = sum(d.panorama.mp_mes);
-  const homicGeral = sum(d.panorama.homic_mes);
-  const tentGeral = sum(d.panorama.tent_hom_mes || []);
-  const armasGeral = sum(d.panorama.armas_mes);
-  const prisGeral = sum(d.panorama.pris_mes);
+  const precGeral = sum(pano.prec_mes), mpGeral = sum(pano.mp_mes), homicGeral = sum(pano.homic_mes), tentGeral = sum(pano.tent_hom_mes || []), armasGeral = sum(pano.armas_mes);
+  const subGraves = iUlt > 0 ? `${mesesLocais[iUlt]}${parcial ? ' (até agora)' : ''}: ${pano.prec_mes[iUlt]} · ${mesesLocais[iUlt - 1]}: ${pano.prec_mes[iUlt - 1]}` : '';
 
   let html = `<div class="page-title">Análise Preditiva de Crimes</div>`;
-  html += `<div class="def-box">${DEFS.analise_preditiva}</div>`;
+  html += `<details class="aud-como"><summary>Metodologia e definições — o que entra como ocorrência de maior gravidade</summary><div>${DEFS.analise_preditiva}</div></details>`;
 
-  html += `<div class="kpi-grid">`;
-  html += `<div class="kpi-card kpi-neutral"><div class="val">${precGeral}</div><div class="lbl">Ocorrências Graves (${d.periodo_dados})</div></div>`;
+  html += `<div class="kpi-grid kpi-grid-5">`;
+  html += `<div class="kpi-card kpi-neutral"><div class="val">${precGeral}</div><div class="lbl">Ocorrências Graves (${d.periodo_dados})</div>${subGraves ? `<div class="sub">${subGraves}</div>` : ''}</div>`;
   html += `<div class="kpi-card ${homicGeral > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${homicGeral}</div><div class="lbl">Homicídios/Feminicídios</div></div>`;
   html += `<div class="kpi-card ${tentGeral > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${tentGeral}</div><div class="lbl">Tentativas de Homicídio/Feminicídio</div></div>`;
   html += `<div class="kpi-card ${mpGeral > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${mpGeral}</div><div class="lbl">Descumpr. Medida Protetiva</div></div>`;
-  html += `</div>`;
-  html += `<div class="kpi-grid">`;
   html += `<div class="kpi-card kpi-neutral"><div class="val">${armasGeral}</div><div class="lbl">Com Arma de Fogo</div></div>`;
-  html += `<div class="kpi-card kpi-green"><div class="val">${prisGeral}</div><div class="lbl">Prisões</div></div>`;
-  html += `<div class="kpi-card kpi-neutral"><div class="val">${totalGeral}</div><div class="lbl">Total de REDS no Período</div></div>`;
   html += `</div>`;
-  html += `<div class="def-box" style="margin-top:10px"><span class="neg">⚠ Violência Doméstica saiu desta página — tem página própria no menu ("Violência Doméstica"), com ranking por população e o mesmo detalhamento por município/mês.</span></div>`;
+  html += `<div class="pg-resumo-linha">Violência Doméstica tem página própria, com ranking por população e o mesmo detalhamento por município. <button class="ppvd-btn" onclick="goToPage('violencia_domestica')">Ver Violência Doméstica ▸</button></div>`;
 
+  // ranking por município (a página não tinha): taxa de ocorrências graves por 100 mil habitantes
+  const popDe = (nome) => { for (const k of ['violencia_domestica', 'reincidencia', 'crimes_violentos']) { const c = ((DATA[k] || {}).municipios || []).find(x => normMun(x.nome) === normMun(nome)); if (c && c.pop) return c.pop; } return 0; };
+  const linhasRank = municipiosData.map(m => { const graves = sum(m.prec_mes), pop = popDe(m.nome); return { m, graves, pop, taxa: pop ? graves / pop * 100000 : 0, homic: sum(m.homic_mes), tent: sum(m.tent_hom_mes || []), mp: sum(m.mp_mes), armas: sum(m.armas_mes), pris: sum(m.pris_mes) }; });
+  linhasRank.sort((a, b) => b.taxa - a.taxa);
+  const popTotal = linhasRank.reduce((s, x) => s + x.pop, 0), taxaGeral = popTotal ? precGeral / popTotal * 100000 : 0;
+  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ranking por Município (ocorrências graves por 100 mil habitantes)</div>`;
+  html += `<div class="vd-recorte">Clique numa cidade para ver as ocorrências dela abaixo.</div>`;
+  html += `<div class="table-wrap"><table class="data-table" id="apRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorr. graves</th><th>Taxa/100k hab.</th><th>Homicídios</th><th>Tentativas</th><th>Descumpr. MP</th><th>Com arma</th></tr></thead><tbody>`;
+  const munFiltroAtual = normMun(getMunFiltro());
+  linhasRank.forEach((x, i) => {
+    const c = rankColor(i, linhasRank.length, true);
+    html += `<tr class="rank-clic${normMun(x.m.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${x.m.nome}" title="Ver as ocorrências de ${x.m.nome}"><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${x.m.nome}</td><td>${fmtBr(x.pop, 0)}</td><td>${x.graves}</td><td>${fmtBr(x.taxa, 1)}</td><td>${x.homic || '—'}</td><td>${x.tent || '—'}</td><td>${x.mp || '—'}</td><td>${x.armas || '—'}</td></tr>`;
+  });
+  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${precGeral}</td><td>${fmtBr(taxaGeral, 1)}</td><td>${homicGeral}</td><td>${tentGeral}</td><td>${mpGeral}</td><td>${armasGeral}</td></tr>`;
+  html += `</tbody></table></div>`;
+
+  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Série Mensal — 70º BPM</div>`;
   html += `<table class="data-table"><thead><tr><th style="text-align:left">Mês</th><th>Total REDS</th><th>Ocorr. Graves</th><th>Descumpr. MP</th><th>Homicídios</th><th>Tentativas</th><th>Com Arma</th><th>Prisões</th></tr></thead><tbody>`;
-  mesesLocais.forEach((m, i) => {
-    html += `<tr><td style="text-align:left">${m}</td><td>${d.panorama.total_mes[i]}</td><td>${d.panorama.prec_mes[i]}</td><td>${d.panorama.mp_mes[i]}</td><td>${d.panorama.homic_mes[i]}</td><td>${(d.panorama.tent_hom_mes || [])[i] || 0}</td><td>${d.panorama.armas_mes[i]}</td><td>${d.panorama.pris_mes[i]}</td></tr>`;
+  mesesLocais.slice(0, iUlt + 1).forEach((m, i) => {
+    html += `<tr><td style="text-align:left">${m}${i === iUlt && parcial ? ' (parcial)' : ''}</td><td>${pano.total_mes[i]}</td><td>${pano.prec_mes[i]}</td><td>${pano.mp_mes[i]}</td><td>${pano.homic_mes[i]}</td><td>${(pano.tent_hom_mes || [])[i] || 0}</td><td>${pano.armas_mes[i]}</td><td>${pano.pris_mes[i]}</td></tr>`;
   });
   html += `</tbody></table>`;
 
-  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ocorrências de Maior Gravidade por Município</div>`;
-  html += `<div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">`;
-  const munSalvo = normMun(getMunFiltro());
-  let idxDefault = munSalvo ? municipiosData.findIndex(m => normMun(m.nome) === munSalvo) : -1;
-  if (idxDefault < 0) idxDefault = 0;
-  html += `<select class="month-select" id="apMuniSel">`;
-  municipiosData.forEach((m, i) => html += `<option value="${i}" ${i === idxDefault ? 'selected' : ''}>${m.nome}</option>`);
-  html += `</select>`;
-  html += `<select class="month-select" id="apPeriodoSel">`;
-  html += `<option value="acum" selected>Acumulado (${d.periodo_dados})</option>`;
-  mesesLocais.forEach((m, i) => html += `<option value="${i}">${m}</option>`);
-  html += `</select>`;
-  html += `</div>`;
-  html += `<div id="apMuniPanel"></div>`;
+  // cidade = botões do topo (filtro global) ou clique no ranking; sem filtro mostra a de maior taxa. Período em botões.
+  const cid = pgCidade(municipiosData, linhasRank.map(x => x.m));
+  const nomeCid = cid.ausente ? getMunFiltro() : municipiosData[cid.idx].nome;
+  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ocorrências graves de ${nomeCid}</div>`;
+  if (cid.ausente) html += `<div class="pending-box">${nomeCid} não tem ocorrência grave registrada nesta página.</div>`;
+  else {
+    if (cid.semFiltro) html += `<div class="vd-recorte">Mostrando a cidade de maior taxa. Escolha outra nos botões do topo ou clicando no ranking.</div>`;
+    html += pgPillsPeriodoHtml('apPeriodos', `Acumulado (${d.periodo_dados})`, mesesLocais, iUlt, parcial);
+    html += `<div id="apMuniPanel"></div>`;
+  }
 
-  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Visitas Obrigatórias do 70º BPM</div>`;
-  html += `<div class="def-box">
+  html += `<details class="aud-como" style="margin-top:24px"><summary>Visitas obrigatórias do 70º BPM — Memorando 0013/P3.3/2026</summary><div>
     O <b>Memorando nº 0013/P3.3/2026</b> (20/08/2026) padronizou as visitas obrigatórias decorrentes de ocorrências: Violência Doméstica, Visita Preventiva (ameaça/lesão/descumpr. MP), Pós-Furto, Vítima de Crime Violento e Visita Preditiva por Reincidência de Endereço — cada uma com natureza RAT/REDS, prazo e histórico padronizado próprios.<br>
-    Essa página passou a focar só nas ocorrências (não mais no protocolo de visita). O acompanhamento de cumprimento das visitas (feito/pendente/atrasado por fração) está em construção numa página dedicada, alimentada pelos B.O.S. que Eduardo vai carregar em <code>entrada/Visitas Preventivas/</code>.
-  </div>`;
+    Essa página foca só nas ocorrências (não no protocolo de visita). O acompanhamento de cumprimento das visitas (feito/pendente/atrasado por fração) está em construção numa página dedicada, alimentada pelos B.O.S. que Eduardo vai carregar em <code>entrada/Visitas Preventivas/</code>.
+  </div></details>`;
 
   document.getElementById('main').innerHTML = html;
 
@@ -2282,6 +2348,7 @@ function renderAnalisePreditivaPage() {
     h += `<div class="kpi-card ${tent > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${tent}</div><div class="lbl">Tentativas</div></div>`;
     h += `<div class="kpi-card ${mp > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${mp}</div><div class="lbl">Descumpr. MP</div></div>`;
     h += `</div>`;
+    const alvo = document.getElementById('apMuniPanel');
 
     const listaAll = (d.ocorrencias_graves[nome] || []).filter(o => !o.vd);
     const lista = (periodo === 'acum') ? listaAll.slice() : listaAll.filter(o => o.m === parseInt(periodo) + 1);
@@ -2289,31 +2356,28 @@ function renderAnalisePreditivaPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); document.getElementById('apMuniPanel').innerHTML = h; return; }
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Reincid.</th><th>Arma</th><th>Prisão</th></tr></thead><tbody>`;
-    if (lista.length === 0) {
-      h += `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhuma ocorrência grave no período selecionado.</td></tr>`;
-    } else {
-      lista.forEach(o => {
-        const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
-        h += `<tr><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td style="text-align:left">${o.n}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.ri ? '⚠ SIM' : '—'}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td></tr>`;
-      });
-    }
-    h += `</tbody></table>`;
-    document.getElementById('apMuniPanel').innerHTML = h;
+    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); alvo.innerHTML = h; return; }
+    const linha = (o) => {
+      const end = pgEndereco(o);
+      const marc = [o.ri ? pgMk('⚠ Reincid.', 'Endereço reincidente', 'risco') : '', o.a ? pgMk('Arma', 'Arma de fogo envolvida', 'risco') : '', o.p ? pgMk('Prisão', 'Houve prisão') : ''].join('') || '—';
+      const tags = [o.g, o.a ? 'arma' : '', o.ri ? 'reinc' : ''].filter(Boolean).join(' ');
+      return `<tr data-tags="${tags}" data-busca="${msgEsc(((o.r || '') + ' ' + end + ' ' + (o.n || '') + ' ' + (o.c || '')).toLowerCase())}"><td data-l="REDS / Data">${msgEsc(o.r || '—')}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${msgEsc(o.n)}<br>${gravBadge(o.g)}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Causa">${msgEsc(o.c) || '—'}</td><td data-l="Marcadores">${marc}</td></tr>`;
+    };
+    const cont = (f) => lista.filter(o => o.g === f || (f === 'arma' && o.a) || (f === 'reinc' && o.ri)).length;
+    h += pgFiltrosHtml('apFiltros', [['todos', 'Todas', lista.length], ['critica', 'Crítica', cont('critica')], ['alta', 'Alta', cont('alta')], ['media', 'Média', cont('media')], ['arma', 'Com arma', cont('arma')], ['reinc', '⚠ Reincidente', cont('reinc')]], 'Buscar REDS, rua, natureza ou causa');
+    h += `<div style="overflow-x:auto" id="apTabelaBox"><table class="data-table vd-casos"><thead><tr><th>REDS / Data</th><th>Natureza / Gravidade</th><th>Endereço</th><th>Causa</th><th>Marcadores</th></tr></thead><tbody>`;
+    h += lista.length ? lista.map(linha).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--muted)">Nenhuma ocorrência grave no período selecionado.</td></tr>`;
+    h += `</tbody></table></div>`;
+    alvo.innerHTML = h;
+    pgLigarFiltros('apFiltros', 'apTabelaBox');
   }
 
-  renderMuniPanel(idxDefault, 'acum');
-  document.getElementById('apMuniSel').addEventListener('change', () => {
-    const sel = document.getElementById('apMuniSel');
-    setMunFiltro(municipiosData[parseInt(sel.value)].nome);
-    const global = document.getElementById('munFiltroGlobal');
-    if (global) global.value = municipiosData[parseInt(sel.value)].nome;
-    renderMuniPanel(parseInt(sel.value), document.getElementById('apPeriodoSel').value);
-  });
-  document.getElementById('apPeriodoSel').addEventListener('change', () => {
-    renderMuniPanel(parseInt(document.getElementById('apMuniSel').value), document.getElementById('apPeriodoSel').value);
-  });
+  if (!cid.ausente) {
+    const periodoInicial = pgPeriodoSalvo('apPeriodo', iUlt);
+    renderMuniPanel(cid.idx, periodoInicial);
+    pgLigarPeriodo('apPeriodos', 'apPeriodo', periodoInicial, (p) => renderMuniPanel(cid.idx, p));
+  }
+  pgRankingClicavel('apRanking', 'analise_preditiva');
 }
 
 // Endereços com 2+ chamados de VD: gatilho automático de risco — agora no TOPO do painel da cidade (era o último bloco, depois da tabela)
@@ -2493,7 +2557,7 @@ function renderViolenciaDomesticaPage() {
         if (!caso) acaoBtn = podeAbrir ? `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Abrir Caso ▸</button>` : `<span class="ppvd-badge ppvd-badge-semcaso">sem caso</span>`;
         else acaoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCaso('${o.r}')">Ver Caso ▸</button>`;
       }
-      return `<tr class="vd-row-${sem}" data-sem="${caso || velho ? sem : 'sem'}" data-busca="${msgEsc((o.r || '') + ' ' + end + ' ' + (o.n || '')).toLowerCase()}"><td data-l="Situação"><span class="ppvd-badge ${statusBadgeClass}">${statusTxt}</span>${retornos}${abertoHa}</td><td data-l="REDS / Data">${o.r || '—'}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${natLabel}<br>${gravBadge(o.g)}${o.c ? `<br><small>${msgEsc(o.c)}</small>` : ''}</td><td data-l="Endereço">${msgEsc(end) || '—'}</td><td data-l="Ocorrência">${ocorr}</td><td data-l="Acompanhamento">${acomp}</td><td data-l="Responsável">${respNome}</td><td data-l="GUT">${gut}</td><td class="acao">${acaoBtn}</td></tr>`;
+      return `<tr class="vd-row-${sem}" data-sem="${caso || velho ? sem : 'sem'}" data-busca="${msgEsc((o.r || '') + ' ' + end + ' ' + (o.n || '')).toLowerCase()}"><td data-l="Situação"><span class="ppvd-badge ${statusBadgeClass}">${statusTxt}</span>${retornos}${abertoHa}</td><td data-l="REDS / Data">${o.r || '—'}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${natLabel}<br>${gravBadge(o.g)}${o.c ? `<br><small>${msgEsc(o.c)}</small>` : ''}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Ocorrência">${ocorr}</td><td data-l="Acompanhamento">${acomp}</td><td data-l="Responsável">${respNome}</td><td data-l="GUT">${gut}</td><td class="acao">${acaoBtn}</td></tr>`;
     };
     const cont = { todos: principais.length, vermelho: 0, amarelo: 0, azul: 0, verde: 0, sem: 0 };
     principais.forEach(o => { const x = semDe(o); cont[x === 'vermelho' ? 'vermelho' : x]++; });
@@ -2540,50 +2604,49 @@ function renderCrimesViolentosPage() {
   const mesesLocais = d.meses;
   const municipiosData = d.municipios;
   const sum = arr => arr.reduce((a, b) => a + b, 0);
+  const { iUlt, parcial } = pgUltimoMes(d.panorama.total_mes);
 
   const totalGeral = sum(d.panorama.total_mes);
   const popTotal = municipiosData.reduce((s, m) => s + (m.pop || 0), 0);
   const taxaGeral = popTotal ? (totalGeral / popTotal * 100000) : 0;
+  const subTotal = iUlt > 0 ? `${mesesLocais[iUlt]}${parcial ? ' (até agora)' : ''}: ${d.panorama.total_mes[iUlt]} · ${mesesLocais[iUlt - 1]}: ${d.panorama.total_mes[iUlt - 1]}` : '';
 
   let html = `<div class="page-title">Crimes Violentos</div>`;
-  html += `<div class="def-box">${DEFS.crimes_violentos}</div>`;
+  html += `<details class="aud-como"><summary>Metodologia e definições — como o universo de crimes violentos é montado</summary><div>${DEFS.crimes_violentos}</div></details>`;
 
   html += `<div class="kpi-grid">`;
-  html += `<div class="kpi-card kpi-neutral"><div class="val">${totalGeral}</div><div class="lbl">Vítimas de Crime Violento (${d.periodo_dados})</div></div>`;
+  html += `<div class="kpi-card kpi-neutral"><div class="val">${totalGeral}</div><div class="lbl">Vítimas de Crime Violento (${d.periodo_dados})</div>${subTotal ? `<div class="sub">${subTotal}</div>` : ''}</div>`;
   html += `<div class="kpi-card kpi-neutral"><div class="val">${fmtBr(taxaGeral, 1)}</div><div class="lbl">Taxa por 100 mil hab. (70º BPM)</div></div>`;
   html += `</div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ranking por Município (taxa por 100 mil habitantes)</div>`;
+  html += `<div class="vd-recorte">Clique numa cidade para ver as ocorrências dela abaixo.</div>`;
   const ranking = municipiosData.slice().sort((a, b) => b.taxa_100k - a.taxa_100k);
-  html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th></tr></thead><tbody>`;
+  const munFiltroAtual = normMun(getMunFiltro());
+  html += `<div class="table-wrap"><table class="data-table" id="cvRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th></tr></thead><tbody>`;
   ranking.forEach((m, i) => {
     const c = rankColor(i, ranking.length, true);
-    html += `<tr><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td></tr>`;
+    html += `<tr class="rank-clic${normMun(m.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${m.nome}" title="Ver as ocorrências de ${m.nome}"><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.total_periodo}</td><td>${fmtBr(m.taxa_100k, 1)}</td></tr>`;
   });
   html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(popTotal, 0)}</td><td>${totalGeral}</td><td>${fmtBr(taxaGeral, 1)}</td></tr>`;
-  html += `</tbody></table>`;
+  html += `</tbody></table></div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Série Mensal — 70º BPM</div>`;
   html += `<table class="data-table"><thead><tr><th style="text-align:left">Mês</th><th>Vítimas de Crime Violento</th></tr></thead><tbody>`;
-  mesesLocais.forEach((m, i) => {
-    html += `<tr><td style="text-align:left">${m}</td><td>${d.panorama.total_mes[i]}</td></tr>`;
+  mesesLocais.slice(0, iUlt + 1).forEach((m, i) => {
+    html += `<tr><td style="text-align:left">${m}${i === iUlt && parcial ? ' (parcial)' : ''}</td><td>${d.panorama.total_mes[i]}</td></tr>`;
   });
   html += `</tbody></table>`;
 
-  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ocorrências por Município</div>`;
-  html += `<div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">`;
-  const munSalvo = normMun(getMunFiltro());
-  let idxDefault = munSalvo ? municipiosData.findIndex(m => normMun(m.nome) === munSalvo) : -1;
-  if (idxDefault < 0) idxDefault = 0;
-  html += `<select class="month-select" id="cvMuniSel">`;
-  municipiosData.forEach((m, i) => html += `<option value="${i}" ${i === idxDefault ? 'selected' : ''}>${m.nome}</option>`);
-  html += `</select>`;
-  html += `<select class="month-select" id="cvPeriodoSel">`;
-  html += `<option value="acum" selected>Acumulado (${d.periodo_dados})</option>`;
-  mesesLocais.forEach((m, i) => html += `<option value="${i}">${m}</option>`);
-  html += `</select>`;
-  html += `</div>`;
-  html += `<div id="cvMuniPanel"></div>`;
+  const cid = pgCidade(municipiosData, ranking);
+  const nomeCid = cid.ausente ? getMunFiltro() : municipiosData[cid.idx].nome;
+  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ocorrências de ${nomeCid}</div>`;
+  if (cid.ausente) html += `<div class="pending-box">${nomeCid} não tem vítima de crime violento registrada em ${d.periodo_dados}.</div>`;
+  else {
+    if (cid.semFiltro) html += `<div class="vd-recorte">Mostrando a cidade de maior taxa. Escolha outra nos botões do topo ou clicando no ranking.</div>`;
+    html += pgPillsPeriodoHtml('cvPeriodos', `Acumulado (${d.periodo_dados})`, mesesLocais, iUlt, parcial);
+    html += `<div id="cvMuniPanel"></div>`;
+  }
 
   document.getElementById('main').innerHTML = html;
 
@@ -2599,6 +2662,7 @@ function renderCrimesViolentosPage() {
     h += `<div class="kpi-card kpi-neutral"><div class="val">${fmtBr(taxaPeriodo, 1)}</div><div class="lbl">Taxa por 100 mil hab.</div></div>`;
     h += `<div class="kpi-card kpi-neutral"><div class="val">${fmtBr(m.pop, 0)}</div><div class="lbl">População</div></div>`;
     h += `</div>`;
+    const alvo = document.getElementById('cvMuniPanel');
 
     const listaAll = d.ocorrencias[nome] || [];
     const lista = (periodo === 'acum') ? listaAll.slice() : listaAll.filter(o => o.m === parseInt(periodo) + 1);
@@ -2606,36 +2670,33 @@ function renderCrimesViolentosPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     lista.sort((a, b) => (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); document.getElementById('cvMuniPanel').innerHTML = h; return; }
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data</th><th style="text-align:left">Natureza</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Causa</th><th>Gravidade</th><th>Arma</th><th>Prisão</th><th>Caso PPVD</th></tr></thead><tbody>`;
-    if (lista.length === 0) {
-      h += `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
-    } else {
-      lista.forEach(o => {
-        const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
-        window.ppvdCVLookup = window.ppvdCVLookup || {};
-        if (o.r) {
-          window.ppvdCVLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, _origem: { arma_fogo: o.a, tentativa_homicidio: (o.n || '').includes('Tentativa'), autor_preso: o.p, dias_desde_reds: ppvdDiasDesde(o.d) } };
-        }
-        const casoBtn = o.r ? `<button class="ppvd-btn" onclick="ppvdAbrirCasoCV('${o.r}')">Abrir Caso ▸</button>` : '—';
-        h += `<tr><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td style="text-align:left">${o.n}</td><td style="text-align:left">${end}</td><td style="text-align:left">${o.c || ''}</td><td>${gravBadge(o.g)}</td><td>${o.a ? 'SIM' : '—'}</td><td>${o.p ? 'SIM' : '—'}</td><td>${casoBtn}</td></tr>`;
-      });
-    }
-    h += `</tbody></table>`;
-    document.getElementById('cvMuniPanel').innerHTML = h;
+    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); alvo.innerHTML = h; return; }
+    const linha = (o) => {
+      const end = pgEndereco(o);
+      window.ppvdCVLookup = window.ppvdCVLookup || {};
+      if (o.r) {
+        window.ppvdCVLookup[o.r] = { reds_data: ppvdToIso(o.d), natureza: o.n, causa: o.c, municipio: nome, bairro: o.b, logradouro: o.l, numero: o.nu, _origem: { arma_fogo: o.a, tentativa_homicidio: (o.n || '').includes('Tentativa'), autor_preso: o.p, dias_desde_reds: ppvdDiasDesde(o.d) } };
+      }
+      const marc = [o.a ? pgMk('Arma', 'Arma de fogo envolvida', 'risco') : '', o.p ? pgMk('Prisão', 'Autor preso') : ''].join('') || '—';
+      const casoBtn = o.r ? `<button class="ppvd-btn" onclick="ppvdAbrirCasoCV('${o.r}')">Abrir Caso ▸</button>` : '—';
+      const tags = [o.g, o.a ? 'arma' : '', o.p ? 'prisao' : ''].filter(Boolean).join(' ');
+      return `<tr data-tags="${tags}" data-busca="${msgEsc(((o.r || '') + ' ' + end + ' ' + (o.n || '') + ' ' + (o.c || '')).toLowerCase())}"><td data-l="REDS / Data">${msgEsc(o.r || '—')}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${msgEsc(o.n)}<br>${gravBadge(o.g)}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Causa">${msgEsc(o.c) || '—'}</td><td data-l="Marcadores">${marc}</td><td class="acao">${casoBtn}</td></tr>`;
+    };
+    const cont = (f) => lista.filter(o => o.g === f || (f === 'arma' && o.a) || (f === 'prisao' && o.p)).length;
+    h += pgFiltrosHtml('cvFiltros', [['todos', 'Todas', lista.length], ['critica', 'Crítica', cont('critica')], ['alta', 'Alta', cont('alta')], ['media', 'Média', cont('media')], ['arma', 'Com arma', cont('arma')], ['prisao', 'Autor preso', cont('prisao')]], 'Buscar REDS, rua, natureza ou causa');
+    h += `<div style="overflow-x:auto" id="cvTabelaBox"><table class="data-table vd-casos"><thead><tr><th>REDS / Data</th><th>Natureza / Gravidade</th><th>Endereço</th><th>Causa</th><th>Marcadores</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
+    h += lista.length ? lista.map(linha).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
+    h += `</tbody></table></div>`;
+    alvo.innerHTML = h;
+    pgLigarFiltros('cvFiltros', 'cvTabelaBox');
   }
 
-  renderMuniPanel(idxDefault, 'acum');
-  document.getElementById('cvMuniSel').addEventListener('change', () => {
-    const sel = document.getElementById('cvMuniSel');
-    setMunFiltro(municipiosData[parseInt(sel.value)].nome);
-    const global = document.getElementById('munFiltroGlobal');
-    if (global) global.value = municipiosData[parseInt(sel.value)].nome;
-    renderMuniPanel(parseInt(sel.value), document.getElementById('cvPeriodoSel').value);
-  });
-  document.getElementById('cvPeriodoSel').addEventListener('change', () => {
-    renderMuniPanel(parseInt(document.getElementById('cvMuniSel').value), document.getElementById('cvPeriodoSel').value);
-  });
+  if (!cid.ausente) {
+    const periodoInicial = pgPeriodoSalvo('cvPeriodo', iUlt);
+    renderMuniPanel(cid.idx, periodoInicial);
+    pgLigarPeriodo('cvPeriodos', 'cvPeriodo', periodoInicial, (p) => renderMuniPanel(cid.idx, p));
+  }
+  pgRankingClicavel('cvRanking', 'crimes_violentos');
 }
 
 function renderReincidenciaPage() {
@@ -2644,77 +2705,78 @@ function renderReincidenciaPage() {
   const totalGeral = d.panorama.total_enderecos;
 
   let html = `<div class="page-title">Preditiva por Reincidência de Endereço</div>`;
-  html += `<div class="def-box">${DEFS.reincidencia}</div>`;
+  html += `<details class="aud-como"><summary>Metodologia e definições — o que é um endereço reincidente</summary><div>${DEFS.reincidencia}</div></details>`;
 
   html += `<div class="kpi-grid">`;
   html += `<div class="kpi-card ${totalGeral > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${totalGeral}</div><div class="lbl">Endereços com Reincidência (${d.periodo_dados})</div></div>`;
   html += `</div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ranking por Município (Nº de Endereços Reincidentes)</div>`;
+  html += `<div class="vd-recorte">Clique numa cidade para ver os endereços dela abaixo.</div>`;
   const ranking = municipiosData.slice().sort((a, b) => b.enderecos_reincidentes - a.enderecos_reincidentes);
-  html += `<table class="data-table"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Endereços Reincidentes</th></tr></thead><tbody>`;
+  const munFiltroAtual = normMun(getMunFiltro());
+  html += `<div class="table-wrap"><table class="data-table" id="reRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Endereços Reincidentes</th></tr></thead><tbody>`;
   ranking.forEach((m, i) => {
     const c = rankColor(i, ranking.length, true);
-    html += `<tr><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.enderecos_reincidentes}</td></tr>`;
+    html += `<tr class="rank-clic${normMun(m.nome) === munFiltroAtual ? ' sel' : ''}" data-mun="${m.nome}" title="Ver os endereços de ${m.nome}"><td style="background:${c};color:${rankTextColor(c)};font-weight:700">${i + 1}</td><td style="text-align:left">${m.nome}</td><td>${fmtBr(m.pop, 0)}</td><td>${m.enderecos_reincidentes}</td></tr>`;
   });
-  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(municipiosData.reduce((s,m)=>s+(m.pop||0),0), 0)}</td><td>${totalGeral}</td></tr>`;
-  html += `</tbody></table>`;
+  html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td></td><td style="text-align:left">70º BPM</td><td>${fmtBr(municipiosData.reduce((s, m) => s + (m.pop || 0), 0), 0)}</td><td>${totalGeral}</td></tr>`;
+  html += `</tbody></table></div>`;
 
-  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Endereços Reincidentes por Município</div>`;
-  html += `<div style="display:flex;gap:14px;margin-bottom:16px;flex-wrap:wrap">`;
-  const munSalvo = normMun(getMunFiltro());
-  let idxDefault = munSalvo ? municipiosData.findIndex(m => normMun(m.nome) === munSalvo) : -1;
-  if (idxDefault < 0) idxDefault = 0;
-  html += `<select class="month-select" id="reMuniSel">`;
-  municipiosData.forEach((m, i) => html += `<option value="${i}" ${i === idxDefault ? 'selected' : ''}>${m.nome}</option>`);
-  html += `</select>`;
-  html += `</div>`;
-  html += `<div id="reMuniPanel"></div>`;
+  const cid = pgCidade(municipiosData, ranking);
+  const nomeCid = cid.ausente ? getMunFiltro() : municipiosData[cid.idx].nome;
+  html += `<div class="page-title" style="margin-top:34px;font-size:16px">Endereços reincidentes de ${nomeCid}</div>`;
+  if (cid.ausente) html += `<div class="pending-box">${nomeCid} não tem endereço reincidente em ${d.periodo_dados}.</div>`;
+  else {
+    if (cid.semFiltro) html += `<div class="vd-recorte">Mostrando a cidade com mais endereços. Escolha outra nos botões do topo ou clicando no ranking.</div>`;
+    html += `<div id="reMuniPanel"></div>`;
+  }
 
   document.getElementById('main').innerHTML = html;
 
   function renderMuniPanel(muniIdx) {
     const m = municipiosData[muniIdx];
     const nome = m.nome;
-    const enderecos = (d.enderecos[nome] || []).slice().sort((a, b) => (a.dias_desde_ultimo || 9999) - (b.dias_desde_ultimo || 9999));
+    // mais recente primeiro (0 dias = hoje também conta; antes um "0" caía pro fim da lista)
+    const diasDe = (e) => (e.dias_desde_ultimo == null ? 9999 : e.dias_desde_ultimo);
+    const enderecos = (d.enderecos[nome] || []).slice().sort((a, b) => diasDe(a) - diasDe(b));
+    const urgenteDe = (e) => e.dias_desde_ultimo != null && e.dias_desde_ultimo <= 10;
 
     let h = `<div class="kpi-grid">`;
     h += `<div class="kpi-card ${m.enderecos_reincidentes > 0 ? 'kpi-red' : 'kpi-green'}"><div class="val">${m.enderecos_reincidentes}</div><div class="lbl">Endereços com Reincidência</div></div>`;
     h += `<div class="kpi-card kpi-neutral"><div class="val">${fmtBr(m.pop, 0)}</div><div class="lbl">População</div></div>`;
     h += `</div>`;
+    const alvo = document.getElementById('reMuniPanel');
 
-    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); document.getElementById('reMuniPanel').innerHTML = h; return; }
-    h += `<table class="data-table"><thead><tr><th style="text-align:left">Bairro/Logradouro</th><th>Nº chamados</th><th>Intervalo mín. (dias)</th><th>Dias desde o último</th><th style="text-align:left">Naturezas</th><th>Arma de fogo</th><th>Caso PPVD</th></tr></thead><tbody>`;
-    if (enderecos.length === 0) {
-      h += `<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
-    } else {
-      enderecos.forEach((e, ei) => {
-        const end = `${e.b || ''}${e.l ? (' - ' + e.l) : ''}${e.nu && e.nu !== '0' ? (', ' + e.nu) : ''}`;
-        const urgente = (e.dias_desde_ultimo != null && e.dias_desde_ultimo <= 10);
-        const lookupId = `${nome}__${muniIdx}__${ei}`;
-        window.ppvdReincLookup = window.ppvdReincLookup || {};
-        window.ppvdReincLookup[lookupId] = {
-          endereco_key: [nome, e.b || '', e.l || '', e.nu || ''].join('|'),
-          municipio: nome, bairro: e.b, logradouro: e.l, numero: e.nu,
-          natureza: (e.naturezas || []).join(', '), reds_relacionados: (e.reds || []).join(', '),
-          _origem: { arma_fogo: e.arma_fogo, qtd_chamados_60d: e.q, dias_desde_ultimo_chamado: e.dias_desde_ultimo, intervalo_dias_entre_chamados: e.intervalo_min_dias, naturezas_distintas: (e.naturezas || []).length },
-        };
-        const casoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCasoReinc('${lookupId}')">Abrir Caso ▸</button>`;
-        h += `<tr${urgente ? ' style="background:rgba(239,68,68,0.12)"' : ''}><td style="text-align:left">${end}</td><td>${e.q}</td><td>${e.intervalo_min_dias != null ? e.intervalo_min_dias : '—'}</td><td>${e.dias_desde_ultimo != null ? e.dias_desde_ultimo : '—'}</td><td style="text-align:left">${(e.naturezas || []).join(', ')}</td><td>${e.arma_fogo ? '⚠ SIM' : '—'}</td><td>${casoBtn}</td></tr>`;
-      });
-    }
-    h += `</tbody></table>`;
-    document.getElementById('reMuniPanel').innerHTML = h;
+    if (!ppvdDadosRestritosLiberados()) { h += ppvdAvisoRestrito(); alvo.innerHTML = h; return; }
+    const linha = (e, ei) => {
+      const end = pgEndereco(e);
+      const urgente = urgenteDe(e);
+      const lookupId = `${nome}__${muniIdx}__${ei}`;
+      window.ppvdReincLookup = window.ppvdReincLookup || {};
+      window.ppvdReincLookup[lookupId] = {
+        endereco_key: [nome, e.b || '', e.l || '', e.nu || ''].join('|'),
+        municipio: nome, bairro: e.b, logradouro: e.l, numero: e.nu,
+        natureza: (e.naturezas || []).join(', '), reds_relacionados: (e.reds || []).join(', '),
+        _origem: { arma_fogo: e.arma_fogo, qtd_chamados_60d: e.q, dias_desde_ultimo_chamado: e.dias_desde_ultimo, intervalo_dias_entre_chamados: e.intervalo_min_dias, naturezas_distintas: (e.naturezas || []).length },
+      };
+      const marc = [urgente ? pgMk('✕ Urgente', 'Último chamado há 10 dias ou menos', 'risco') : '', e.arma_fogo ? pgMk('⚠ Arma', 'Arma de fogo envolvida', 'risco') : '', e.q >= 3 ? pgMk('3+ chamados', 'Três ou mais chamados no período') : ''].join('') || '—';
+      const ultimo = e.dias_desde_ultimo == null ? '—' : (e.dias_desde_ultimo === 0 ? 'hoje' : 'há ' + e.dias_desde_ultimo + ' dia(s)');
+      const tags = [urgente ? 'urgente' : '', e.arma_fogo ? 'arma' : '', e.q >= 3 ? 'tres' : '', (e.naturezas || []).length >= 2 ? 'multi' : ''].filter(Boolean).join(' ');
+      const casoBtn = `<button class="ppvd-btn" onclick="ppvdAbrirCasoReinc('${lookupId}')">Abrir Caso ▸</button>`;
+      return `<tr class="${urgente ? 'vd-row-vermelho' : ''}" data-tags="${tags}" data-busca="${msgEsc((end + ' ' + (e.naturezas || []).join(' ')).toLowerCase())}"><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Chamados">${e.q}<br><small>intervalo mín. ${e.intervalo_min_dias != null ? e.intervalo_min_dias + ' dia(s)' : '—'}</small></td><td data-l="Último chamado">${ultimo}</td><td data-l="Naturezas" class="larga">${msgEsc((e.naturezas || []).join(', ')) || '—'}</td><td data-l="Marcadores">${marc}</td><td class="acao">${casoBtn}</td></tr>`;
+    };
+    const cont = (f) => enderecos.filter(e => (f === 'urgente' && urgenteDe(e)) || (f === 'arma' && e.arma_fogo) || (f === 'tres' && e.q >= 3) || (f === 'multi' && (e.naturezas || []).length >= 2)).length;
+    h += pgFiltrosHtml('reFiltros', [['todos', 'Todos', enderecos.length], ['urgente', '✕ Urgentes (≤10 dias)', cont('urgente')], ['arma', 'Arma de fogo', cont('arma')], ['tres', '3+ chamados', cont('tres')], ['multi', 'Várias naturezas', cont('multi')]], 'Buscar rua, bairro ou natureza');
+    h += `<div style="overflow-x:auto" id="reTabelaBox"><table class="data-table vd-casos"><thead><tr><th>Endereço</th><th>Chamados</th><th>Último chamado</th><th>Naturezas</th><th>Marcadores</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
+    h += enderecos.length ? enderecos.map(linha).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
+    h += `</tbody></table></div>`;
+    alvo.innerHTML = h;
+    pgLigarFiltros('reFiltros', 'reTabelaBox');
   }
 
-  renderMuniPanel(idxDefault);
-  document.getElementById('reMuniSel').addEventListener('change', () => {
-    const sel = document.getElementById('reMuniSel');
-    setMunFiltro(municipiosData[parseInt(sel.value)].nome);
-    const global = document.getElementById('munFiltroGlobal');
-    if (global) global.value = municipiosData[parseInt(sel.value)].nome;
-    renderMuniPanel(parseInt(sel.value));
-  });
+  if (!cid.ausente) renderMuniPanel(cid.idx);
+  pgRankingClicavel('reRanking', 'reincidencia');
 }
 
 // invertido=true: pra rankings ordenados do PIOR pro melhor (ex: taxa de violência, onde
