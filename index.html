@@ -5283,6 +5283,10 @@ function ppvdRenderWizard() {
       html += `<div style="margin-bottom:10px"><b>${dimLabels[dim]}: ${v}</b> — ${opt ? opt.d : ''} <button class="ppvd-btn" onclick="ppvdWizardEditarPergunta('${dim}')" style="margin-left:8px">Corrigir</button></div>`;
     });
     html += `</div>`;
+    html += `<div class="ppvd-card"><b>Identificação</b> <span style="color:var(--muted);font-size:12px">(opcional — só o primeiro nome, sem sobrenome, RG ou telefone)</span><br><br>`;
+    html += `<div class="ppvd-field"><label>Primeiro nome da vítima</label><input id="ppvdWizVit" placeholder="Ex: Maria" value="${msgEsc(w.caso.vitima_nome)}"></div>`;
+    html += `<div class="ppvd-field"><label>Primeiro nome do autor</label><input id="ppvdWizAut" placeholder="Ex: João" value="${msgEsc(w.caso.autor_nome)}"></div>`;
+    html += `</div>`;
     html += `<div class="ppvd-card"><b>Militar Responsável pela visita</b><br><br>`;
     html += `<div class="ppvd-field"><input id="ppvdMilitarResp" placeholder="Nome/graduação de quem fez a visita" value="${w.militar_responsavel || ''}"></div>`;
     html += `</div>`;
@@ -5331,6 +5335,9 @@ async function ppvdWizardSalvar() {
     bos_url: bosUrl,
     status: 'em_acompanhamento',
   };
+  const wv = document.getElementById('ppvdWizVit'), wa = document.getElementById('ppvdWizAut');
+  if (wv) upd.vitima_nome = ppvdPrimeiroNome(wv.value) || null;
+  if (wa) upd.autor_nome = ppvdPrimeiroNome(wa.value) || null;
   const { error } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', w.casoId);
   if (error) { alert('Erro ao salvar: ' + error.message); return; }
   alert('Caso salvo com sucesso.');
@@ -5620,13 +5627,19 @@ function ppvdSugerirResponsavel(municipio) {
 function ppvdLinkVisitaPublica(token) {
   return window.location.href.split('#')[0] + '#visita=' + token;
 }
+// Só o PRIMEIRO nome (sem sobrenome): é o que o caso guarda e o que vai na mensagem do WhatsApp. Iniciais ("M.A.S.") ficam como estão.
+function ppvdPrimeiroNome(txt) {
+  const n = String(txt || '').trim().split(' ')[0] || '';
+  return /^[A-Za-zÀ-ÿ]+$/.test(n) ? n.charAt(0).toUpperCase() + n.slice(1).toLowerCase() : n;
+}
 function ppvdMontarMensagemWhatsApp(caso, token) {
   const link = ppvdLinkVisitaPublica(token);
+  const pAut = caso.autor_nome ? ` (${caso.autor_nome})` : '', pVit = caso.vitima_nome ? ` (${caso.vitima_nome})` : '';
   return `Olá! Ocorrência REDS ${caso.reds_numero || '—'}, ocorrida em ${caso.reds_data || '—'}, natureza ${caso.natureza || '—'}, município ${caso.municipio || ''}${caso.bairro ? (' - ' + caso.bairro) : ''}.
 
-Favor realizar a leitura do fato e a visita ao autor e à vítima, no prazo preferencial de 24h (máximo 72h).
+Favor realizar a leitura do fato e a visita ao autor${pAut} e à vítima${pVit}, no prazo preferencial de 24h (máximo 72h).
 
-Após o término, acesse o link abaixo, anexe o BOS da visita ao autor e à vítima, e preencha o GUT novo:
+Após o término, acesse o link abaixo, anexe o BOS da visita ao autor${pAut} e à vítima${pVit}, e preencha o GUT novo:
 ${link}`;
 }
 async function ppvdAbrirBos(path) {
@@ -5789,6 +5802,9 @@ async function ppvdRenderCaso(caso) {
     const sugestao = ppvdSugerirResponsavel(caso.municipio);
     const ehRetorno = caso.status === 'decisao_cmd';
     acoes += `<div class="ppvd-card" id="casoAcaoDespachar"><b>Despachar visita — ${ehRetorno ? 'Retorno' : 'Visita inicial'}</b><br><br>`;
+    acoes += `<div class="ppvd-field"><label>Primeiro nome da vítima</label><input id="ppvdDespVit" placeholder="Ex: Maria" value="${msgEsc(caso.vitima_nome)}"></div>`;
+    acoes += `<div class="ppvd-field"><label>Primeiro nome do autor</label><input id="ppvdDespAut" placeholder="Ex: João" value="${msgEsc(caso.autor_nome)}"></div>`;
+    acoes += `<div style="color:var(--muted);font-size:12.5px;margin:-4px 0 10px">Só o primeiro nome (sem sobrenome, RG ou telefone). Ele vai na mensagem do WhatsApp e fica no caso.</div>`;
     acoes += `<div class="ppvd-field"><label>Militar responsável (nome)</label><input id="ppvdRespNome" value="${msgEsc(caso.militar_responsavel || (sugestao ? sugestao.nome : ''))}"></div>`;
     acoes += `<div class="ppvd-field"><label>WhatsApp (com DDD)</label><input id="ppvdRespWhats" value="${msgEsc(caso.militar_responsavel_whatsapp || (sugestao ? sugestao.whatsapp : ''))}"></div>`;
     acoes += `<div style="color:var(--muted);font-size:12.5px;margin-bottom:10px">Ao despachar, abre o WhatsApp com a mensagem já pronta e o link da página de registro da visita (prazo preferencial de 24h, máximo de ${PPVD_PRAZO_RETORNO_HORAS}h). Dá pra trocar o nome/WhatsApp aqui sem alterar o cadastro fixo.</div>`;
@@ -5876,9 +5892,9 @@ async function ppvdRenderCaso(caso) {
   dados += `<div class="ppvd-field"><label>Gravidade</label>${ppvdSelectGUT('ppvdG', 'gravidade', caso.gravidade)}</div>`;
   dados += `<div class="ppvd-field"><label>Urgência</label>${ppvdSelectGUT('ppvdU', 'urgencia', caso.urgencia)}</div>`;
   dados += `<div class="ppvd-field"><label>Tendência</label>${ppvdSelectGUT('ppvdT', 'tendencia', caso.tendencia)}</div>`;
-  dados += `<b>Identificação</b> <span style="color:var(--muted);font-size:12px">(somente iniciais — sem nome completo, RG ou telefone)</span><br><br>`;
-  dados += `<div class="ppvd-field"><label>Iniciais da vítima</label><input id="ppvdVitNome" placeholder="Ex: M.A.S." value="${msgEsc(caso.vitima_nome)}"></div>`;
-  dados += `<div class="ppvd-field"><label>Iniciais do autor</label><input id="ppvdAutNome" placeholder="Ex: J.P.O." value="${msgEsc(caso.autor_nome)}"></div>`;
+  dados += `<b>Identificação</b> <span style="color:var(--muted);font-size:12px">(somente o primeiro nome — sem sobrenome, RG ou telefone)</span><br><br>`;
+  dados += `<div class="ppvd-field"><label>Primeiro nome da vítima</label><input id="ppvdVitNome" placeholder="Ex: Maria" value="${msgEsc(caso.vitima_nome)}"></div>`;
+  dados += `<div class="ppvd-field"><label>Primeiro nome do autor</label><input id="ppvdAutNome" placeholder="Ex: João" value="${msgEsc(caso.autor_nome)}"></div>`;
   dados += `<div class="ppvd-field"><label>Tem mandado?</label><select id="ppvdMandado"><option value="false" ${!caso.tem_mandado ? 'selected' : ''}>Não</option><option value="true" ${caso.tem_mandado ? 'selected' : ''}>Sim</option></select></div>`;
   dados += `<div class="ppvd-field"><label>Medida protetiva?</label><select id="ppvdMP"><option value="false" ${!caso.medida_protetiva ? 'selected' : ''}>Não</option><option value="true" ${caso.medida_protetiva ? 'selected' : ''}>Sim</option></select></div>`;
   dados += `<div class="ppvd-field"><label>Pelotão responsável</label><input id="ppvdPelotao" value="${msgEsc(caso.pelotao)}"></div>`;
@@ -6176,8 +6192,8 @@ async function ppvdSalvarCaso(casoId) {
   if (preenchidos > 0 && preenchidos < 3) { alert('Preencha Gravidade, Urgência e Tendência — ou deixe as três em branco.'); return; }
   const upd = {
     gravidade: g, urgencia: u, tendencia: t,
-    vitima_nome: document.getElementById('ppvdVitNome').value.trim() || null,
-    autor_nome: document.getElementById('ppvdAutNome').value.trim() || null,
+    vitima_nome: ppvdPrimeiroNome(document.getElementById('ppvdVitNome').value) || null,
+    autor_nome: ppvdPrimeiroNome(document.getElementById('ppvdAutNome').value) || null,
     tem_mandado: document.getElementById('ppvdMandado').value === 'true',
     medida_protetiva: document.getElementById('ppvdMP').value === 'true',
     pelotao: document.getElementById('ppvdPelotao').value.trim() || null,
@@ -6206,6 +6222,9 @@ async function ppvdDespacharVD(casoId, isRetorno) {
   }).select().single();
   if (error) { alert('Erro ao despachar: ' + error.message); return; }
   const upd = { status: 'em_visita', militar_responsavel: nome, militar_responsavel_whatsapp: whats };
+  const dv = document.getElementById('ppvdDespVit'), da = document.getElementById('ppvdDespAut');
+  if (dv) upd.vitima_nome = ppvdPrimeiroNome(dv.value) || null;
+  if (da) upd.autor_nome = ppvdPrimeiroNome(da.value) || null;
   if (isRetorno) upd.qtd_retornos = (window.ppvdCasoAtual ? (window.ppvdCasoAtual.qtd_retornos || 0) + 1 : 1);
   const { data: caso, error: errUpd } = await ppvdSupa.from('ppvd_casos').update(upd).eq('id', casoId).select().single();
   if (errUpd) { alert('Erro: ' + errUpd.message); return; }

@@ -1652,6 +1652,53 @@ function auditar() {
     await ctxO.close();
   }
 
+  // ---------- 37) Casos: só o primeiro nome da vítima e do autor, que já vai na mensagem do WhatsApp ----------
+  console.log('\n[37] Casos: primeiro nome da vítima e do autor entra na mensagem do despacho');
+  {
+    const ctxN = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pn = await ctxN.newPage();
+    const errosN = []; pn.on('pageerror', (e) => errosN.push(e.message));
+    await pn.goto(base);
+    await pn.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pn.evaluate(async () => {
+      const out = {}, gravados = [], abertos = [];
+      out.helper = ['maria silva', 'JOÃO pereira', '  Ana ', 'M.A.S.', ''].map(ppvdPrimeiroNome).join('|');
+      const casoBase = { id: 'c1', modalidade: 'violencia_domestica', municipio: 'Araçuaí', reds_numero: 'X1', reds_data: '2026-10-10', natureza: 'Ameaça', bairro: 'Centro', status: 'aberto', gravidade: 2, urgencia: 2, tendencia: 2, vitima_nome: 'Lúcia' };
+      const mk = (t) => { const o = { _upd: null, _ins: null, select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, single: () => o, maybeSingle: () => o,
+        insert: (d) => { gravados.push({ t, op: 'insert', d }); o._ins = d; return o; }, update: (d) => { gravados.push({ t, op: 'update', d }); o._upd = d; return o; },
+        then: (ok) => ok(t === 'ppvd_visitas' ? (o._ins ? { data: { id: 'v9', token: 'tok9' }, error: null } : { data: [], error: null }) : { data: { ...casoBase, ...(o._upd || {}) }, error: null }) }; return o; };
+      ppvdSupa = { from: mk }; ppvdUser = { id: 'u' }; ppvdPerfil = { aprovado: true, is_admin: true, pode_abrir_caso: true, nome: 'A' }; ppvdRestritoCarregado = true; ppvdMilitaresCache = [];
+      window.open = (u) => { abertos.push(u); return null; }; window.alert = () => {};
+      await ppvdRenderCaso(casoBase);
+      out.campos = { vit: (document.getElementById('ppvdDespVit') || {}).value, aut: (document.getElementById('ppvdDespAut') || {}).value, rotulo: /Primeiro nome da vítima/.test(document.getElementById('main').textContent), semIniciais: !/Iniciais da vítima/.test(document.getElementById('main').textContent) };
+      document.getElementById('ppvdDespVit').value = 'maria silva'; document.getElementById('ppvdDespAut').value = 'JOÃO pereira';
+      document.getElementById('ppvdRespNome').value = 'Sd Fulano'; document.getElementById('ppvdRespWhats').value = '33999999999';
+      await ppvdDespacharVD('c1', false);
+      const upd = gravados.filter(x => x.t === 'ppvd_casos' && x.op === 'update').map(x => x.d)[0] || {};
+      const msg = decodeURIComponent((abertos[0] || '').split('text=')[1] || '');
+      out.despacho = { vit: upd.vitima_nome, aut: upd.autor_nome, msg: /visita ao autor \(João\) e à vítima \(Maria\)/.test(msg), bos: /BOS da visita ao autor \(João\) e à vítima \(Maria\)/.test(msg), semSobrenome: !/Silva|Pereira/i.test(msg) };
+      // sem nomes: mensagem como antes
+      const semNomes = ppvdMontarMensagemWhatsApp({ reds_numero: 'X', municipio: 'A' }, 't');
+      out.semNomes = /visita ao autor e à vítima, no prazo/.test(semNomes) && /BOS da visita ao autor e à vítima, e preencha/.test(semNomes);
+      // assistente dos casos de Crimes Violentos / Reincidência
+      ppvdWizard = { modalidade: 'crimes_violentos', casoId: 'c2', step: 3, valores: { gravidade: 2, urgencia: 2, tendencia: 2 }, militar_responsavel: '', caso: { id: 'c2', reds_numero: 'R1', modalidade: 'crimes_violentos', vitima_nome: 'Ana' } };
+      ppvdRenderWizard();
+      out.wiz = { vit: (document.getElementById('ppvdWizVit') || {}).value, aut: (document.getElementById('ppvdWizAut') || {}).value };
+      document.getElementById('ppvdWizVit').value = 'beatriz souza'; document.getElementById('ppvdWizAut').value = 'carlos';
+      gravados.length = 0; await ppvdWizardSalvar();
+      const u2 = gravados.filter(x => x.t === 'ppvd_casos' && x.op === 'update').map(x => x.d)[0] || {};
+      out.wizSalvo = { vit: u2.vitima_nome, aut: u2.autor_nome };
+      return out;
+    });
+    checa(r.helper === 'Maria|João|Ana|M.A.S.|', 'só o primeiro nome é guardado (sobrenome cortado, maiúscula certa, iniciais preservadas)', 'primeiro nome: ' + r.helper);
+    checa(r.campos.vit === 'Lúcia' && r.campos.aut === '' && r.campos.rotulo && r.campos.semIniciais, 'cartão de despacho traz os campos de primeiro nome (já preenchidos com o que o caso tem)', 'campos: ' + JSON.stringify(r.campos));
+    checa(r.despacho.vit === 'Maria' && r.despacho.aut === 'João' && r.despacho.msg && r.despacho.bos && r.despacho.semSobrenome, 'despachar grava os primeiros nomes no caso e a mensagem do WhatsApp já vem com eles', 'despacho: ' + JSON.stringify(r.despacho));
+    checa(r.semNomes, 'sem nomes preenchidos a mensagem segue como antes', 'mensagem sem nomes mudou');
+    checa(r.wiz.vit === 'Ana' && r.wiz.aut === '' && r.wizSalvo.vit === 'Beatriz' && r.wizSalvo.aut === 'Carlos', 'casos de Crimes Violentos/Reincidência: campos de primeiro nome na revisão e gravados ao salvar', 'assistente: ' + JSON.stringify([r.wiz, r.wizSalvo]));
+    checa(errosN.length === 0, 'primeiro nome sem erro de JavaScript', 'erros: ' + errosN.slice(0, 3).join(' | '));
+    await ctxN.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
