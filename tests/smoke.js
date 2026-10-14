@@ -1442,6 +1442,95 @@ function auditar() {
     await ctxS.close();
   }
 
+  // ---------- 34) Avisos no celular (Web Push): instalação do app, tela de ativação, preferências ----------
+  console.log('\n[34] Avisos no celular: app instalável, ativar/desativar, preferências e link do aviso');
+  {
+    const ctxN = await novoContexto(browser, { viewport: { width: 390, height: 800 } });
+    const pn = await ctxN.newPage();
+    const errosN = []; pn.on('pageerror', (e) => errosN.push(e.message));
+    await pn.goto(base);
+    await pn.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pn.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {};
+      // --- app instalável: manifest, ícones, service worker ---
+      const man = await (await fetch('manifest.webmanifest')).json();
+      const icones = await Promise.all(man.icons.map(async (i) => { const x = await fetch(i.src); return x.ok && /image\/png/.test(x.headers.get('content-type') || ''); }));
+      const sw = await (await fetch('sw.js')).text();
+      out.pwa = { display: man.display, nome: man.short_name, icones: icones.every(Boolean) && man.icons.length >= 3, maskable: man.icons.some(i => i.purpose === 'maskable'),
+        linkManifest: !!document.querySelector('link[rel="manifest"]'), apple: !!document.querySelector('link[rel="apple-touch-icon"]') && !!document.querySelector('meta[name="apple-mobile-web-app-capable"]'),
+        swPush: /addEventListener\('push'/.test(sw) && /notificationclick/.test(sw), swSemCache: !/caches\.(open|match|put)/.test(sw), swSemReds: !/\d{4}-\d{9}/.test(sw) };
+      // --- link do aviso com o painel já aberto ---
+      navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'notif-click', pagina: 'cvpa' } }));
+      await esp(300); out.cliqueNoAviso = currentPageKey;
+      // --- visitante sem login ---
+      goToPage('notificacoes'); await esp(300);
+      out.anonimo = /Entre com sua conta PPVD/.test(document.getElementById('main').innerText) && !document.getElementById('notifEstadoCard');
+      // --- usuário aprovado, com navegador/Supabase de mentira ---
+      let perm = 'default', sub = null; const chamadas = [], upserts = [];
+      const fakeSub = { endpoint: 'https://push.exemplo/abc123', toJSON() { return { endpoint: this.endpoint, keys: { p256dh: 'P256', auth: 'AUTH' } }; }, async unsubscribe() { sub = null; return true; } };
+      const fakeReg = { pushManager: { async getSubscription() { return sub; }, async subscribe(o) { chamadas.push(['subscribe', o.userVisibleOnly, o.applicationServerKey.length]); sub = fakeSub; return sub; } } };
+      Object.defineProperty(navigator, 'serviceWorker', { value: { ready: Promise.resolve(fakeReg), addEventListener() {}, register: async () => fakeReg }, configurable: true });
+      Object.defineProperty(Notification, 'permission', { get: () => perm, configurable: true });
+      Notification.requestPermission = async () => { perm = 'granted'; return 'granted'; };
+      let prefsBanco = null;
+      const tabela = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: async () => ({ data: t === 'app_public_config' ? { value: 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U' } : (t === 'notificacao_prefs' ? prefsBanco : null), error: null }), upsert: async (linha) => { if (t === 'notificacao_prefs') { prefsBanco = { ativo: linha.ativo, tipos: linha.tipos, municipios: linha.municipios }; upserts.push(prefsBanco); } return { error: null }; }, then: (ok) => ok({ data: [], error: null, count: 0 }) }; return o; };
+      ppvdSupa = { from: tabela, rpc: async (nome, args) => { chamadas.push([nome, args && args.p_endpoint, args && args.p_p256dh_key]); return { data: nome === 'solicitar_teste_push' ? 77 : null, error: null }; }, auth: { getSession: async () => ({ data: { session: { access_token: 'eyJ.teste.jwt' } } }), signOut: async () => {} } };
+      ppvdUser = { id: 'u1' }; ppvdPerfil = { aprovado: true, nome: 'Fulano', cargo: 'Ten', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true;
+      localStorage.removeItem('notifOptIn:u1'); notifEstado = 'desconhecido'; notifPrefs = null; notifMsg = null;
+      goToPage('notificacoes'); await esp(500);
+      out.desligado = { botao: !!Array.from(document.querySelectorAll('#main button')).find(b => /Ativar neste aparelho/.test(b.textContent)), tipos: document.querySelectorAll('.notif-tipos input').length, munAtivo: document.querySelector('#notifMuns button.on').textContent };
+      await notifAtivar(); await esp(300);
+      out.ligado = { estado: notifEstado, texto: /Avisos ativos neste aparelho/.test(document.getElementById('main').innerText), registrou: chamadas.some(c => c[0] === 'register_push_subscription' && c[1] === 'https://push.exemplo/abc123' && c[2] === 'P256'), subscribe: chamadas.find(c => c[0] === 'subscribe'), optIn: localStorage.getItem('notifOptIn:u1') === '1', prefsPadrao: upserts[0] ? JSON.stringify(upserts[0].municipios) : null, tiposPadrao: upserts[0] ? upserts[0].tipos.length : null };
+      // preferências
+      await notifAlternarTipo('vd', false); await notifAlternarMunicipio('ITAOBIM');
+      out.prefs = { semVd: !prefsBanco.tipos.includes('vd'), comItaobim: prefsBanco.municipios.includes('ITAOBIM') && prefsBanco.municipios.includes('ARACUAI'), checkbox: !document.querySelector('.notif-tipos input[onchange*="\'vd\'"]').checked };
+      await notifAlternarMunicipio(''); out.prefs.todos = prefsBanco.municipios.length === 0;
+      // teste
+      window.fetch = async (url, init) => { chamadas.push(['fetch', url, init.headers.Authorization]); return { ok: true, status: 200, json: async () => ({ ok: true, enviados: 1, avisos: 1 }) }; };
+      await notifEnviarTeste(); await esp(100);
+      out.teste = { rpc: chamadas.some(c => c[0] === 'solicitar_teste_push'), funcao: chamadas.find(c => c[0] === 'fetch'), msg: /Aviso de teste enviado/.test(document.getElementById('main').innerText) };
+      // desativar
+      await notifDesativar(); await esp(300);
+      out.desativado = { estado: notifEstado, desinscreveu: chamadas.some(c => c[0] === 'unregister_push_subscription' && c[1] === 'https://push.exemplo/abc123'), optIn: localStorage.getItem('notifOptIn:u1') };
+      // logout desvincula o aparelho
+      await notifAtivar(); await esp(200); chamadas.length = 0; await ppvdSignOut();
+      out.logout = chamadas.some(c => c[0] === 'unregister_push_subscription');
+      // sem permissão
+      perm = 'denied'; notifEstado = 'desconhecido'; goToPage('notificacoes'); await esp(400);
+      out.bloqueado = /bloqueados/.test(document.getElementById('main').innerText);
+      // iPhone sem instalar
+      perm = 'default'; notifEstado = 'desconhecido';
+      Object.defineProperty(navigator, 'userAgent', { get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15', configurable: true });
+      goToPage('notificacoes'); await esp(400);
+      out.ios = /Adicionar à Tela de Início/.test(document.getElementById('main').innerText);
+      return out;
+    });
+    checa(r.pwa.display === 'standalone' && r.pwa.icones && r.pwa.maskable && r.pwa.linkManifest && r.pwa.apple, 'painel instalável: manifest (standalone), 3 ícones PNG, ícone da Apple e meta tags', 'pwa: ' + JSON.stringify(r.pwa));
+    checa(r.pwa.swPush && r.pwa.swSemCache && r.pwa.swSemReds, 'service worker trata push e clique, não guarda nada em cache e não carrega REDS', 'sw: ' + JSON.stringify(r.pwa));
+    checa(r.cliqueNoAviso === 'cvpa', 'tocar no aviso com o painel aberto leva à página do aviso', 'página: ' + r.cliqueNoAviso);
+    checa(r.anonimo, 'visitante sem login só vê o pedido de entrada', 'anônimo: ' + r.anonimo);
+    checa(r.desligado.botao && r.desligado.tipos === 6 && r.desligado.munAtivo === 'Araçuaí', 'tela de avisos: botão "Ativar neste aparelho", 6 tipos e o município do cadastro já marcado', 'desligado: ' + JSON.stringify(r.desligado));
+    checa(r.ligado.estado === 'ligado' && r.ligado.texto && r.ligado.registrou && r.ligado.subscribe && r.ligado.subscribe[1] === true && r.ligado.subscribe[2] === 65 && r.ligado.optIn, 'ativar: pede permissão, inscreve com a chave pública (65 bytes) e registra o aparelho', 'ligado: ' + JSON.stringify(r.ligado));
+    checa(r.ligado.prefsPadrao === '["ARACUAI"]' && r.ligado.tiposPadrao === 6, 'primeira vez: preferências padrão = município do cadastro do usuário e todos os tipos', 'prefs padrão: ' + JSON.stringify(r.ligado));
+    checa(r.prefs.semVd && r.prefs.comItaobim && r.prefs.checkbox && r.prefs.todos, 'preferências: desmarcar tipo, somar município e voltar a "todos"', 'prefs: ' + JSON.stringify(r.prefs));
+    checa(r.teste.rpc && r.teste.funcao && /notificar-dispatch/.test(r.teste.funcao[1]) && r.teste.funcao[2] === 'Bearer eyJ.teste.jwt' && r.teste.msg, 'aviso de teste: cria o evento e chama a função com o login do usuário', 'teste: ' + JSON.stringify(r.teste));
+    checa(r.desativado.estado === 'desligado' && r.desativado.desinscreveu && r.desativado.optIn === null, 'desativar: cancela a inscrição do aparelho e apaga a opção', 'desativar: ' + JSON.stringify(r.desativado));
+    checa(r.logout, 'sair da conta desvincula o aparelho (outra conta que entre não herda os avisos)', 'logout não desvinculou');
+    checa(r.bloqueado && r.ios, 'avisos bloqueados e iPhone sem instalar mostram a orientação certa', 'estados: ' + JSON.stringify([r.bloqueado, r.ios]));
+    checa(errosN.length === 0, 'avisos no celular sem erro de JavaScript', 'erros: ' + errosN.slice(0, 3).join(' | '));
+    await ctxN.close();
+    // link do aviso com o painel fechado: abre direto na página e limpa o endereço
+    const ctxO = await novoContexto(browser, { viewport: { width: 390, height: 800 } });
+    const po = await ctxO.newPage();
+    await po.goto(base + '?pagina=reincidencia');
+    await po.waitForFunction(() => typeof goToPage === 'function');
+    await po.waitForTimeout(600);
+    const link = await po.evaluate(() => ({ pagina: currentPageKey, busca: location.search }));
+    checa(link.pagina === 'reincidencia' && link.busca === '', 'abrir pelo link do aviso (?pagina=) vai direto à página e limpa o endereço', 'link: ' + JSON.stringify(link));
+    await ctxO.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

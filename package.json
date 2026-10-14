@@ -3,7 +3,8 @@
   "private": true,
   "description": "Painel de indicadores do 70º BPM — só ferramentas de teste (o site em si não tem build)",
   "scripts": {
-    "test": "node verificar-publico.js && node validate-data.js && node tests/smoke.js",
+    "test": "node verificar-publico.js && node validate-data.js && node --experimental-strip-types tests/dispatch.test.mjs && node tests/smoke.js",
+    "test:avisos": "node --experimental-strip-types tests/dispatch.test.mjs",
     "test:smoke": "node tests/smoke.js"
   },
   "devDependencies": {

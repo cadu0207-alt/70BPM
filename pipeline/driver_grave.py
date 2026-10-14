@@ -49,6 +49,7 @@ import re
 import csv, json, os, glob, datetime
 import aggregate_grave as ag
 import publicar_restrito as pr
+import eventos_notificacao as en
 import ajustes_manuais as aj
 import leitura_csv as lc
 
@@ -767,6 +768,11 @@ def main():
     # mão antes de levar pro repo "pra bater o padrão" (ver CONTEXTO_DASHBOARD_70BPM.md,
     # entrada de 04/09) -- grava já formatado, elimina esse passo manual.
     report['publicacao_restrita'] = pr.salvar(data)
+    # avisos no celular: eventos novos desde a última rodada (só agregados; ver eventos_notificacao.py). Falha aqui NUNCA derruba a rotina.
+    try:
+        report['notificacoes'] = en.notificar(data, report['publicacao_restrita'])
+    except Exception as e:
+        report['notificacoes'] = {'erro': f'{type(e).__name__}: {e}'}
     json.dump(report, open(os.path.join(_here, 'report_grave.json'), 'w', encoding='utf-8'),
                ensure_ascii=False, default=str, indent=1)
     print("DONE", {k: 'ok' for k in report})

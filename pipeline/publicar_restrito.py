@@ -114,3 +114,30 @@ def salvar(data, enviar=True):
                 detalhe = getattr(e, 'read', lambda: b'')().decode('utf-8', 'replace')[:200] if hasattr(e, 'read') else ''
                 status['erros'][chave] = f'{type(e).__name__}: {e} {detalhe}'.strip()
     return status
+
+
+# ---- Avisos no celular (2026-10-14): eventos agregados -> Supabase -> Edge Function `notificar-dispatch` ----
+FUNCAO_NOTIFICAR = SUPABASE_URL + '/functions/v1/notificar-dispatch'
+
+
+def _post_json(url, corpo, headers):
+    req = urllib.request.Request(url, data=json.dumps(corpo, ensure_ascii=False).encode('utf-8'), method='POST', headers={'Content-Type': 'application/json', **headers})
+    with urllib.request.urlopen(req, timeout=90) as r:
+        return json.loads(r.read().decode('utf-8') or 'null')
+
+
+def publicar_eventos(eventos):
+    """Grava os eventos (tipo/município/quantidade — NUNCA REDS) e devolve os ids. Usa o mesmo token de escrita da rotina."""
+    token = _token()
+    if not token:
+        raise RuntimeError('SEM TOKEN (~/.70bpm/pipeline_token.txt)')
+    return _post_json(SUPABASE_URL + '/rest/v1/rpc/publicar_eventos', {'p_token': token, 'p_eventos': eventos},
+                      {'apikey': SUPABASE_PUBLISHABLE_KEY, 'Authorization': 'Bearer ' + SUPABASE_PUBLISHABLE_KEY}) or []
+
+
+def disparar_notificacoes(ids):
+    """Pede à Edge Function pra montar e enviar os avisos desses eventos (ela confere o token e decide quem recebe)."""
+    token = _token()
+    if not token:
+        raise RuntimeError('SEM TOKEN (~/.70bpm/pipeline_token.txt)')
+    return _post_json(FUNCAO_NOTIFICAR, {'ids': ids}, {'x-pipeline-token': token, 'apikey': SUPABASE_PUBLISHABLE_KEY})

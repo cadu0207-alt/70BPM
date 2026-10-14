@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0f14">
+<link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="70º BPM">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>70º BPM &middot; Painel de Indicadores Operacionais</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -320,6 +327,12 @@
   /* Páginas de análise no padrão da Violência Doméstica (onda 1, 2026-10-13) */
   table.vd-casos tr[hidden] { display:none !important; }
   .pg-resumo-linha { font-size:12.5px; color:var(--muted); margin:0 0 10px; }
+  /* Avisos no celular (Web Push) — 2026-10-14 */
+  .notif-tipos label { display:flex; gap:12px; align-items:flex-start; padding:9px 0; border-bottom:1px solid var(--panel-border); cursor:pointer; }
+  .notif-tipos label:last-child { border-bottom:0; } .notif-tipos input { margin-top:3px; width:18px; height:18px; accent-color:var(--amber); flex:none; }
+  .notif-tipos small { display:block; color:var(--muted); font-size:12px; margin-top:2px; }
+  .notif-estado { display:flex; gap:10px; align-items:center; flex-wrap:wrap; } .notif-ok { color:var(--signal); font-weight:700; } .notif-erro { color:var(--alert-text); }
+  .notif-passos { margin:8px 0 0 18px; padding:0; line-height:1.7; font-size:13.5px; }
   /* Páginas de indicador (MV, CVPE, CVPa, Furto Rural, Armas, Padrinhos, Saque) — onda 1, 2026-10-13 */
   .link-sigop { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--amber); border:1px solid var(--panel-border); border-radius:999px; padding:4px 12px; margin:0 0 12px; text-decoration:none; font-family:var(--sans); }
   .link-sigop:hover { border-color:var(--amber); } .link-sigop:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
@@ -692,6 +705,7 @@
       <button type="button" class="nav-group-label" aria-expanded="false"><span class="ic" aria-hidden="true">📚</span><span class="nt">Guias e contato</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
       <div class="nav-group-itens">
         <button class="nav-btn com-ic" data-page="mensagens" title="Dúvidas, sugestões e solicitações ao administrador — exige login PPVD"><span class="ic" aria-hidden="true">✉</span><span class="nt">Mensagens ao Admin</span><span class="bd msg msg-badge" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="notificacoes" title="Avisos no celular quando a rotina publica dados ou há ocorrência nova — exige login PPVD"><span class="ic" aria-hidden="true">🔔</span><span class="nt">Avisos no celular</span></button>
         <button class="nav-btn com-ic" data-page="guia_comandantes"><span class="ic" aria-hidden="true">📘</span><span class="nt">Guia de Comandantes</span><span class="bd" data-bd="guia_comandantes" hidden></span></button>
         <button class="nav-btn com-ic" data-page="apresentacao_gdo"><span class="ic" aria-hidden="true">🖥</span><span class="nt">Apresentação GDO</span><span class="bd" data-bd="apresentacao_gdo" hidden></span></button>
         <button class="nav-btn com-ic" data-page="ementario"><span class="ic" aria-hidden="true">📖</span><span class="nt">Ementário 70º BPM</span><span class="bd" data-bd="ementario" hidden></span></button>
@@ -4758,6 +4772,7 @@ const pages = {
   esforco_furto: renderEsforcoFurtoPage,
   guia_comandantes: renderGuiaComandantesPage,
   mensagens: renderMensagensPage,
+  notificacoes: renderNotificacoesPage,
   apresentacao_gdo: renderApresentacaoGdoPage,
   ementario: renderEmentarioPage,
   itvd: renderITVDPage,
@@ -5282,7 +5297,7 @@ function ppvdLimparDadosRestritos() {
   window.ppvdOcorrenciaLookup = {}; window.ppvdCVLookup = {}; window.ppvdReincLookup = {};
   ppvdRestritoCarregado = false;
 }
-const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv', 'cvpe', 'cvpa'];
+const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv', 'cvpe', 'cvpa', 'notificacoes'];
 
 async function ppvdInit() {
   if (!ppvdSupa) return;
@@ -5346,7 +5361,7 @@ async function ppvdOnSession(session, event) {
   ppvdPerfil = novoPerfil;
   ppvdRenderAuthWidget();
   const restritoAntes = ppvdRestritoCarregado;
-  if (ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) await ppvdCarregarDadosRestritos();
+  if (ppvdUser && ppvdPerfil && ppvdPerfil.aprovado) { await ppvdCarregarDadosRestritos(); notifSincronizar(); }
   else ppvdLimparDadosRestritos();
   const restritoMudou = restritoAntes !== ppvdRestritoCarregado;
   const casoRestaurado = await ppvdTentarRestaurarCaso();
@@ -5383,6 +5398,7 @@ function ppvdRenderAuthWidget() {
       (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> ` : '') +
       `<button class="ppvd-btn" onclick="ppvdOpenMilitares()">Militares Responsáveis</button> ` +
       `<button class="ppvd-btn" onclick="goToPage('mensagens')">✉ Mensagens<span id="msgBadge"></span></button> ` +
+      `<button class="ppvd-btn" onclick="goToPage('notificacoes')">🔔 Avisos</button> ` +
       `<button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`);
     ppvdAtualizarBadgeMensagens();
   }
@@ -5392,6 +5408,7 @@ async function ppvdSignIn() {
   await ppvdSupa.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href.split('#')[0] } });
 }
 async function ppvdSignOut() {
+  await notifDesvincular(); // o aparelho deixa de receber os avisos desta conta (outra conta que entre aqui não herda)
   await ppvdSupa.auth.signOut();
 }
 
@@ -6569,6 +6586,201 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   });
 });
 
+// ============ Avisos no celular (Web Push) — 2026-10-14 ============
+// Quem escolhe o que receber é cada usuário aprovado (tipos + municípios); o servidor manda UM aviso por publicação da rotina.
+// O aviso nunca traz REDS nem endereço — só tipo, município e quantidade. No iPhone só funciona com o painel instalado na tela inicial.
+const NOTIF_TIPOS = [
+  { id: 'atualizacao', rot: 'Painel atualizado', desc: 'Sempre que a rotina publica dados novos.' },
+  { id: 'mv', rot: 'Morte violenta', desc: 'Nova ocorrência de MV (homicídio, feminicídio, latrocínio…).' },
+  { id: 'pm', rot: 'Policial militar vítima', desc: 'Homicídio tentado contra policial militar.' },
+  { id: 'cvpe', rot: 'Crime violento contra a pessoa (CVPE)', desc: 'Nova ocorrência de CVPE (homicídio tentado, tortura, sequestro…).' },
+  { id: 'cvpa', rot: 'Crime violento contra o patrimônio (CVPa)', desc: 'Nova ocorrência de roubo, extorsão ou extorsão mediante sequestro.' },
+  { id: 'vd', rot: 'Violência doméstica — caso novo', desc: 'Nova ocorrência de contexto de violência doméstica no município.' },
+];
+let notifEstado = 'desconhecido'; // 'sem-suporte' | 'instalar-ios' | 'bloqueado' | 'desligado' | 'ligado' | 'ocupado' | 'desconhecido'
+let notifPrefs = null, notifMsg = null;
+
+function notifSuportado() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+function notifEhIos() { return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function notifInstalado() { return window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches); }
+function notifB64ToBytes(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4), raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+// navigator.serviceWorker.ready nunca resolve se não há SW registrado: com prazo, pra tela não ficar "pensando" pra sempre
+function notifRegistro() {
+  return Promise.race([navigator.serviceWorker.ready, new Promise((_, rej) => setTimeout(() => rej(new Error('o serviço de avisos ainda não está pronto neste navegador')), 8000))]);
+}
+// o "sim, quero avisos" é POR USUÁRIO neste aparelho: outra conta que entre aqui não herda
+function notifOptInChave() { return ppvdUser ? 'notifOptIn:' + ppvdUser.id : null; }
+function notifOptIn() { try { const k = notifOptInChave(); return !!k && localStorage.getItem(k) === '1'; } catch (e) { return false; } }
+function notifSetOptIn(on) { try { const k = notifOptInChave(); if (!k) return; on ? localStorage.setItem(k, '1') : localStorage.removeItem(k); } catch (e) {} }
+function notifLiberado() { return !!(ppvdSupa && ppvdUser && ppvdPerfil && ppvdPerfil.aprovado); }
+
+async function notifAtualizarEstado() {
+  if (notifEstado === 'ocupado') return;
+  let novo;
+  if (notifEhIos() && !notifInstalado()) novo = 'instalar-ios';
+  else if (!notifSuportado()) novo = 'sem-suporte';
+  else if (Notification.permission === 'denied') novo = 'bloqueado';
+  else {
+    try { const sub = await (await notifRegistro()).pushManager.getSubscription(); novo = (sub && Notification.permission === 'granted' && notifOptIn()) ? 'ligado' : 'desligado'; }
+    catch (e) { novo = 'desligado'; }
+  }
+  if (novo !== notifEstado) { notifEstado = novo; if (currentPageKey === 'notificacoes') renderNotificacoesPage(); }
+}
+async function notifRegistrar(sub) {
+  const j = sub.toJSON();
+  const { error } = await ppvdSupa.rpc('register_push_subscription', { p_endpoint: j.endpoint, p_p256dh_key: j.keys.p256dh, p_auth_key: j.keys.auth, p_user_agent: navigator.userAgent });
+  if (error) throw new Error(error.message);
+}
+function notifPrefsPadrao() {
+  const cid = ppvdPerfil ? normMun(ppvdPerfil.cidade) : '';
+  const meu = MUNICIPIOS_CANONICAL.map(normMun).includes(cid) ? [cid] : []; // cadastro com a cidade do usuário começa só com ela; senão, todos
+  return { ativo: true, tipos: NOTIF_TIPOS.map(t => t.id), municipios: meu };
+}
+async function notifCarregarPrefs() {
+  if (!notifLiberado()) { notifPrefs = null; return; }
+  const { data } = await ppvdSupa.from('notificacao_prefs').select('ativo,tipos,municipios').eq('user_id', ppvdUser.id).maybeSingle();
+  notifPrefs = data || null;
+}
+async function notifSalvarPrefs(p) {
+  const { error } = await ppvdSupa.from('notificacao_prefs').upsert({ user_id: ppvdUser.id, ativo: p.ativo, tipos: p.tipos, municipios: p.municipios, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  if (error) throw new Error(error.message);
+  notifPrefs = { ativo: p.ativo, tipos: p.tipos, municipios: p.municipios };
+}
+
+async function notifAtivar() {
+  if (notifEstado === 'ocupado' || !notifSuportado() || !notifLiberado()) return;
+  notifEstado = 'ocupado'; notifMsg = null; renderNotificacoesPage();
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error(perm === 'denied' ? 'O navegador bloqueou os avisos. Libere nas configurações do site.' : 'A permissão não foi concedida.');
+    const { data: cfg } = await ppvdSupa.from('app_public_config').select('value').eq('key', 'vapid_public_key').maybeSingle();
+    if (!cfg || !cfg.value) throw new Error('Os avisos ainda não foram configurados no servidor.');
+    const reg = await notifRegistro();
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: notifB64ToBytes(cfg.value) });
+    await notifRegistrar(sub);
+    notifSetOptIn(true);
+    if (!notifPrefs) { await notifSalvarPrefs(notifPrefsPadrao()); }
+    notifMsg = { ok: true, txt: 'Avisos ativados neste aparelho.' };
+  } catch (e) { notifMsg = { ok: false, txt: (e && e.message) || String(e) }; }
+  notifEstado = 'desconhecido'; await notifAtualizarEstado(); renderNotificacoesPage();
+}
+async function notifDesativar() {
+  if (notifEstado === 'ocupado') return;
+  notifEstado = 'ocupado'; notifMsg = null; renderNotificacoesPage();
+  try {
+    notifSetOptIn(false);
+    const sub = await (await notifRegistro()).pushManager.getSubscription();
+    if (sub) { const ep = sub.endpoint; await sub.unsubscribe(); await ppvdSupa.rpc('unregister_push_subscription', { p_endpoint: ep }); }
+    notifMsg = { ok: true, txt: 'Avisos desativados neste aparelho.' };
+  } catch (e) { notifMsg = { ok: false, txt: (e && e.message) || String(e) }; }
+  notifEstado = 'desconhecido'; await notifAtualizarEstado(); renderNotificacoesPage();
+}
+// ao entrar (ou ao voltar pro app) mantém a inscrição do aparelho ligada à conta; no logout desvincula pra outra conta não herdar
+async function notifSincronizar() {
+  try {
+    if (notifLiberado() && notifSuportado() && Notification.permission === 'granted' && notifOptIn()) {
+      const sub = await (await notifRegistro()).pushManager.getSubscription();
+      if (sub) await notifRegistrar(sub);
+    }
+    await notifCarregarPrefs();
+  } catch (e) {}
+  notifAtualizarEstado();
+}
+async function notifDesvincular() {
+  try {
+    if (!ppvdSupa || !ppvdUser || !notifSuportado() || Notification.permission !== 'granted') return;
+    const sub = await (await notifRegistro()).pushManager.getSubscription();
+    if (sub) await ppvdSupa.rpc('unregister_push_subscription', { p_endpoint: sub.endpoint });
+  } catch (e) {}
+}
+async function notifEnviarTeste() {
+  notifMsg = null;
+  try {
+    const { data: id, error } = await ppvdSupa.rpc('solicitar_teste_push');
+    if (error) throw new Error(error.message);
+    const { data: { session } } = await ppvdSupa.auth.getSession();
+    const r = await fetch(PPVD_SUPABASE_URL + '/functions/v1/notificar-dispatch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: PPVD_SUPABASE_ANON_KEY }, body: JSON.stringify({ ids: [id] }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !(j.enviados >= 1)) throw new Error(j.error || (j.avisos === 0 ? 'Nenhum aparelho seu está inscrito.' : 'O aviso de teste não saiu (código ' + r.status + ').'));
+    notifMsg = { ok: true, txt: 'Aviso de teste enviado — deve aparecer em instantes na bandeja do aparelho.' };
+  } catch (e) { notifMsg = { ok: false, txt: (e && e.message) || String(e) }; }
+  renderNotificacoesPage();
+}
+async function notifAlternarTipo(id, ligado) {
+  const p = notifPrefs || notifPrefsPadrao();
+  const tipos = new Set(p.tipos); ligado ? tipos.add(id) : tipos.delete(id);
+  await notifGravarPrefs({ ...p, tipos: [...tipos] });
+}
+async function notifAlternarMunicipio(norm) {
+  const p = notifPrefs || notifPrefsPadrao();
+  let mun = p.municipios.slice();
+  if (norm === '') mun = []; // "todos os municípios"
+  else { mun = mun.includes(norm) ? mun.filter(x => x !== norm) : mun.concat(norm); if (mun.length === MUNICIPIOS_CANONICAL.length) mun = []; }
+  await notifGravarPrefs({ ...p, municipios: mun });
+}
+async function notifGravarPrefs(p) {
+  try { await notifSalvarPrefs(p); notifMsg = { ok: true, txt: 'Preferências salvas.' }; }
+  catch (e) { notifMsg = { ok: false, txt: 'Não foi possível salvar: ' + ((e && e.message) || e) }; }
+  renderNotificacoesPage();
+}
+
+function renderNotificacoesPage() {
+  let html = `<div class="page-title">Avisos no celular</div>`;
+  html += `<div class="def-box">Receba no celular, <b>mesmo com o painel fechado</b>, um aviso quando a rotina publicar dados novos e quando houver ocorrência nova de morte violenta, crime violento ou violência doméstica no município que você escolher. <b>O aviso não traz número de REDS nem endereço</b> — só o tipo, o município e a quantidade; para ver o detalhe, toque no aviso e entre com sua conta.</div>`;
+  if (!ppvdSupa || !ppvdUser) {
+    html += `<div class="def-box">Entre com sua conta PPVD (botão "Entrar (PPVD)" no topo) para ativar os avisos.</div>`;
+    document.getElementById('main').innerHTML = html; return;
+  }
+  if (!notifLiberado()) {
+    html += `<div class="def-box">Seu acesso ainda não foi aprovado pelo administrador — assim que for, os avisos poderão ser ativados por aqui.</div>`;
+    document.getElementById('main').innerHTML = html; return;
+  }
+  const msg = notifMsg ? `<div class="${notifMsg.ok ? 'notif-ok' : 'notif-erro'}" role="status" style="margin-top:10px">${msgEsc(notifMsg.txt)}</div>` : '';
+  html += `<div class="ppvd-card" id="notifEstadoCard"><b>Este aparelho</b><br><br>`;
+  switch (notifEstado) {
+    case 'ligado':
+      html += `<div class="notif-estado"><span class="notif-ok">✓ Avisos ativos neste aparelho</span><button class="ppvd-btn" onclick="notifEnviarTeste()">Enviar aviso de teste</button><button class="ppvd-btn" onclick="notifDesativar()">Desativar</button></div>`; break;
+    case 'desligado':
+      html += `<button class="ppvd-btn ppvd-btn-primary" onclick="notifAtivar()">Ativar neste aparelho</button><div class="vd-recorte" style="margin-top:8px">O navegador vai pedir permissão para mostrar avisos — toque em "Permitir".</div>`; break;
+    case 'ocupado': html += `<div class="notif-estado">Aguarde…</div>`; break;
+    case 'bloqueado':
+      html += `<div class="notif-erro">Os avisos estão <b>bloqueados</b> para este site neste navegador.</div><div class="vd-recorte">Libere em: ícone de cadeado/ajustes ao lado do endereço → Permissões → Notificações → Permitir. Depois volte aqui.</div>`; break;
+    case 'instalar-ios':
+      html += `<div>No iPhone/iPad os avisos só funcionam com o painel <b>instalado na tela inicial</b>:</div><ol class="notif-passos"><li>Abra este endereço no <b>Safari</b>.</li><li>Toque em <b>Compartilhar</b> (o quadrado com a seta para cima).</li><li>Toque em <b>Adicionar à Tela de Início</b> e confirme.</li><li>Abra o painel pelo <b>ícone novo</b>, entre na sua conta e volte a esta tela para ativar.</li></ol><div class="vd-recorte">Exige iOS 16.4 ou mais novo.</div>`; break;
+    case 'sem-suporte':
+      html += `<div class="notif-erro">Este navegador não oferece avisos para sites.</div><div class="vd-recorte">No Android use o Chrome (menu ⋮ → Instalar app). No iPhone, instale o painel na tela inicial (iOS 16.4+).</div>`; break;
+    default: html += `<div class="notif-estado">Verificando…</div>`;
+  }
+  html += msg + `</div>`;
+
+  const p = notifPrefs || notifPrefsPadrao();
+  html += `<div class="ppvd-card"><b>O que você quer receber</b><div class="notif-tipos" style="margin-top:8px">` +
+    NOTIF_TIPOS.map(t => `<label><input type="checkbox" ${p.tipos.includes(t.id) ? 'checked' : ''} onchange="notifAlternarTipo('${t.id}', this.checked)"><span>${t.rot}<small>${t.desc}</small></span></label>`).join('') + `</div></div>`;
+  const todos = !p.municipios.length;
+  html += `<div class="ppvd-card"><b>De quais municípios</b><div class="vd-recorte" style="margin:6px 0 10px">Vale para os avisos de ocorrência. O aviso de "painel atualizado" chega sempre que você o escolheu acima.</div><div class="pills-vd" id="notifMuns">` +
+    `<button type="button" class="${todos ? 'on' : ''}" onclick="notifAlternarMunicipio('')">Todos os municípios</button>` +
+    MUNICIPIOS_CANONICAL.map(m => `<button type="button" class="${!todos && p.municipios.includes(normMun(m)) ? 'on' : ''}" onclick="notifAlternarMunicipio('${normMun(m)}')">${m}</button>`).join('') + `</div></div>`;
+  document.getElementById('main').innerHTML = html;
+  if (notifEstado === 'desconhecido') notifAtualizarEstado();
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+  // tocar no aviso com o painel já aberto: leva direto pra página certa, sem recarregar
+  navigator.serviceWorker.addEventListener('message', (e) => { const m = e.data || {}; if (m.type === 'notif-click' && m.pagina && pages[m.pagina]) goToPage(m.pagina); });
+}
+
+// Link vindo do aviso (?pagina=...): abre direto nessa página (e limpa o endereço)
+try {
+  const alvoAviso = new URLSearchParams(location.search).get('pagina');
+  if (alvoAviso && pages[alvoAviso]) { localStorage.setItem('paginaAtualPPVD', alvoAviso); history.replaceState(null, '', location.pathname + location.hash); }
+} catch (e) {}
 // Se o navegador descartou a aba em segundo plano e recarregou, volta pra onde o usuário
 // estava em vez de reiniciar sempre na Home. localStorage (não sessionStorage) desde
 // 2026-10-01 — Eduardo relatou que isso continuava acontecendo mesmo depois da correção de

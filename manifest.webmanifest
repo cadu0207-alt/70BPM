@@ -1,0 +1,17 @@
+{
+  "name": "70º BPM — Painel de Indicadores",
+  "short_name": "70º BPM",
+  "description": "Painel operacional do 70º Batalhão de Polícia Militar (Araçuaí-MG)",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
