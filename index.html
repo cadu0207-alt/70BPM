@@ -342,7 +342,7 @@
   /* Páginas de indicador — onda 2 (2026-10-13): quadro mês a mês, ano vs limite, painel da cidade, barras e detalhamento */
   .hm2 td.hm2-n { font-weight:700; } .hm2 td, .hm2 th { padding:7px 8px; }
   .ind-sec { margin-top:30px; } .ind-sec h3.ind-tit { font-size:16px; margin:0 0 8px; }
-  .hm td.hm-ok { background:rgba(33,201,138,.16); } .hm td.hm-ruim { background:rgba(230,72,79,.26); font-weight:700; } .hm td.hm-zero { color:#8aa0b4; }
+  .hm td.hm-ok { background:rgba(33,201,138,.16); } .hm td.hm-atencao { background:rgba(212,194,42,.2); } .ind-tab small { font-size:11px; } .hm td.hm-ruim { background:rgba(230,72,79,.26); font-weight:700; } .hm td.hm-zero { color:#8aa0b4; }
   .hm td, .hm th { padding:6px 6px; } .hm tr.rank-clic.sel td { outline:1px solid rgba(232,168,60,.45); }
   .ano-svg { width:100%; height:auto; max-height:260px; display:block; margin-top:8px; }
   .ano-svg text { fill:#a9bccd; font-size:11px; font-family:var(--mono); } .ano-svg line.gr { stroke:rgba(234,241,248,.12); stroke-width:1; }
@@ -1584,14 +1584,14 @@ function svgAcumuladoAno(reais, limites, proj, titulo) {
 }
 
 // Barras mês a mês de uma cidade: cada barra é o realizado do mês e o traço âmbar é o limite do mês
-function svgBarrasMes(reais, limites, higherIsBetter, titulo) {
+function svgBarrasMes(reais, limites, higherIsBetter, titulo, ruimFn) {
   const n = reais.length, W = 640, H = 200, ml = 30, mr = 10, mt = 18, mb = 28;
   const max = Math.max(1, ...reais, ...limites);
   const slot = (W - ml - mr) / n, bw = Math.min(34, slot * 0.6), Y = (v) => mt + (H - mt - mb) * (1 - v / max);
   let s = `<svg class="ano-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${titulo}"><title>${titulo}</title>`;
   for (let g = 0; g <= 2; g++) { const v = max * g / 2, y = Y(v); s += `<line class="gr" x1="${ml}" y1="${y.toFixed(1)}" x2="${W - mr}" y2="${y.toFixed(1)}"/><text x="${ml - 5}" y="${(y + 4).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`; }
   reais.forEach((v, i) => {
-    const cx = ml + slot * i + slot / 2, ruim = higherIsBetter ? v < limites[i] : v > limites[i], y = Y(v);
+    const cx = ml + slot * i + slot / 2, ruim = ruimFn ? ruimFn(v, limites[i]) : (higherIsBetter ? v < limites[i] : v > limites[i]), y = Y(v);
     s += `<rect class="${ruim ? 'bar-ruim' : 'bar-ok'}" x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, Y(0) - y).toFixed(1)}" rx="3"/>`;
     s += `<text x="${cx.toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle">${v}</text>`;
     s += `<line class="bar-lim" x1="${(cx - bw / 2 - 3).toFixed(1)}" y1="${Y(limites[i]).toFixed(1)}" x2="${(cx + bw / 2 + 3).toFixed(1)}" y2="${Y(limites[i]).toFixed(1)}"/>`;
@@ -1935,8 +1935,124 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
   ligarDetalhado(DATA[(detCfg || {}).dataKey], detCfg ? detCfg.colunas.concat(((DATA[detCfg.dataKey] || {}).total || {}).outros > 0 ? [{ key: 'outros', label: 'Outros (fora das naturezas ao lado)' }] : []) : []);
 }
 
+// ===== Operações (POG e PPAG): mesmo padrão das páginas de indicador — botões de mês, meta proporcional no mês em andamento,
+// subtotal por fração, cidade clicável, o ano contra a meta com projeção, painel da cidade e quadro município × mês =====
+function opGruposCia(municipios) {
+  const usados = new Set();
+  const grupos = Object.keys(CIA_MAP).map(cia => {
+    const itens = CIA_MAP[cia].map(n => municipios.find(m => normMun(m.nome) === normMun(n))).filter(Boolean);
+    itens.forEach(m => usados.add(m));
+    return { cia, itens };
+  }).filter(g => g.itens.length);
+  const resto = municipios.filter(m => !usados.has(m));
+  if (resto.length) grupos.push({ cia: 'Outras', itens: resto });
+  return grupos;
+}
+const opSoma = (itens, campo, i) => itens.reduce((a, m) => a + (m[campo][i] || 0), 0);
+// meta proporcional aos dias já fechados do mês em andamento; piso (PPAG) arredonda para baixo, POG usa a meta exata (igual à Home)
+function opLimites(arred) {
+  const fl = (v) => (arred ? Math.floor(v + 1e-9) : v);
+  return { mes: (metaMes, f) => fl(metaMes * f), acum: (metaAcum, metaMes, f) => fl(metaAcum - metaMes * (1 - f)) };
+}
+const opNum = (v) => { const r = Math.round(v * 10) / 10; return fmtBr(r, Number.isInteger(r) ? 0 : 1); };
+const opCorBanda = (st) => (st === 'verde' ? 'var(--signal)' : (st === 'amarelo' ? 'var(--caution)' : 'var(--alert-text)'));
+function opSituacaoPog(real, lim) {
+  const v = lim ? real / lim * 100 : 100, st = statusPog(v), saldo = Math.round((real - lim) * 10) / 10, n = opNum(Math.abs(saldo));
+  if (st === 'verde') return `<span class="neg">na faixa${saldo ? ' (' + (saldo > 0 ? '+' : '−') + n + ')' : ''}</span>`;
+  const txt = saldo < 0 ? `faltam ${n}` : `acima da faixa (+${n})`;
+  return st === 'amarelo' ? `<span style="color:var(--caution)">! ${txt}</span>` : `<span class="pos">${txt}</span>`;
+}
+function opSituacaoPogTxt(real, lim) {
+  const v = lim ? real / lim * 100 : 100, st = statusPog(v), saldo = Math.round((real - lim) * 10) / 10, n = opNum(Math.abs(saldo));
+  if (st === 'verde') return `na faixa${saldo ? ' (' + (saldo > 0 ? '+' : '−') + n + ')' : ''}`;
+  return saldo < 0 ? `faltam ${n}` : `acima da faixa (+${n})`;
+}
+function opSituacaoPiso(real, lim) {
+  const saldo = real - lim;
+  return saldo >= 0 ? `<span class="neg">cumprida${saldo > 0 ? ' (+' + saldo + ')' : ''}</span>` : `<span class="pos">faltam ${-saldo}</span>`;
+}
+const OP_POG = {
+  arred: false,
+  status: (real, lim) => statusPog(lim ? real / lim * 100 : 100),
+  situacao: opSituacaoPog,
+  textoProj: (proj, anual) => (statusPog(anual ? proj / anual * 100 : 100) === 'verde' ? 'na faixa no ritmo atual' : (proj < anual ? 'abaixo da meta no ritmo atual' : 'acima da faixa no ritmo atual')),
+  legBarra: 'fora da faixa de 95% a 105% da meta',
+  legQuadro: 'verde = dentro da faixa de 95% a 105% da meta do mês, amarelo = de 90% a 95% ou de 105% a 110%, vermelho = fora disso, cinza = sem operações',
+};
+const OP_PISO = {
+  arred: true,
+  status: statusPiso,
+  situacao: opSituacaoPiso,
+  textoProj: (proj, anual) => (proj >= anual ? 'meta alcançada no ritmo atual' : 'abaixo da meta no ritmo atual'),
+  legBarra: 'abaixo da meta',
+  legQuadro: 'verde = meta do mês cumprida, amarelo = entre 80% e 100% da meta, vermelho = abaixo de 80%, cinza = sem operações',
+};
+// clicar numa cidade (tabela ou quadro) liga/desliga o filtro global e redesenha a página
+function opLigarCidades(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id); if (!el) return;
+    el.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr.rank-clic'); if (!tr) return;
+      setMunFiltro(normMun(getMunFiltro()) === normMun(tr.dataset.mun) ? '' : tr.dataset.mun); goToPage(currentPageKey);
+    });
+  });
+}
+// O ano contra a meta (com projeção), o painel da cidade escolhida e o quadro município × mês de um indicador de operações
+function opBlocosHtml(d, cfg, ctx) {
+  const { mesesLocais, ultimoIdx, munFiltro, rotulo } = ctx, nAno = d.total_meta_acum.length, L = opLimites(cfg.arred);
+  const fU = fatorMesEmAndamento(d, ultimoIdx), fDe = (i) => (i === ultimoIdx ? fU : 1);
+  const kpi = (st) => (st === 'verde' ? 'kpi-green' : (st === 'amarelo' ? 'kpi-amber' : 'kpi-red'));
+  const projAno = (realAcum) => { const dec = ultimoIdx + fU; return dec >= 1 ? realAcum / dec * nAno : null; };
+  const ruim = (v, l) => cfg.status(v, l) !== 'verde';
+  const leg = `<div class="ano-leg"><span><i></i>realizado acumulado</span><span><i class="l"></i>meta acumulada</span><span><i class="p"></i>projeção linear (realizado ÷ meses decorridos × ${nAno})</span></div>`;
+  const sufRot = rotulo ? ' — ' + rotulo : '';
+
+  // ---- ano ----
+  const reais = d.total_acum.slice(0, ultimoIdx + 1);
+  const lAte = L.acum(d.total_meta_acum[ultimoIdx], d.total_meta_mes[ultimoIdx], fU), anual = d.total_meta_acum[nAno - 1];
+  const proj = ultimoIdx < nAno - 1 ? projAno(reais[ultimoIdx]) : reais[ultimoIdx];
+  const mesLim = L.mes(d.total_meta_mes[ultimoIdx], fU), mesReal = d.total_mes[ultimoIdx];
+  let ano = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">O ano contra a meta — 70º BPM${sufRot}</h3><div class="kpi-grid">`;
+  ano += `<div class="kpi-card ${kpi(cfg.status(reais[ultimoIdx], lAte))}"><div class="val">${reais[ultimoIdx]}</div><div class="lbl">Acumulado até ${mesesLocais[ultimoIdx]}</div><div class="sub">meta até aqui: ${opNum(lAte)} · ${cfg.situacao(reais[ultimoIdx], lAte)}</div></div>`;
+  ano += `<div class="kpi-card ${kpi(cfg.status(mesReal, mesLim))}"><div class="val">${mesReal}</div><div class="lbl">${mesesLocais[ultimoIdx]}${fU < 1 ? ' (em andamento)' : ''}</div><div class="sub">meta${fU < 1 ? ' proporcional' : ''}: ${opNum(mesLim)}${fU < 1 ? ' (de ' + d.total_meta_mes[ultimoIdx] + '/mês)' : ''} · ${cfg.situacao(mesReal, mesLim)}</div></div>`;
+  ano += `<div class="kpi-card ${proj === null ? 'kpi-neutral' : kpi(cfg.status(proj, anual))}"><div class="val">${proj === null ? '—' : fmtBr(proj, 0)}</div><div class="lbl">Projeção para o ano (ritmo atual)</div><div class="sub">meta do ano: ${anual}${proj === null ? '' : ' · ' + cfg.textoProj(proj, anual)}</div></div>`;
+  ano += `</div>` + svgAcumuladoAno(reais, d.total_meta_acum.slice(), proj, `Acumulado do ano contra a meta${sufRot}, com projeção até dezembro`) + leg + `</div>`;
+
+  // ---- painel da cidade escolhida no filtro global ----
+  let cidade = '';
+  const m = d.municipios.find(x => normMun(x.nome) === munFiltro);
+  if (m) {
+    const reaisC = m.realizado_mes.slice(0, ultimoIdx + 1), limC = reaisC.map((_, i) => L.mes(m.meta_mes[i], fDe(i)));
+    const lAteC = L.acum(m.meta_acum[ultimoIdx], m.meta_mes[ultimoIdx], fU), anualC = m.meta_acum[nAno - 1];
+    const projC = ultimoIdx < nAno - 1 ? projAno(m.realizado_acum[ultimoIdx]) : m.realizado_acum[ultimoIdx];
+    cidade = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">${m.nome} — mês a mês${sufRot}</h3><div class="ppvd-card"><div class="kpi-grid">`;
+    cidade += `<div class="kpi-card ${kpi(cfg.status(m.realizado_acum[ultimoIdx], lAteC))}"><div class="val">${m.realizado_acum[ultimoIdx]}</div><div class="lbl">Acumulado até ${mesesLocais[ultimoIdx]}</div><div class="sub">meta até aqui: ${opNum(lAteC)} · ${cfg.situacao(m.realizado_acum[ultimoIdx], lAteC)}</div></div>`;
+    cidade += `<div class="kpi-card ${projC === null ? 'kpi-neutral' : kpi(cfg.status(projC, anualC))}"><div class="val">${projC === null ? '—' : fmtBr(projC, 0)}</div><div class="lbl">Projeção para o ano</div><div class="sub">meta do ano: ${anualC}${projC === null ? '' : ' · ' + cfg.textoProj(projC, anualC)}</div></div>`;
+    cidade += `</div>` + svgBarrasMes(reaisC, limC, true, `${m.nome}: realizado por mês e meta do mês`, ruim);
+    cidade += `<div class="ano-leg"><span>barra = realizado do mês (vermelha: ${cfg.legBarra})</span><span><i class="l"></i>meta do mês</span></div></div></div>`;
+  }
+
+  // ---- quadro município x mês ----
+  const cel = (real, lim) => {
+    const cls = real === 0 && lim === 0 ? 'hm-zero' : ({ verde: 'hm-ok', amarelo: 'hm-atencao', vermelho: 'hm-ruim' })[cfg.status(real, lim)];
+    return `<td class="${cls}" title="realizado ${real} · meta ${opNum(lim)}">${real}</td>`;
+  };
+  let quadro = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Mês a mês por município${sufRot}</h3>`;
+  quadro += `<div class="vd-recorte">Cada célula é o realizado do mês; ${cfg.legQuadro}. Passe o mouse (ou toque) para ver a meta do mês.</div>`;
+  quadro += `<div class="table-wrap"><table class="data-table hm" id="opQuadro"><thead><tr><th style="text-align:left">Município</th>${mesesLocais.slice(0, ultimoIdx + 1).map((_, i) => `<th>${MES_ABREV[i]}</th>`).join('')}<th class="col-divider">Total</th></tr></thead><tbody>`;
+  d.municipios.forEach(x => {
+    quadro += `<tr class="rank-clic${normMun(x.nome) === munFiltro ? ' sel' : ''}" data-mun="${x.nome}"><td style="text-align:left">${x.nome}</td>` + x.realizado_mes.slice(0, ultimoIdx + 1).map((v, i) => cel(v, L.mes(x.meta_mes[i], fDe(i)))).join('') + `<td class="col-divider"><b>${x.realizado_acum[ultimoIdx]}</b></td></tr>`;
+  });
+  quadro += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">TOTAL</td>` + d.total_mes.slice(0, ultimoIdx + 1).map((v, i) => cel(v, L.mes(d.total_meta_mes[i], fDe(i)))).join('') + `<td class="col-divider">${d.total_acum[ultimoIdx]}</td></tr></tbody></table></div></div>`;
+  return { ano, cidade, quadro };
+}
+function opNotaMesParcial(d, mesesLocais, i) {
+  if (fatorMesEmAndamento(d, i) >= 1) return '';
+  const r = diasCorridosAteOntem(dataAtualizacaoIndicador(d));
+  return `${mesesLocais[i]} em andamento: a meta do mês é proporcional aos dias já fechados (${r.diasDecorridos} de ${r.diasNoMes}); a cor e a situação usam essa meta, não a do mês cheio.`;
+}
+
 function pogBandColor(v) {
-  // Meta = 100%. Faixa 95-105 = verde, 90-95/105-110 = amarelo, fora disso = vermelho.
   if (v >= 95 && v <= 105) return { bg: 'rgba(33,201,138,0.22)', fg: '#3fe0a5' };
   if ((v >= 90 && v < 95) || (v > 105 && v <= 110)) return { bg: 'rgba(212,194,42,0.22)', fg: '#d4c22a' };
   return { bg: 'rgba(230,72,79,0.22)', fg: '#ff8a8f' };
@@ -1945,168 +2061,148 @@ function pogCell(v) {
   const c = pogBandColor(v);
   return `<td style="background:${c.bg};color:${c.fg};font-weight:600">${v.toFixed(2)}%</td>`;
 }
-// Saldo do POG: realizado - meta (positivo = já passou da meta = bom). Direção já estava
-// certa aqui, só faltava a cor (achado por Eduardo em 2026-09-04, mesmo problema do Saque
-// Seguro, onde a direção TAMBÉM estava invertida — corrigido em renderIndicatorPage).
-function fmtSaldoPog(realAcum, metaAcum) {
-  const saldo = realAcum - metaAcum;
-  const cls = saldo >= 0 ? 'neg' : 'pos';
-  const sign = saldo > 0 ? '+' : '';
-  return `<span class="${cls}">${sign}${saldo}</span>`;
-}
 
 function renderPOGPage() {
-  const d = DATA.pog;
+  const d = DATA.pog, cfg = OP_POG, L = opLimites(false);
   const mesesLocais = d.meses || MESES.slice(0, d.total_mes.length);
-  let modo = 'mensal'; // ou 'acumulado'
-  let mi = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
+  const ultimoIdx = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
+  let mi = ultimoIdx;
+  try { const s = localStorage.getItem('indMes_pog'); if (/^\d+$/.test(s || '') && parseInt(s) <= ultimoIdx) mi = parseInt(s); } catch (e) {}
+  const munFiltro = normMun(getMunFiltro());
+  const par = (real, lim) => `<span class="par"><b>${real}</b> <span class="ind-lim">/ ${opNum(lim)}</span></span>`;
+  const titulo = (i) => `Operações de POG por frações — ${mesesLocais[i]} de 2026`;
 
-  function rows(mi) {
-    let html = '';
-    d.municipios.forEach(m => {
-      const rMes=m.realizado_mes[mi], mMes=m.meta_mes[mi], rAc=m.realizado_acum[mi], mAc=m.meta_acum[mi];
-      const dMes = mMes ? (rMes/mMes*100) : 100; // meta 0 e resultado 0 = meta cumprida
-      const dAc = mAc ? (rAc/mAc*100) : 100;
-      html += `<tr><td style="text-align:left">${m.nome}</td>
-        <td>${mMes}</td><td>${rMes}</td>${pogCell(dMes)}
-        <td class="col-divider">${mAc}</td><td>${rAc}</td>${pogCell(dAc)}<td>${fmtSaldoPog(rAc, mAc)}</td>
-      </tr>`;
+  function linha(nome, rMes, mMes, rAc, mAc, f, atr, extraCls) {
+    const lMes = L.mes(mMes, f), lAc = L.acum(mAc, mMes, f), vMes = lMes ? rMes / lMes * 100 : 100, vAc = lAc ? rAc / lAc * 100 : 100;
+    return `<tr${atr}${extraCls ? ' class="' + extraCls + '"' : ''}><td style="text-align:left">${nome}</td>
+      <td>${par(rMes, lMes)}<br><span class="ind-lim" style="color:${opCorBanda(statusPog(vMes))}">${lMes ? fmtBr(vMes, 1) + '%' : '—'}</span></td>
+      <td class="col-divider">${par(rAc, lAc)}</td>${pogCell(vAc).replace('</td>', '<br><small style="font-weight:400">' + opSituacaoPogTxt(rAc, lAc) + '</small></td>')}</tr>`;
+  }
+  function table(i) {
+    const f = fatorMesEmAndamento(d, i);
+    let rows = '';
+    opGruposCia(d.municipios).forEach(g => {
+      g.itens.forEach(m => { rows += linha(m.nome, m.realizado_mes[i], m.meta_mes[i], m.realizado_acum[i], m.meta_acum[i], f, ` data-mun="${m.nome}" title="Filtrar por ${m.nome}"`, 'rank-clic' + (normMun(m.nome) === munFiltro ? ' sel' : '')); });
+      rows += linha('Subtotal ' + g.cia, opSoma(g.itens, 'realizado_mes', i), opSoma(g.itens, 'meta_mes', i), opSoma(g.itens, 'realizado_acum', i), opSoma(g.itens, 'meta_acum', i), f, '', 'cia-sub');
     });
-    const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
-    const tDMes = tMMes? tRMes/tMMes*100:100, tDAc = tMAc? tRAc/tMAc*100:100;
-    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
-      <td>${tMMes}</td><td>${tRMes}</td>${pogCell(tDMes)}
-      <td class="col-divider">${tMAc}</td><td>${tRAc}</td>${pogCell(tDAc)}<td>${fmtSaldoPog(tRAc, tMAc)}</td>
-    </tr>`;
-    return html;
+    rows += linha('70º BPM', d.total_mes[i], d.total_meta_mes[i], d.total_acum[i], d.total_meta_acum[i], f, ' style="font-weight:700;background:rgba(255,255,255,0.08)"', '');
+    return rows;
   }
 
-  let html = `<div class="page-title">Operações de POG por frações em ${mesesLocais[mi]} de 2026</div>`;
-  html += sigopButton('pog');
-  html += `<div class="def-box">${DEFS.pog}</div>`;
+  const blocos = opBlocosHtml(d, cfg, { mesesLocais, ultimoIdx, munFiltro, rotulo: '' });
+  const esperado = d.total_acum[ultimoIdx];
+  const barras = (lista, rot, classe) => {
+    const soma = (lista || []).reduce((a, x) => a + x[1], 0);
+    const nota = soma !== esperado ? `<div class="vd-recorte">Cobre ${soma} de ${esperado} operações do ano — a lista está desatualizada em relação ao total.</div>` : '';
+    return `<div class="chart-box"><h3>${rot}</h3>${barrasHtml(lista || [], false, classe)}${nota}</div>`;
+  };
+
+  let html = `<div class="page-title" id="pogTitulo">${titulo(mi)}</div>`;
+  html += freshBadge(mesesLocais[ultimoIdx], { semDadoReal: indicadorSemDadoNoMes(d, ultimoIdx, false) });
+  if (SIGOP_LINKS.pog) html += `<a class="link-sigop" href="${SIGOP_LINKS.pog}" target="_blank" rel="noopener noreferrer">${SIGOP_LABELS.pog} · fonte oficial no SiGOp ↗</a><br>`;
+  html += `<details class="aud-como"><summary>Metodologia e definições</summary><div>${DEFS.pog}</div></details>`;
   html += bannerAcompanhamentoDiario([{ label: 'POG (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(d) }]);
-  html += `<select class="month-select" id="pogMonthSel">`;
-  mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
-  html += `</select>`;
-  html += `<table class="data-table" id="pogTable"><thead><tr>
-    <th style="text-align:left">Município</th><th>Meta Mês</th><th>Res Mês</th><th>Desemp. Mês</th>
-    <th class="col-divider">Meta Acum</th><th>Res Acum</th><th>Desemp. Acum</th><th>Saldo</th>
-  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
-  html += `<div class="charts-row">
-    <div class="chart-box"><h3>POG por Bairros</h3><canvas id="chartPogBairro" style="width:100%;height:260px"></canvas></div>
-    <div class="chart-box"><h3>POG por Natureza</h3><canvas id="chartPogNatureza" style="width:100%;height:260px"></canvas></div>
-  </div>`;
+  html += `<div class="pills-vd" id="pogMeses" role="group" aria-label="Mês">` + mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<button type="button" data-p="${i}">${m}${i === ultimoIdx && ultimoIdx === MES_ATUAL_IDX ? ' (parcial)' : ''}</button>`).join('') + `</div>`;
+  html += `<div class="vd-recorte" id="pogNota">${opNotaMesParcial(d, mesesLocais, mi)}</div>`;
+  html += `<div class="vd-recorte">Desempenho = realizado ÷ meta. Verde de 95% a 105%; amarelo de 90% a 95% e de 105% a 110%; vermelho fora disso — em POG passar muito da meta também sai da faixa. Mês e acumulado mostram realizado / meta. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar).</div>`;
+  html += `<div class="table-wrap"><table class="data-table ind-tab" id="pogTable"><thead><tr>
+    <th style="text-align:left">Município</th><th>Mês</th><th class="col-divider">Acumulado</th><th>Desemp. acumulado</th>
+  </tr></thead><tbody>${table(mi)}</tbody></table></div>`;
+  html += blocos.ano + blocos.cidade + blocos.quadro;
+  html += `<div class="ind-sec charts-row" style="gap:16px">${barras(DATA.pog_bairros, 'POG por bairros', '')}${barras(DATA.pog_natureza, 'POG por natureza', 'verde')}</div>`;
   document.getElementById('main').innerHTML = html;
-  document.getElementById('pogMonthSel').addEventListener('change', (e) => {
-    document.querySelector('#pogTable tbody').innerHTML = rows(parseInt(e.target.value));
+
+  const marcar = () => document.querySelectorAll('#pogMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
+  marcar();
+  document.getElementById('pogMeses').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    mi = parseInt(b.dataset.p); try { localStorage.setItem('indMes_pog', String(mi)); } catch (er) {}
+    marcar();
+    document.querySelector('#pogTable tbody').innerHTML = table(mi);
+    document.getElementById('pogTitulo').textContent = titulo(mi);
+    document.getElementById('pogNota').textContent = opNotaMesParcial(d, mesesLocais, mi);
   });
-  const bairros = DATA.pog_bairros.slice(0,10);
-  const naturezas = DATA.pog_natureza;
-  drawBarChart('chartPogBairro', bairros.map(x=>x[0]), bairros.map(x=>x[1]), '#e8a83c');
-  drawBarChart('chartPogNatureza', naturezas.map(x=>x[0]), naturezas.map(x=>x[1]), '#21c98a');
+  opLigarCidades(['pogTable', 'opQuadro']);
 }
 
 function renderPPAGPage() {
-  const mesesLocais = DATA.ppag.y15001.meses || MESES.slice(0, DATA.ppag.y15001.total_mes.length);
-  let mi = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
+  const dRef = DATA.ppag.y15001, cfg = OP_PISO, L = opLimites(true);
+  const mesesLocais = dRef.meses || MESES.slice(0, dRef.total_mes.length);
+  const ultimoIdx = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
   const subs = [
-    {key:'y15001', label:'Y15001'},
-    {key:'y07012', label:'Y07012'},
-    {key:'y07014', label:'Y07014'},
+    { key: 'y15001', label: 'Y15001', nome: 'Patrulha escolar e drogas' },
+    { key: 'y07012', label: 'Y07012', nome: 'Violência doméstica' },
+    { key: 'y07014', label: 'Y07014', nome: 'Zona rural' },
   ];
-
-  function rows(mi) {
-    let html = '';
-    const municipios = DATA.ppag.y15001.municipios.map(m => m.nome);
-    municipios.forEach((nome, idx) => {
-      html += `<tr><td style="text-align:left">${nome}</td>`;
-      subs.forEach((s, si) => {
-        const m = DATA.ppag[s.key].municipios[idx];
-        const meta = m.meta_mes[mi], res = m.realizado_mes[mi];
-        const desemp = meta ? (res/meta*100) : 100; // meta 0 e resultado 0 = meta cumprida
-        const cls = desemp>=100?'neg':'pos';
-        const metaAc = m.meta_acum[mi], resAc = m.realizado_acum[mi];
-        const desempAc = metaAc ? (resAc/metaAc*100) : 100;
-        const clsAc = desempAc>=100?'neg':'pos';
-        const dc = si>0 ? ' class="col-divider"' : '';
-        html += `<td${dc}>${meta}</td><td>${res}</td><td><span class="${cls}">${desemp.toFixed(0)}%</span></td>`;
-        html += `<td class="col-divider">${metaAc}</td><td>${resAc}</td><td><span class="${clsAc}">${desempAc.toFixed(0)}%</span></td>`;
-      });
-      html += `</tr>`;
-    });
-    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>`;
-    subs.forEach((s, si) => {
-      const d = DATA.ppag[s.key];
-      const meta = d.total_meta_mes[mi], res = d.total_mes[mi];
-      const desemp = meta ? (res/meta*100) : 100;
-      const metaAc = d.total_meta_acum[mi], resAc = d.total_acum[mi];
-      const desempAc = metaAc ? (resAc/metaAc*100) : 100;
-      const dc = si>0 ? ' class="col-divider"' : '';
-      html += `<td${dc}>${meta}</td><td>${res}</td><td><span class="${desemp>=100?'neg':'pos'}">${desemp.toFixed(0)}%</span></td>`;
-      html += `<td class="col-divider">${metaAc}</td><td>${resAc}</td><td><span class="${desempAc>=100?'neg':'pos'}">${desempAc.toFixed(0)}%</span></td>`;
-    });
-    html += `</tr>`;
-    return html;
+  const munFiltro = normMun(getMunFiltro());
+  let per = pgPeriodoSalvo('indPer_ppag', ultimoIdx);
+  let subSel = subs[0].key;
+  try { const s = localStorage.getItem('indSub_ppag'); if (subs.some(x => x.key === s)) subSel = s; } catch (e) {}
+  const titulo = (p) => `Policiamento de proximidade — ${p === 'acum' ? 'acumulado até ' + mesesLocais[ultimoIdx] : mesesLocais[parseInt(p)]} de 2026`;
+  const campos = ['realizado_mes', 'meta_mes', 'realizado_acum', 'meta_acum'];
+  const pseudoDe = (d, itens) => campos.reduce((o, c) => { o[c] = d.total_mes.map((_, i) => opSoma(itens, c, i)); return o; }, {});
+  const pseudoTotal = (d) => ({ realizado_mes: d.total_mes, meta_mes: d.total_meta_mes, realizado_acum: d.total_acum, meta_acum: d.total_meta_acum });
+  function valores(d, m, p) {
+    const i = p === 'acum' ? ultimoIdx : parseInt(p), f = fatorMesEmAndamento(d, i);
+    return p === 'acum'
+      ? { real: m.realizado_acum[i], lim: L.acum(m.meta_acum[i], m.meta_mes[i], f), cheia: m.meta_acum[i], f }
+      : { real: m.realizado_mes[i], lim: L.mes(m.meta_mes[i], f), cheia: m.meta_mes[i], f };
   }
-
-  function rowsVD(mi) {
-    let html = '';
-    const d = DATA.ppag.y07012;
-    d.municipios.forEach(m => {
-      const realMes = m.realizado_mes[mi], metaMes = m.meta_mes[mi];
-      const realAcum = m.realizado_acum[mi], metaAcum = m.meta_acum[mi];
-      const pctAcum = metaAcum ? (realAcum/metaAcum*100) : 100;
-      const cls = pctAcum>=100?'neg':'pos';
-      const saldo = realAcum - metaAcum; // positivo = já passou da meta = bom (corrigido em 2026-09-04, estava metaAcum-realAcum e sem cor)
-      html += `<tr><td style="text-align:left">${m.nome}</td>
-        <td>${realMes}</td><td>${metaMes}</td>
-        <td class="col-divider">${realAcum}</td><td>${metaAcum}</td>
-        <td><span class="${cls}">${pctAcum.toFixed(0)}%</span></td><td><span class="${saldo>=0?'neg':'pos'}">${saldo>0?'+':''}${saldo}</span></td>
-      </tr>`;
-    });
-    const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
-    const tPct = tMAc ? (tRAc/tMAc*100) : 100;
-    const tSaldo = tRAc - tMAc;
-    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
-      <td>${tRMes}</td><td>${tMMes}</td>
-      <td class="col-divider">${tRAc}</td><td>${tMAc}</td>
-      <td><span class="${tPct>=100?'neg':'pos'}">${tPct.toFixed(0)}%</span></td><td><span class="${tSaldo>=0?'neg':'pos'}">${tSaldo>0?'+':''}${tSaldo}</span></td>
-    </tr>`;
-    return html;
+  function celula(d, m, p) {
+    const v = valores(d, m, p), saldo = v.real - v.lim;
+    const tip = v.f < 1 ? `Meta proporcional aos dias já fechados: ${v.lim} (de ${v.cheia} no período)` : `Meta do período: ${v.lim}`;
+    return semaforoCell(statusPiso(v.real, v.lim), `<span style="white-space:nowrap"><b>${v.real}</b> <span style="opacity:.75">/ ${v.lim}</span></span><br><small>${saldo > 0 ? '+' + saldo : (saldo === 0 ? 'cumprida' : 'faltam ' + (-saldo))}</small>`, tip);
   }
+  function table(p) {
+    const linhaDe = (nome, objs, atr, cls) => `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td>${subs.map((s, si) => celula(DATA.ppag[s.key], objs[si], p)).join('')}</tr>`;
+    let rows = '';
+    const acha = (s, nome) => DATA.ppag[s.key].municipios.find(x => normMun(x.nome) === normMun(nome));
+    opGruposCia(dRef.municipios).forEach(g => {
+      g.itens.forEach(m => { rows += linhaDe(m.nome, subs.map(s => acha(s, m.nome) || m), ` data-mun="${m.nome}" title="Filtrar por ${m.nome}"`, 'rank-clic' + (normMun(m.nome) === munFiltro ? ' sel' : '')); });
+      rows += linhaDe('Subtotal ' + g.cia, subs.map(s => pseudoDe(DATA.ppag[s.key], g.itens.map(m => acha(s, m.nome) || m))), '', 'cia-sub');
+    });
+    rows += linhaDe('70º BPM', subs.map(s => pseudoTotal(DATA.ppag[s.key])), ' style="font-weight:700"', '');
+    return rows;
+  }
+  function corpoSub() {
+    const s = subs.find(x => x.key === subSel), b = opBlocosHtml(DATA.ppag[s.key], cfg, { mesesLocais, ultimoIdx, munFiltro, rotulo: s.label + ' · ' + s.nome });
+    return b.ano + b.cidade + b.quadro;
+  }
+  const notaPer = (p) => opNotaMesParcial(dRef, mesesLocais, p === 'acum' ? ultimoIdx : parseInt(p));
 
-  let html = `<div class="page-title">Policiamento de proximidade | Dados de ${mesesLocais[mi]}</div>`;
-  html += sigopButton('ppag');
-  html += `<div class="def-box">${DEFS.ppag}</div>`;
+  let html = `<div class="page-title" id="ppagTitulo">${titulo(per)}</div>`;
+  html += freshBadge(mesesLocais[ultimoIdx], { semDadoReal: subs.every(s => indicadorSemDadoNoMes(DATA.ppag[s.key], ultimoIdx, false)) });
+  if (SIGOP_LINKS.ppag) html += `<a class="link-sigop" href="${SIGOP_LINKS.ppag}" target="_blank" rel="noopener noreferrer">${SIGOP_LABELS.ppag} · fonte oficial no SiGOp ↗</a><br>`;
+  html += `<details class="aud-como"><summary>Metodologia e definições</summary><div>${DEFS.ppag}</div></details>`;
   html += bannerAcompanhamentoDiario(subs.map(s => ({
     label: 'PPAG ' + s.label,
     meta: DATA.ppag[s.key].total_meta_mes[MES_ATUAL_IDX],
     realizado: DATA.ppag[s.key].total_mes[MES_ATUAL_IDX],
     dataAtualizacao: dataAtualizacaoIndicador(DATA.ppag[s.key]),
   })));
-  html += `<select class="month-select" id="ppagMonthSel">`;
-  mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
-  html += `</select>`;
-  html += `<div style="overflow-x:auto"><table class="data-table" id="ppagTable"><thead><tr>
-    <th style="text-align:left" rowspan="2">Município</th>
-    <th colspan="6">Y15001</th><th colspan="6">Y07012</th><th colspan="6">Y07014</th>
-  </tr><tr>
-    <th>Meta Mês</th><th>Res.</th><th>Des.</th><th class="col-divider">Meta Acum</th><th>Res.</th><th>Des.</th>
-    <th>Meta Mês</th><th>Res.</th><th>Des.</th><th class="col-divider">Meta Acum</th><th>Res.</th><th>Des.</th>
-    <th>Meta Mês</th><th>Res.</th><th>Des.</th><th class="col-divider">Meta Acum</th><th>Res.</th><th>Des.</th>
-  </tr></thead><tbody>${rows(mi)}</tbody></table></div>`;
+  html += pgPillsPeriodoHtml('ppagPer', 'Acumulado', mesesLocais, ultimoIdx, ultimoIdx === MES_ATUAL_IDX);
+  html += `<div class="vd-recorte" id="ppagNota">${notaPer(per)}</div>`;
+  html += `<div class="vd-recorte">Cada célula mostra realizado / meta do período e quanto falta (ou sobra). Verde = meta cumprida, amarelo = entre 80% e 100%, vermelho = abaixo de 80%. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar).</div>`;
+  html += `<div class="table-wrap"><table class="data-table ind-tab" id="ppagTable"><thead><tr><th style="text-align:left">Município</th>${subs.map(s => `<th title="${s.label} — ${s.nome}">${s.label}<br><small>${s.nome}</small></th>`).join('')}</tr></thead><tbody>${table(per)}</tbody></table></div>`;
   html += `<div class="updated">Y15001 - Patrulha Escolar/Patrulha de Prevenção às Drogas; Y07012 - Operação de Prevenção a Violência Doméstica; Y07014 - Ação/Operação em Zonal Rural (meta herdada da coluna legada Meta_Y15010 na planilha).</div>`;
-  html += `<div class="page-title" style="margin-top:28px;font-size:1.1em">PPAG VD — Detalhamento (Y07012, Prevenção à Violência Doméstica)</div>`;
-  html += `<table class="data-table" id="ppagVdTable"><thead><tr>
-    <th style="text-align:left">Município</th><th>Realizado Mês</th><th>Meta Mês</th>
-    <th class="col-divider">Realizado Acum</th><th>Meta Acum</th><th>% vs Meta (Acum)</th><th>Saldo</th>
-  </tr></thead><tbody>${rowsVD(mi)}</tbody></table>`;
+  html += `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Detalhe por indicador</h3><div class="pills-vd" id="ppagSubs" role="group" aria-label="Indicador">` + subs.map(s => `<button type="button" data-p="${s.key}">${s.label} · ${s.nome}</button>`).join('') + `</div></div>`;
+  html += `<div id="ppagSubCorpo">${corpoSub()}</div>`;
   document.getElementById('main').innerHTML = html;
-  document.getElementById('ppagMonthSel').addEventListener('change', (e) => {
-    const idx = parseInt(e.target.value);
-    document.querySelector('#ppagTable tbody').innerHTML = rows(idx);
-    document.querySelector('#ppagVdTable tbody').innerHTML = rowsVD(idx);
+
+  pgLigarPeriodo('ppagPer', 'indPer_ppag', per, (p) => {
+    per = p;
+    document.querySelector('#ppagTable tbody').innerHTML = table(per);
+    document.getElementById('ppagTitulo').textContent = titulo(per);
+    document.getElementById('ppagNota').textContent = notaPer(per);
   });
+  const marcarSub = () => document.querySelectorAll('#ppagSubs button').forEach(b => b.classList.toggle('on', b.dataset.p === subSel));
+  marcarSub();
+  document.getElementById('ppagSubs').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    subSel = b.dataset.p; try { localStorage.setItem('indSub_ppag', subSel); } catch (er) {}
+    marcarSub(); document.getElementById('ppagSubCorpo').innerHTML = corpoSub();
+  });
+  opLigarCidades(['ppagTable', 'ppagSubCorpo']);
 }
 
 function idobColor(v) {

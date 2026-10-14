@@ -1581,6 +1581,77 @@ function auditar() {
     await ctxU.close();
   }
 
+  // ---------- 36) POG e PPAG, onda 1: botões de mês, meta proporcional, subtotal por fração, ano com projeção, painel da cidade ----------
+  console.log('\n[36] POG e PPAG no padrão das páginas de indicador');
+  {
+    const ctxO = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const po = await ctxO.newPage();
+    const errosO = []; po.on('pageerror', (e) => errosO.push(e.message));
+    await po.goto(base);
+    await po.waitForFunction(() => typeof goToPage === 'function');
+    const r = await po.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {};
+      const d = DATA.pog, ult = Math.min(MES_ATUAL_IDX, d.total_mes.length - 1);
+      try { localStorage.removeItem('indMes_pog'); localStorage.removeItem('indPer_ppag'); localStorage.removeItem('indSub_ppag'); } catch (e) {}
+      setMunFiltro('');
+      goToPage('pog'); await esp(400);
+      const linhas = [...document.querySelectorAll('#pogTable tbody tr')], tot = linhas[linhas.length - 1], f = fatorMesEmAndamento(d, ult);
+      const num = (td) => parseInt(td.querySelector('b').textContent);
+      out.pog = {
+        semSelect: !document.getElementById('pogMonthSel'),
+        pills: document.querySelectorAll('#pogMeses button').length === ult + 1 && document.querySelector('#pogMeses button.on').dataset.p === String(ult),
+        subtotais: linhas.filter(t => t.classList.contains('cia-sub')).length,
+        somaOk: linhas.filter(t => t.classList.contains('cia-sub')).reduce((a, t) => a + num(t.children[1]), 0) === d.total_mes[ult],
+        metaProp: tot.children[1].textContent.includes(opNum(d.total_meta_mes[ult] * f)),
+        fracao: f < 1,
+        notaParcial: f < 1 ? /proporcional aos dias já fechados/.test(document.getElementById('pogNota').textContent) : true,
+        faixa: /Verde de 95% a 105%/.test(document.getElementById('main').textContent),
+        colunas: document.querySelectorAll('#pogTable thead th').length,
+        ano: !!document.querySelector('#main svg.ano-svg') && /Projeção para o ano/.test(document.getElementById('main').textContent),
+        quadro: document.querySelectorAll('#opQuadro tbody tr').length,
+        cobertura: /Cobre \d+ de \d+ operações do ano/.test(document.getElementById('main').textContent),
+        metodologiaFechada: !!document.querySelector('details.aud-como') && !document.querySelector('details.aud-como').open,
+      };
+      // outro mês: meta cheia, título acompanha
+      document.querySelector('#pogMeses button[data-p="0"]').click(); await esp(100);
+      const t0 = [...document.querySelectorAll('#pogTable tbody tr')].pop();
+      out.pogJan = { titulo: /Janeiro/.test(document.getElementById('pogTitulo').textContent), metaCheia: t0.children[1].textContent.includes(opNum(d.total_meta_mes[0])), nota: document.getElementById('pogNota').textContent === '' };
+      // cidade clicável
+      document.querySelector('#pogTable tr.rank-clic').click(); await esp(400);
+      out.pogCidade = { filtro: !!getMunFiltro(), painel: /— mês a mês/.test(document.getElementById('main').innerHTML) && document.querySelectorAll('#main svg.ano-svg').length >= 2 };
+      setMunFiltro('');
+      // PPAG
+      goToPage('ppag'); await esp(400);
+      const lp = [...document.querySelectorAll('#ppagTable tbody tr')];
+      out.ppag = {
+        linhas: lp.length, subtotais: lp.filter(t => t.classList.contains('cia-sub')).length, colunas: document.querySelectorAll('#ppagTable thead th').length,
+        semSelect: !document.getElementById('ppagMonthSel') && !document.getElementById('ppagVdTable'),
+        pills: document.querySelectorAll('#ppagPer button').length === ult + 2 && document.querySelector('#ppagPer button.on').dataset.p === 'acum',
+        metaProp: f < 1 ? /proporcional aos dias já fechados/.test(document.getElementById('ppagNota').textContent) : true,
+        tituloAcum: /acumulado até/.test(document.getElementById('ppagTitulo').textContent),
+        sub1: /Y15001/.test(document.querySelector('#ppagSubCorpo h3').textContent),
+      };
+      document.querySelector('#ppagSubs button[data-p="y07012"]').click(); await esp(100);
+      out.ppagSub = { titulo: /Y07012/.test(document.querySelector('#ppagSubCorpo h3').textContent), ano: !!document.querySelector('#ppagSubCorpo svg.ano-svg'), quadro: document.querySelectorAll('#opQuadro tbody tr').length };
+      document.querySelector('#ppagPer button[data-p="0"]').click(); await esp(100);
+      out.ppagJan = { titulo: /Janeiro/.test(document.getElementById('ppagTitulo').textContent), nota: document.getElementById('ppagNota').textContent === '' };
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.pog.semSelect && r.pog.pills && r.pog.metodologiaFechada && r.pog.colunas === 4, 'POG: botões de mês (mês atual marcado), sem seletor antigo, metodologia recolhida', 'POG estrutura: ' + JSON.stringify(r.pog));
+    checa(r.pog.subtotais === 3 && r.pog.somaOk, 'POG: subtotal por fração (3 companhias) e a soma bate com o total do batalhão', 'POG subtotais: ' + JSON.stringify(r.pog));
+    checa(r.pog.metaProp && r.pog.notaParcial, 'POG: no mês em andamento a meta é proporcional aos dias fechados (e a nota explica)', 'POG meta proporcional: ' + JSON.stringify(r.pog));
+    checa(r.pog.faixa && r.pog.ano && r.pog.quadro === 14 && r.pog.cobertura, 'POG: regra da faixa 95–105% explicada, ano com projeção, quadro município × mês e aviso de lista desatualizada', 'POG blocos: ' + JSON.stringify(r.pog));
+    checa(r.pogJan.titulo && r.pogJan.metaCheia && r.pogJan.nota, 'POG: trocar de mês muda o título e usa a meta cheia', 'POG janeiro: ' + JSON.stringify(r.pogJan));
+    checa(r.pogCidade.filtro && r.pogCidade.painel, 'POG: clicar numa cidade filtra e abre o painel da cidade', 'POG cidade: ' + JSON.stringify(r.pogCidade));
+    checa(r.ppag.linhas === 17 && r.ppag.subtotais === 3 && r.ppag.colunas === 4 && r.ppag.semSelect && r.ppag.pills && r.ppag.metaProp && r.ppag.tituloAcum && r.ppag.sub1, 'PPAG: matriz município × 3 indicadores com subtotal por fração, botões de período e meta proporcional', 'PPAG: ' + JSON.stringify(r.ppag));
+    checa(r.ppagSub.titulo && r.ppagSub.ano && r.ppagSub.quadro === 14 && r.ppagJan.titulo && r.ppagJan.nota, 'PPAG: trocar o indicador e o mês atualiza o detalhe, o título e a nota', 'PPAG troca: ' + JSON.stringify([r.ppagSub, r.ppagJan]));
+    checa(r.largura, 'POG/PPAG no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosO.length === 0, 'POG/PPAG sem erro de JavaScript', 'erros: ' + errosO.slice(0, 3).join(' | '));
+    await ctxO.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
