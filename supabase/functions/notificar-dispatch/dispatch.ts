@@ -27,9 +27,13 @@ export interface Deps {
   getSubscriptions(userIds: string[]): Promise<Sub[]>;
   deleteSubscriptions(ids: number[]): Promise<void>;
   enviar(sub: Sub, payload: string, vapid: { publicKey: string; privateKey: string }): Promise<void>; // lança {statusCode} se o push service recusar
+  // ---- resumo do dia por cidade (enviado pelo administrador) ----
+  ehAdmin(userId: string): Promise<boolean>;
+  getPerfisPorCidade(): Promise<{ user_id: string; cidade: string }[]>;   // cadastro aprovado que informou cidade
+  setPrivate(key: string, value: string): Promise<void>;
 }
 
-export const TIPOS = ['atualizacao', 'mv', 'pm', 'cvpe', 'cvpa', 'vd'];
+export const TIPOS = ['atualizacao', 'mv', 'pm', 'cvpe', 'cvpa', 'vd', 'resumo'];
 const PRIORIDADE = ['pm', 'mv', 'cvpe', 'cvpa', 'vd', 'atualizacao'];
 const PAGINA: Record<string, string> = { pm: 'cvpe', mv: 'imv', cvpe: 'cvpe', cvpa: 'cvpa', vd: 'violencia_domestica', atualizacao: 'home' };
 const NOMES: Record<string, string> = {
@@ -40,6 +44,21 @@ const NOMES: Record<string, string> = {
 const CONCORRENCIA = 10;
 
 export const norm = (s: string | null | undefined) => (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
+// O cadastro foi digitado à mão: "Araçuai", "ARAÇUAÍ", "CORONEL MURTA - MG", "ITAOBIM/MG", "ITNGA"... Devolve a chave canônica
+// (ex.: ARACUAI) ou '' se não reconhece. Tolera sufixo de estado e UMA letra de diferença (só quando dá uma única cidade).
+const distancia = (a: string, b: string) => {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+};
+export function resolverCidade(raw: string | null | undefined): string {
+  const c = norm(raw).replace(/\s*[-\/,]?\s*\bMG\b\s*$/, '').replace(/\s+/g, ' ').trim();
+  if (!c) return '';
+  if (NOMES[c]) return c;
+  const parecidas = Object.keys(NOMES).filter((k) => distancia(k, c) <= 1);
+  return parecidas.length === 1 ? parecidas[0] : '';
+}
 const bonito = (m: string | null) => (m ? (NOMES[norm(m)] ?? m) : '');
 const em = (m: string | null) => (m ? ` em ${bonito(m)}` : '');
 const plural = (q: number, um: string, varios: string) => (q === 1 ? um : varios);
@@ -97,13 +116,13 @@ async function garantirVapid(deps: Deps) {
 }
 
 async function enviarAvisos(deps: Deps, vapid: { publicKey: string; privateKey: string }, porUsuario: Map<string, Payload>, subs: Sub[]) {
-  let enviados = 0, falhas = 0; const mortas: number[] = [];
+  let enviados = 0, falhas = 0; const mortas: number[] = []; const recebeu = new Set<string>();
   const fila = subs.filter((s) => porUsuario.has(s.user_id));
   let i = 0;
   async function trabalhador() {
     while (i < fila.length) {
       const sub = fila[i++];
-      try { await deps.enviar(sub, JSON.stringify(porUsuario.get(sub.user_id)), vapid); enviados++; }
+      try { await deps.enviar(sub, JSON.stringify(porUsuario.get(sub.user_id)), vapid); enviados++; recebeu.add(sub.user_id); }
       catch (err) {
         const code = (err as { statusCode?: number }).statusCode;
         if (code === 404 || code === 410) mortas.push(sub.id); else falhas++; // 404/410: aparelho desinstalou/revogou
@@ -112,7 +131,57 @@ async function enviarAvisos(deps: Deps, vapid: { publicKey: string; privateKey: 
   }
   await Promise.all(Array.from({ length: Math.min(CONCORRENCIA, fila.length) }, trabalhador));
   if (mortas.length) await deps.deleteSubscriptions(mortas);
-  return { enviados, falhas, removidas: mortas.length };
+  return { enviados, falhas, removidas: mortas.length, recebeu };
+}
+
+
+// ---- Resumo do dia por cidade: o ADMINISTRADOR manda, o texto de cada cidade vai pros militares cadastrados naquela cidade ----
+const REDS_NO_TEXTO = /\d{4}-\d{9}-\d{3}/;
+const INTERVALO_RESUMO_MS = 5 * 60 * 1000; // trava contra clique duplo / reenvio sem querer
+
+async function enviarResumo(deps: Deps, modo: 'rotina' | 'usuario', userId: string | null, corpo: { resumos?: unknown }): Promise<Response> {
+  // o administrador logado OU a rotina de dados (token de escrita da própria rotina; assim o resumo pode sair de um script/agendamento)
+  const autorizado = modo === 'rotina' || (modo === 'usuario' && !!userId && (await deps.ehAdmin(userId)));
+  if (!autorizado) return json({ error: 'só o administrador envia o resumo' }, 403);
+  const bruto = corpo.resumos;
+  if (!bruto || typeof bruto !== 'object' || Array.isArray(bruto)) return json({ error: 'resumos inválidos' }, 400);
+  const resumos: Record<string, string> = {};
+  for (const [k, v] of Object.entries(bruto as Record<string, unknown>)) {
+    const chave = norm(k);
+    if (!NOMES[chave]) return json({ error: `município desconhecido: ${k}` }, 400);
+    if (typeof v !== 'string' || !v.trim() || v.length > 400) return json({ error: `texto inválido para ${k}` }, 400);
+    if (REDS_NO_TEXTO.test(v)) return json({ error: 'o resumo não pode conter número de REDS' }, 400);
+    resumos[chave] = v.trim();
+  }
+  if (!Object.keys(resumos).length) return json({ error: 'nenhuma cidade no resumo' }, 400);
+
+  const ultimo = await deps.getPrivate('resumo_ultimo_envio');
+  if (ultimo && Date.now() - Date.parse(ultimo) < INTERVALO_RESUMO_MS) return json({ error: 'um resumo foi enviado há menos de 5 minutos; aguarde para reenviar', aguarde: true }, 429);
+
+  const vapid = await garantirVapid(deps);
+  const perfis = await deps.getPerfisPorCidade();
+  const alvos = perfis.filter((p) => resumos[resolverCidade(p.cidade)]);
+  const prefs = await deps.getPrefs(alvos.map((p) => p.user_id));
+  const porUsuario = new Map<string, Payload>(), cidadeDe = new Map<string, string>();
+  for (const p of alvos) {
+    const pr = prefs.get(p.user_id);
+    if (pr && (!pr.ativo || !pr.tipos.includes('resumo'))) continue;
+    const cid = resolverCidade(p.cidade);
+    cidadeDe.set(p.user_id, cid);
+    porUsuario.set(p.user_id, { title: `70º BPM · Resumo de hoje — ${bonito(cid)}`, body: resumos[cid], url: './?pagina=auditoria', pagina: 'auditoria', tag: '70bpm-resumo' });
+  }
+  const cidades: Record<string, { militares: number; destinatarios: number; recebeu: number }> = {};
+  for (const c of Object.keys(resumos)) cidades[c] = { militares: perfis.filter((p) => resolverCidade(p.cidade) === c).length, destinatarios: 0, recebeu: 0 };
+  for (const [uid, c] of cidadeDe) cidades[c].destinatarios++;
+  let enviados = 0, falhas = 0, removidas = 0;
+  if (porUsuario.size) {
+    const subs = await deps.getSubscriptions([...porUsuario.keys()]);
+    const r = await enviarAvisos(deps, vapid, porUsuario, subs);
+    ({ enviados, falhas, removidas } = r);
+    for (const uid of r.recebeu) cidades[cidadeDe.get(uid)!].recebeu++;
+  }
+  await deps.setPrivate('resumo_ultimo_envio', new Date().toISOString());
+  return json({ ok: true, cidades, enviados, falhas, removidas, semCidadeReconhecida: perfis.length - alvos.length });
 }
 
 export async function handle(req: Request, deps: Deps): Promise<Response> {
@@ -132,6 +201,9 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
     const v = await garantirVapid(deps);
     return json({ ok: true, vapid_public_key: v.publicKey });
   }
+
+
+  if (corpo.action === 'resumo') return await enviarResumo(deps, modo, userId, corpo as { resumos?: unknown });
 
   const ids = Array.isArray(corpo.ids) ? corpo.ids.filter((x) => Number.isInteger(x)).slice(0, 200) as number[] : [];
   if (!ids.length) return json({ error: 'ids vazio' }, 400);
@@ -159,6 +231,6 @@ export async function handle(req: Request, deps: Deps): Promise<Response> {
   if (!porUsuario.size) return json({ ok: true, eventos: eventos.length, avisos: 0, enviados: 0 });
 
   const subs = await deps.getSubscriptions([...porUsuario.keys()]);
-  const r = await enviarAvisos(deps, vapid, porUsuario, subs);
+  const { recebeu: _r, ...r } = await enviarAvisos(deps, vapid, porUsuario, subs);
   return json({ ok: true, eventos: eventos.length, avisos: porUsuario.size, ...r });
 }

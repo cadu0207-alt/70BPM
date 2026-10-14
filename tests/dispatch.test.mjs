@@ -1,11 +1,11 @@
 // Testa a lógica de envio dos avisos (Edge Function notificar-dispatch) com tabelas e servidor de push de mentira.
 // Roda com: node --experimental-strip-types tests/dispatch.test.mjs   (Node 22+; sem Supabase, sem rede)
-import { handle, montarAviso, quer } from '../supabase/functions/notificar-dispatch/dispatch.ts';
+import { handle, montarAviso, quer, resolverCidade } from '../supabase/functions/notificar-dispatch/dispatch.ts';
 
 let falhas = 0;
 const checa = (cond, ok, ruim) => { if (cond) console.log('  ✔ ' + ok); else { falhas++; console.log('  ✖ ' + (ruim || ok)); } };
 
-function mundo({ prefs = [], subs = [], aprovados = [], eventos = [], jwts = {} } = {}) {
+function mundo({ prefs = [], subs = [], aprovados = [], eventos = [], jwts = {}, perfis = [], admins = [] } = {}) {
   const enviados = [], deletadas = [], vapid = {};
   let reservados = new Set();
   const deps = {
@@ -19,6 +19,9 @@ function mundo({ prefs = [], subs = [], aprovados = [], eventos = [], jwts = {} 
     async getPrefs(us) { return new Map(prefs.filter((p) => us.includes(p.user_id)).map((p) => [p.user_id, p])); },
     async getSubscriptions(us) { return subs.filter((s) => us.includes(s.user_id)); },
     async deleteSubscriptions(ids) { deletadas.push(...ids); },
+    async ehAdmin(u) { return admins.includes(u); },
+    async getPerfisPorCidade() { return perfis; },
+    async setPrivate(k, v) { vapid[k] = v; },
     async enviar(sub, payload) { if (sub.endpoint.includes('morta')) { const e = new Error('gone'); e.statusCode = 410; throw e; } enviados.push({ user: sub.user_id, endpoint: sub.endpoint, payload: JSON.parse(payload) }); },
   };
   return { deps, enviados, deletadas, vapid };
@@ -107,6 +110,53 @@ console.log('\n[5] Teste de aviso pelo próprio usuário');
   checa(abuso.avisos === 0 && !w3.enviados.length && abuso.eventos === 0, 'usuário comum não consegue disparar nem "queimar" evento da rotina (o evento continua livre pra rotina)');
   const depois = await lerJson(await handle(post({ ids: [5] }, { 'x-pipeline-token': 'token-bom' }), w3.deps));
   checa(depois.eventos === 1 && depois.avisos === 1 && w3.enviados.length === 1, 'e a rotina ainda consegue enviar esse evento depois');
+}
+
+
+console.log('\n[5b] Cidade digitada à mão no cadastro');
+{
+  const casos = { 'Araçuaí': 'ARACUAI', 'Araçuai': 'ARACUAI', 'ARAÇUAÍ': 'ARACUAI', 'CORONEL MURTA - MG': 'CORONEL MURTA', 'ITAOBIM/MG': 'ITAOBIM', 'itaobim': 'ITAOBIM', 'ITNGA': 'ITINGA', 'Virgem da Lapa': 'VIRGEM DA LAPA', 'Batalhão': '', '70º BPM': '', '': '', 'Pedra': '' };
+  const erradas = Object.entries(casos).filter(([k, v]) => resolverCidade(k) !== v).map(([k, v]) => `${k} → ${resolverCidade(k)} (esperado ${v})`);
+  checa(!erradas.length, 'reconhece as variações reais do cadastro (acento, caixa, "- MG", "/MG", uma letra errada) e recusa o que não é cidade', erradas.join('; '));
+}
+
+console.log('\n[6] Resumo do dia por cidade (enviado pelo administrador)');
+{
+  const subs = (u, n = 1) => Array.from({ length: n }, (_, i) => ({ id: Math.random() * 1e6 | 0, user_id: u, endpoint: `https://push/${u}-${i}`, p256dh_key: 'k', auth_key: 'a' }));
+  const base = () => mundo({
+    jwts: { eyADM: 'ADM', eyCOM: 'COM' }, admins: ['ADM'],
+    perfis: [{ user_id: 'M1', cidade: 'Araçuaí' }, { user_id: 'M2', cidade: 'ARACUAI' }, { user_id: 'M3', cidade: 'Medina' }, { user_id: 'M4', cidade: 'Itaobim' }, { user_id: 'M5', cidade: 'Batalhão' }, { user_id: 'M6', cidade: 'Araçuaí' }, { user_id: 'M7', cidade: 'ITAOBIM/MG' }],
+    prefs: [{ user_id: 'M6', ativo: true, tipos: ['vd'], municipios: [] }, { user_id: 'M3', ativo: false, tipos: ['resumo'], municipios: [] }],
+    subs: [...subs('M1', 2), ...subs('M2'), ...subs('M3'), ...subs('M4'), ...subs('M5'), ...subs('M6'), ...subs('M7')],
+  });
+  const R = { ARACUAI: '2 em vermelho: 1 caso de VD fora do prazo · 1 meta atrasada', MEDINA: 'Tudo em dia hoje', ITAOBIM: 'Tudo em dia hoje' };
+  const w = base();
+  const comum = await lerJson(await handle(post({ action: 'resumo', resumos: R }, { Authorization: 'Bearer eyCOM' }), w.deps));
+  checa(comum.status === 403 && !w.enviados.length, 'usuário comum não envia resumo (403)');
+  const semAuth = await lerJson(await handle(post({ action: 'resumo', resumos: R }, { 'x-pipeline-token': 'errado' }), w.deps));
+  checa(semAuth.status === 401 && !w.enviados.length, 'sem token válido nem login de administrador: 401');
+  const reds = await lerJson(await handle(post({ action: 'resumo', resumos: { ARACUAI: 'caso 2026-043622226-001 atrasado' } }, { Authorization: 'Bearer eyADM' }), w.deps));
+  checa(reds.status === 400 && /REDS/.test(reds.error), 'texto com nº de REDS é recusado');
+  const desconhecida = await lerJson(await handle(post({ action: 'resumo', resumos: { 'Cidade Fantasma': 'x' } }, { Authorization: 'Bearer eyADM' }), w.deps));
+  checa(desconhecida.status === 400, 'município desconhecido é recusado');
+  const longo = await lerJson(await handle(post({ action: 'resumo', resumos: { ARACUAI: 'x'.repeat(401) } }, { Authorization: 'Bearer eyADM' }), w.deps));
+  checa(longo.status === 400, 'texto longo demais é recusado');
+
+  const r = await lerJson(await handle(post({ action: 'resumo', resumos: R }, { Authorization: 'Bearer eyADM' }), w.deps));
+  const por = (u) => w.enviados.filter((e) => e.user === u).map((e) => e.payload);
+  checa(r.status === 200 && r.ok, 'administrador envia o resumo', JSON.stringify(r));
+  checa(por('M1').length === 2 && por('M2').length === 1 && /Resumo de hoje — Araçuaí/.test(por('M1')[0].title) && por('M1')[0].body === R.ARACUAI, 'quem cadastrou Araçuaí (com ou sem acento/caixa) recebe o texto de Araçuaí, em todos os aparelhos');
+  checa(por('M4').length === 1 && por('M4')[0].body === 'Tudo em dia hoje' && por('M7').length === 1, 'Itaobim recebe o texto de Itaobim (inclusive quem escreveu "ITAOBIM/MG")');
+  checa(!por('M3').length, 'quem desligou os avisos não recebe');
+  checa(!por('M6').length, 'quem tirou "resumo" das preferências não recebe');
+  checa(!por('M5').length && r.semCidadeReconhecida === 1, 'cadastro sem cidade reconhecida (Batalhão) não recebe e é contado no relatório', JSON.stringify(r));
+  checa(r.cidades.ARACUAI.militares === 3 && r.cidades.ARACUAI.destinatarios === 2 && r.cidades.ARACUAI.recebeu === 2, 'relatório por cidade: militares, destinatários e quantos receberam', JSON.stringify(r.cidades));
+  checa(w.enviados.every((e) => e.payload.pagina === 'auditoria' && e.payload.tag === '70bpm-resumo'), 'toque abre a Auditoria; mesmo tag substitui o resumo anterior');
+  const de_novo = await lerJson(await handle(post({ action: 'resumo', resumos: R }, { Authorization: 'Bearer eyADM' }), w.deps));
+  checa(de_novo.status === 429 && w.enviados.length === 5, 'reenvio em menos de 5 minutos é barrado (429) e nada sai de novo', 'enviados: ' + w.enviados.length);
+  const w2 = base();
+  const pela_rotina = await lerJson(await handle(post({ action: 'resumo', resumos: R }, { 'x-pipeline-token': 'token-bom' }), w2.deps));
+  checa(pela_rotina.status === 200 && pela_rotina.ok && w2.enviados.length === 5, 'a rotina de dados (token) também consegue enviar o resumo — útil para agendar sem abrir o painel');
 }
 
 console.log(falhas ? `\n✖ ${falhas} FALHA(S)` : '\n✔ TUDO CERTO (avisos)');

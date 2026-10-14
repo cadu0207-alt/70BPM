@@ -4213,6 +4213,43 @@ function auditoriaTopicoCriminal(label, qtd, nomeMunicipio, mesNome) {
   return h;
 }
 
+function auditoriaAcharMunicipio(dataIndicador, nomeCanonico) {
+  if (!dataIndicador) return null;
+  const alvo = normMun(nomeCanonico);
+  return (dataIndicador.municipios || []).find(m => normMun(m.nome) === alvo) || null;
+}
+// Mesmos indicadores que já têm o banner "Acompanhamento diário" nas próprias páginas —
+// aqui quebrado por município, pra pedido de Eduardo em 2026-09-03.
+function auditoriaColetarMetasDiarias(nome, idxAtual) {
+  const linhas = [];
+  const add = (dataObj, label, higherIsBetter) => {
+    const m = auditoriaAcharMunicipio(dataObj, nome);
+    if (!m || !Array.isArray(m.meta_mes) || !Array.isArray(m.realizado_mes)) return;
+    const i = Math.min(idxAtual, m.meta_mes.length - 1, m.realizado_mes.length - 1);
+    if (i < 0) return;
+    const meta = m.meta_mes[i], realizado = m.realizado_mes[i];
+    const s = statusAcompanhamentoDiario(meta, realizado, higherIsBetter, true, dataAtualizacaoIndicador(dataObj));
+    linhas.push({ label, meta, realizado, ...s });
+  };
+  add(DATA.pog, 'POG', true);
+  if (DATA.ppag) {
+    add(DATA.ppag.y15001, 'PPAG Y15001 (Escolar)', true);
+    add(DATA.ppag.y07012, 'PPAG Y07012 (V. Doméstica)', true);
+    add(DATA.ppag.y07014, 'PPAG Y07014 (Rural)', true);
+  }
+  add(DATA.boemia_meta, 'Boemia (meta de operações)', true);
+  add(DATA.cavaloaco, 'Cavalo de Aço', true);
+  add(DATA.rolezinho, 'Rolezinho', true);
+  add(DATA.padesc, 'Padrinhos da Escola', true);
+  add(DATA.saque_seguro, 'Saque Seguro', true);
+  add(DATA.mv, 'MV (Mortes Violentas)', false);
+  add(DATA.cvpe, 'CVPE', false);
+  add(DATA.cvpa, 'CVPa', false);
+  add(DATA.furto, 'Furto Rural', false);
+  add(DATA.armas, 'Armas de Fogo', true);
+  return linhas;
+}
+
 async function renderAuditoriaPage() {
   let html = `<div class="page-title">Painel de Auditoria</div>`;
   html += `<div class="def-box"><b>Uso interno — exige login PPVD aprovado</b><br>
@@ -4253,43 +4290,8 @@ async function renderAuditoriaPage() {
   const body = document.getElementById('auditoriaBody');
   body.innerHTML = `<div class="def-box">Carregando casos de Violência Doméstica…</div>`;
 
-  function acharMunicipio(dataIndicador, nomeCanonico) {
-    if (!dataIndicador) return null;
-    const alvo = normMun(nomeCanonico);
-    return (dataIndicador.municipios || []).find(m => normMun(m.nome) === alvo) || null;
-  }
-
-  // Mesmos indicadores que já têm o banner "Acompanhamento diário" nas próprias páginas —
-  // aqui quebrado por município, pra pedido de Eduardo em 2026-09-03.
-  function coletarMetasDiarias(nome) {
-    const linhas = [];
-    const add = (dataObj, label, higherIsBetter) => {
-      const m = acharMunicipio(dataObj, nome);
-      if (!m || !Array.isArray(m.meta_mes) || !Array.isArray(m.realizado_mes)) return;
-      const i = Math.min(idxAtual, m.meta_mes.length - 1, m.realizado_mes.length - 1);
-      if (i < 0) return;
-      const meta = m.meta_mes[i], realizado = m.realizado_mes[i];
-      const s = statusAcompanhamentoDiario(meta, realizado, higherIsBetter, true, dataAtualizacaoIndicador(dataObj));
-      linhas.push({ label, meta, realizado, ...s });
-    };
-    add(DATA.pog, 'POG', true);
-    if (DATA.ppag) {
-      add(DATA.ppag.y15001, 'PPAG Y15001 (Escolar)', true);
-      add(DATA.ppag.y07012, 'PPAG Y07012 (V. Doméstica)', true);
-      add(DATA.ppag.y07014, 'PPAG Y07014 (Rural)', true);
-    }
-    add(DATA.boemia_meta, 'Boemia (meta de operações)', true);
-    add(DATA.cavaloaco, 'Cavalo de Aço', true);
-    add(DATA.rolezinho, 'Rolezinho', true);
-    add(DATA.padesc, 'Padrinhos da Escola', true);
-    add(DATA.saque_seguro, 'Saque Seguro', true);
-    add(DATA.mv, 'MV (Mortes Violentas)', false);
-    add(DATA.cvpe, 'CVPE', false);
-    add(DATA.cvpa, 'CVPa', false);
-    add(DATA.furto, 'Furto Rural', false);
-    add(DATA.armas, 'Armas de Fogo', true);
-    return linhas;
-  }
+  const acharMunicipio = auditoriaAcharMunicipio;
+  const coletarMetasDiarias = (nome) => auditoriaColetarMetasDiarias(nome, idxAtual);
 
   function auditoriaTopicoMetas(nome, metas) {
     const atrasadas = metas.filter(m => m.atrasado), emDia = metas.filter(m => !m.atrasado);
@@ -6596,9 +6598,114 @@ const NOTIF_TIPOS = [
   { id: 'cvpe', rot: 'Crime violento contra a pessoa (CVPE)', desc: 'Nova ocorrência de CVPE (homicídio tentado, tortura, sequestro…).' },
   { id: 'cvpa', rot: 'Crime violento contra o patrimônio (CVPa)', desc: 'Nova ocorrência de roubo, extorsão ou extorsão mediante sequestro.' },
   { id: 'vd', rot: 'Violência doméstica — caso novo', desc: 'Nova ocorrência de contexto de violência doméstica no município.' },
+  { id: 'resumo', rot: 'Resumo do dia da minha cidade', desc: 'Quando o administrador enviar: como a sua cidade se encontra hoje (itens em vermelho).' },
 ];
 let notifEstado = 'desconhecido'; // 'sem-suporte' | 'instalar-ios' | 'bloqueado' | 'desligado' | 'ligado' | 'ocupado' | 'desconhecido'
 let notifPrefs = null, notifMsg = null;
+
+
+// ---- Resumo do dia por cidade (aviso que o ADMINISTRADOR envia aos militares cadastrados naquela cidade) ----
+// O texto sai da mesma conta da Auditoria (casos de VD fora do prazo, MV/CVPE/CVPa do mês, metas atrasadas) e NUNCA leva REDS/endereço.
+// O cadastro de cidade foi digitado à mão ("Araçuai", "CORONEL MURTA - MG", "ITAOBIM/MG", "ITNGA"): reconhece essas variações.
+function cidadeCanonica(raw) {
+  const c = normMun(raw).replace(/\s*[-\/,]?\s*\bMG\b\s*$/, '').replace(/\s+/g, ' ').trim();
+  if (!c) return '';
+  const chaves = MUNICIPIOS_CANONICAL.map(normMun);
+  if (chaves.includes(c)) return c;
+  const dist = (a, b) => { const d = Array.from({ length: a.length + 1 }, (_, i) => [i].concat(Array(b.length).fill(0))); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
+  const parecidas = chaves.filter(k => dist(k, c) <= 1);
+  return parecidas.length === 1 ? parecidas[0] : '';
+}
+function resumoTexto(r) {
+  const s = (n) => (n === 1 ? '' : 's'), p = [];
+  if (r.flagged) p.push(`${r.flagged} caso${s(r.flagged)} de violência doméstica fora do prazo`);
+  if (r.qtdMv) p.push(`${r.qtdMv} morte${s(r.qtdMv)} violenta${s(r.qtdMv)} no mês`);
+  if (r.qtdCvpe) p.push(`${r.qtdCvpe} CVPE no mês`);
+  if (r.qtdCvpa) p.push(`${r.qtdCvpa} CVPa no mês`);
+  const nome = (m) => `${m.label.replace(/ \(.*\)$/, '')} ${m.realizado}/${m.metaComparacao}`; // realizado / meta ajustada até hoje
+  const atrasadas = r.metas.filter(m => m.atrasado), total = r.metas.length;
+  const metasTxt = total ? `Metas até hoje (dia ${new Date().getDate()}): ${total - atrasadas.length} de ${total} em dia${atrasadas.length ? '; atrasadas: ' + atrasadas.slice(0, 3).map(nome).join(', ') + (atrasadas.length > 3 ? ` e mais ${atrasadas.length - 3}` : '') : ''}.` : '';
+  const vermelhoTxt = p.length ? `Em vermelho: ${p.join(' · ')}.` : 'Nada mais em vermelho.';
+  return [metasTxt, vermelhoTxt].filter(Boolean).join(' ');
+}
+async function resumoDoDiaPorCidade() {
+  await ppvdCarregarDadosRestritos();
+  if (!ppvdDadosRestritosLiberados()) throw new Error('Dados restritos indisponíveis (entre com sua conta aprovada).');
+  const MES_LIMITE = 9, idxAtual = Math.min(MES_ATUAL_IDX, DATA.mv.meses.length - 1), vd = DATA.violencia_domestica;
+  const lista = {};
+  MUNICIPIOS_CANONICAL.forEach(nome => { const k = Object.keys(vd.ocorrencias || {}).find(x => normMun(x) === normMun(nome)); lista[nome] = (k ? vd.ocorrencias[k] : []).filter(o => o.m >= MES_LIMITE); });
+  const casosMap = await ppvdBuscarCasosVD(Object.values(lista).flat().map(o => o.r).filter(Boolean));
+  const out = {};
+  MUNICIPIOS_CANONICAL.forEach(nome => {
+    const flagged = lista[nome].filter(o => { const caso = o.r ? (casosMap[o.r] || null) : null, sem = ppvdSemaforoVD(caso), h = auditoriaHorasDesde(o.d); return sem !== 'verde' && sem !== 'azul' && h !== null && h > 72; }).length;
+    const mes = (d) => { const m = auditoriaAcharMunicipio(d, nome); return m ? (m.realizado_mes[Math.min(idxAtual, m.realizado_mes.length - 1)] || 0) : 0; };
+    const qtdMv = mes(DATA.mv), qtdCvpe = mes(DATA.cvpe), qtdCvpa = mes(DATA.cvpa);
+    const metas = auditoriaColetarMetasDiarias(nome, idxAtual); // todas as metas do mês, ponderadas até o dia de hoje
+    const vermelho = flagged + qtdMv + qtdCvpe + qtdCvpa + metas.filter(m => m.atrasado).length; // mesma conta do "N em vermelho" da Auditoria
+    out[normMun(nome)] = { nome, vermelho, texto: resumoTexto({ flagged, qtdMv, qtdCvpe, qtdCvpa, metas, vermelho }) };
+  });
+  return out;
+}
+let notifResumo = { montando: false, enviando: false, dados: null, militares: {}, marcadas: {}, mensagem: '', resultado: null, erro: null };
+async function notifResumoMontar() {
+  notifResumo = { ...notifResumo, montando: true, erro: null, resultado: null }; renderNotificacoesPage();
+  try {
+    const dados = await resumoDoDiaPorCidade();
+    const { data: perfis, error } = await ppvdSupa.from('perfis').select('cidade').eq('aprovado', true);
+    if (error) throw new Error(error.message);
+    const militares = {}; let semCidade = 0;
+    (perfis || []).forEach(p => { const c = cidadeCanonica(p.cidade); if (c) militares[c] = (militares[c] || 0) + 1; else semCidade++; });
+    const marcadas = {}; Object.keys(dados).forEach(c => { marcadas[c] = (militares[c] || 0) > 0; });
+    notifResumo = { ...notifResumo, montando: false, dados, militares: { ...militares, _sem: semCidade }, marcadas };
+  } catch (e) { notifResumo = { ...notifResumo, montando: false, erro: (e && e.message) || String(e) }; }
+  renderNotificacoesPage();
+}
+function notifResumoMarcar(chave, on) { notifResumo.marcadas[chave] = !!on; renderNotificacoesPage(); }
+function notifResumoMensagem(v) { notifResumo.mensagem = String(v || '').slice(0, 120); }
+async function notifResumoEnviar() {
+  if (notifResumo.enviando || !notifResumo.dados) return;
+  const escolhidas = Object.keys(notifResumo.dados).filter(c => notifResumo.marcadas[c]);
+  if (!escolhidas.length) { notifResumo.erro = 'Marque ao menos uma cidade.'; renderNotificacoesPage(); return; }
+  const total = escolhidas.reduce((a, c) => a + (notifResumo.militares[c] || 0), 0);
+  if (!confirm(`Enviar o resumo de hoje a ${total} militar(es) cadastrado(s) em ${escolhidas.length} cidade(s)?`)) return;
+  notifResumo = { ...notifResumo, enviando: true, erro: null, resultado: null }; renderNotificacoesPage();
+  try {
+    const extra = notifResumo.mensagem.trim();
+    const resumos = {}; escolhidas.forEach(c => { resumos[c] = notifResumo.dados[c].texto + (extra ? ' ' + extra : ''); });
+    const { data: { session } } = await ppvdSupa.auth.getSession();
+    const r = await fetch(PPVD_SUPABASE_URL + '/functions/v1/notificar-dispatch', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: PPVD_SUPABASE_ANON_KEY }, body: JSON.stringify({ action: 'resumo', resumos }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'O envio falhou (código ' + r.status + ').');
+    notifResumo = { ...notifResumo, enviando: false, resultado: j };
+  } catch (e) { notifResumo = { ...notifResumo, enviando: false, erro: (e && e.message) || String(e) }; }
+  renderNotificacoesPage();
+}
+function notifResumoCartaoHtml() {
+  const R = notifResumo;
+  let h = `<div class="ppvd-card" id="notifResumoCard"><b>Resumo do dia por cidade</b> <span class="ppvd-badge ppvd-badge-media">só administrador</span>`;
+  h += `<div class="vd-recorte" style="margin:6px 0 10px">Envia, para os militares que cadastraram a cidade, um aviso com o que está em vermelho hoje naquela cidade (casos de violência doméstica fora do prazo, MV/CVPE/CVPa do mês e metas atrasadas) — a mesma conta da Auditoria. Não leva REDS nem endereço. Você vê o texto antes de enviar.</div>`;
+  h += `<button class="ppvd-btn ppvd-btn-primary" onclick="notifResumoMontar()" ${R.montando || R.enviando ? 'disabled' : ''}>${R.montando ? 'Montando…' : (R.dados ? 'Atualizar o resumo' : 'Montar o resumo de hoje')}</button>`;
+  if (R.erro) h += `<div class="notif-erro" role="status" style="margin-top:10px">${msgEsc(R.erro)}</div>`;
+  if (R.dados) {
+    h += `<div style="overflow-x:auto;margin-top:12px"><table class="data-table" id="notifResumoTab"><thead><tr><th>Enviar</th><th style="text-align:left">Cidade</th><th>Militares</th><th style="text-align:left">Texto do aviso</th></tr></thead><tbody>`;
+    Object.keys(R.dados).forEach(c => {
+      const d = R.dados[c], n = R.militares[c] || 0;
+      h += `<tr><td><input type="checkbox" ${R.marcadas[c] ? 'checked' : ''} ${n ? '' : 'disabled'} aria-label="Enviar para ${d.nome}" onchange="notifResumoMarcar('${c}', this.checked)"></td><td style="text-align:left">${d.nome}</td><td>${n}</td><td style="text-align:left;white-space:normal">${msgEsc(d.texto)}</td></tr>`;
+    });
+    h += `</tbody></table></div>`;
+    if (R.militares._sem) h += `<div class="vd-recorte" style="margin-top:6px">${R.militares._sem} cadastro(s) aprovado(s) sem cidade reconhecida não recebem o resumo (o campo cidade do cadastro precisa ser um dos municípios do batalhão).</div>`;
+    h += `<div class="ppvd-field" style="margin-top:12px;max-width:520px"><label>Mensagem sua (opcional, vai no fim de cada resumo)</label><input id="notifResumoMsg" maxlength="120" placeholder="Ex.: Reunião às 15h, trazer o quadro de metas." value="${msgEsc(R.mensagem)}" oninput="notifResumoMensagem(this.value)"></div>`;
+    h += `<button class="ppvd-btn ppvd-btn-primary" onclick="notifResumoEnviar()" ${R.enviando ? 'disabled' : ''}>${R.enviando ? 'Enviando…' : 'Enviar o resumo agora'}</button>`;
+  }
+  if (R.resultado) {
+    const j = R.resultado, cs = Object.keys(j.cidades || {});
+    h += `<div class="notif-ok" role="status" style="margin-top:12px">Resumo enviado: ${j.enviados} aparelho(s).</div><ul class="notif-passos">` + cs.map(c => `<li>${MUNICIPIOS_CANONICAL.find(m => normMun(m) === c) || c}: avisos ativos em ${j.cidades[c].recebeu} de ${j.cidades[c].militares} militar(es)</li>`).join('') + `</ul>`;
+    if (j.falhas) h += `<div class="vd-recorte">${j.falhas} envio(s) falharam; ${j.removidas || 0} aparelho(s) antigos foram removidos.</div>`;
+  }
+  return h + `</div>`;
+}
 
 function notifSuportado() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
 function notifEhIos() { return /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
@@ -6635,8 +6742,8 @@ async function notifRegistrar(sub) {
   if (error) throw new Error(error.message);
 }
 function notifPrefsPadrao() {
-  const cid = ppvdPerfil ? normMun(ppvdPerfil.cidade) : '';
-  const meu = MUNICIPIOS_CANONICAL.map(normMun).includes(cid) ? [cid] : []; // cadastro com a cidade do usuário começa só com ela; senão, todos
+  const cid = ppvdPerfil ? cidadeCanonica(ppvdPerfil.cidade) : '';
+  const meu = cid ? [cid] : []; // cadastro com a cidade do usuário começa só com ela; senão, todos
   return { ativo: true, tipos: NOTIF_TIPOS.map(t => t.id), municipios: meu };
 }
 async function notifCarregarPrefs() {
@@ -6766,6 +6873,7 @@ function renderNotificacoesPage() {
   html += `<div class="ppvd-card"><b>De quais municípios</b><div class="vd-recorte" style="margin:6px 0 10px">Vale para os avisos de ocorrência. O aviso de "painel atualizado" chega sempre que você o escolheu acima.</div><div class="pills-vd" id="notifMuns">` +
     `<button type="button" class="${todos ? 'on' : ''}" onclick="notifAlternarMunicipio('')">Todos os municípios</button>` +
     MUNICIPIOS_CANONICAL.map(m => `<button type="button" class="${!todos && p.municipios.includes(normMun(m)) ? 'on' : ''}" onclick="notifAlternarMunicipio('${normMun(m)}')">${m}</button>`).join('') + `</div></div>`;
+  if (ppvdPerfil && ppvdPerfil.is_admin) html += notifResumoCartaoHtml();
   document.getElementById('main').innerHTML = html;
   if (notifEstado === 'desconhecido') notifAtualizarEstado();
 }

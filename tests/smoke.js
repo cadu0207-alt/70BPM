@@ -1510,9 +1510,9 @@ function auditar() {
     checa(r.pwa.swPush && r.pwa.swSemCache && r.pwa.swSemReds, 'service worker trata push e clique, não guarda nada em cache e não carrega REDS', 'sw: ' + JSON.stringify(r.pwa));
     checa(r.cliqueNoAviso === 'cvpa', 'tocar no aviso com o painel aberto leva à página do aviso', 'página: ' + r.cliqueNoAviso);
     checa(r.anonimo, 'visitante sem login só vê o pedido de entrada', 'anônimo: ' + r.anonimo);
-    checa(r.desligado.botao && r.desligado.tipos === 6 && r.desligado.munAtivo === 'Araçuaí', 'tela de avisos: botão "Ativar neste aparelho", 6 tipos e o município do cadastro já marcado', 'desligado: ' + JSON.stringify(r.desligado));
+    checa(r.desligado.botao && r.desligado.tipos === 7 && r.desligado.munAtivo === 'Araçuaí', 'tela de avisos: botão "Ativar neste aparelho", 7 tipos e o município do cadastro já marcado', 'desligado: ' + JSON.stringify(r.desligado));
     checa(r.ligado.estado === 'ligado' && r.ligado.texto && r.ligado.registrou && r.ligado.subscribe && r.ligado.subscribe[1] === true && r.ligado.subscribe[2] === 65 && r.ligado.optIn, 'ativar: pede permissão, inscreve com a chave pública (65 bytes) e registra o aparelho', 'ligado: ' + JSON.stringify(r.ligado));
-    checa(r.ligado.prefsPadrao === '["ARACUAI"]' && r.ligado.tiposPadrao === 6, 'primeira vez: preferências padrão = município do cadastro do usuário e todos os tipos', 'prefs padrão: ' + JSON.stringify(r.ligado));
+    checa(r.ligado.prefsPadrao === '["ARACUAI"]' && r.ligado.tiposPadrao === 7, 'primeira vez: preferências padrão = município do cadastro do usuário e todos os tipos', 'prefs padrão: ' + JSON.stringify(r.ligado));
     checa(r.prefs.semVd && r.prefs.comItaobim && r.prefs.checkbox && r.prefs.todos, 'preferências: desmarcar tipo, somar município e voltar a "todos"', 'prefs: ' + JSON.stringify(r.prefs));
     checa(r.teste.rpc && r.teste.funcao && /notificar-dispatch/.test(r.teste.funcao[1]) && r.teste.funcao[2] === 'Bearer eyJ.teste.jwt' && r.teste.msg, 'aviso de teste: cria o evento e chama a função com o login do usuário', 'teste: ' + JSON.stringify(r.teste));
     checa(r.desativado.estado === 'desligado' && r.desativado.desinscreveu && r.desativado.optIn === null, 'desativar: cancela a inscrição do aparelho e apaga a opção', 'desativar: ' + JSON.stringify(r.desativado));
@@ -1529,6 +1529,56 @@ function auditar() {
     const link = await po.evaluate(() => ({ pagina: currentPageKey, busca: location.search }));
     checa(link.pagina === 'reincidencia' && link.busca === '', 'abrir pelo link do aviso (?pagina=) vai direto à página e limpa o endereço', 'link: ' + JSON.stringify(link));
     await ctxO.close();
+  }
+
+  // ---------- 35) Resumo do dia por cidade (enviado pelo administrador) ----------
+  console.log('\n[35] Resumo do dia por cidade: montar, conferir o texto, escolher cidades e enviar');
+  {
+    const ctxU = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pu = await ctxU.newPage();
+    const errosU = []; pu.on('pageerror', (e) => errosU.push(e.message));
+    await pu.goto(base);
+    await pu.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pu.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {};
+      out.cidades = ['Araçuaí', 'Araçuai', 'ARAÇUAÍ', 'CORONEL MURTA - MG', 'ITAOBIM/MG', 'itaobim', 'ITNGA', 'Batalhão', ''].map(cidadeCanonica).join('|');
+      const tabela = (t) => { const o = { select: () => o, eq: () => o, order: () => o, limit: () => o, in: () => o, is: () => o, gte: () => o, maybeSingle: async () => ({ data: null, error: null }), then: (ok) => ok({ data: t === 'perfis' ? [{ cidade: 'Araçuaí' }, { cidade: 'ARACUAI' }, { cidade: 'ITNGA' }, { cidade: 'Batalhão' }] : [], error: null }) }; return o; };
+      const chamadas = [];
+      ppvdSupa = { from: tabela, rpc: async () => ({ data: null, error: null }), auth: { getSession: async () => ({ data: { session: { access_token: 'eyJ.admin.jwt' } } }), signOut: async () => {} } };
+      ppvdUser = { id: 'adm' }; ppvdPerfil = { aprovado: true, is_admin: true, nome: 'Eduardo', cargo: 'Ten', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true;
+      ppvdBuscarCasosVD = async () => ({});
+      const nomeA = DATA.mv.municipios.find(m => normMun(m.nome) === 'ARACUAI');
+      const ult = Math.min(MES_ATUAL_IDX, nomeA.realizado_mes.length - 1);
+      nomeA.realizado_mes[ult] = 2;
+      DATA.violencia_domestica.ocorrencias = { ARACUAI: [{ r: 'A1', d: '01/10/2026', m: 10, n: 'Ameaça', g: 'media' }, { r: 'A2', d: '02/10/2026', m: 10, n: 'Ameaça', g: 'media' }] };
+      notifEstado = 'desligado'; notifResumo = { montando: false, enviando: false, dados: null, militares: {}, marcadas: {}, mensagem: '', resultado: null, erro: null };
+      goToPage('notificacoes'); await esp(400);
+      out.botao = !!Array.from(document.querySelectorAll('#notifResumoCard button')).find(b => /Montar o resumo de hoje/.test(b.textContent));
+      await notifResumoMontar(); await esp(300);
+      const linhas = [...document.querySelectorAll('#notifResumoTab tbody tr')];
+      const linha = (nome) => linhas.find(t => t.children[1].textContent.trim() === nome);
+      out.tabela = { linhas: linhas.length, aracuai: linha('Araçuaí') ? { militares: linha('Araçuaí').children[2].textContent, marcada: linha('Araçuaí').querySelector('input').checked, texto: linha('Araçuaí').children[3].textContent } : null, itinga: linha('Itinga') ? { militares: linha('Itinga').children[2].textContent, marcada: linha('Itinga').querySelector('input').checked } : null, medina: linha('Medina') ? { militares: linha('Medina').children[2].textContent, desabilitada: linha('Medina').querySelector('input').disabled } : null, aviso: /sem cidade reconhecida/.test(document.getElementById('notifResumoCard').textContent) };
+      // enviar só Araçuaí + mensagem
+      notifResumoMarcar('ITINGA', false);
+      const campo = document.getElementById('notifResumoMsg'); campo.value = 'Reunião às 15h.'; campo.dispatchEvent(new Event('input'));
+      window.confirm = () => true;
+      window.fetch = async (url, init) => { chamadas.push({ url, auth: init.headers.Authorization, corpo: JSON.parse(init.body) }); return { ok: true, status: 200, json: async () => ({ ok: true, enviados: 3, falhas: 0, removidas: 0, cidades: { ARACUAI: { militares: 2, destinatarios: 2, recebeu: 2 } } }) }; };
+      await notifResumoEnviar(); await esp(200);
+      out.envio = { n: chamadas.length, acao: chamadas[0] && chamadas[0].corpo.action, cidades: chamadas[0] && Object.keys(chamadas[0].corpo.resumos).join(), auth: chamadas[0] && chamadas[0].auth, texto: chamadas[0] && chamadas[0].corpo.resumos.ARACUAI, reds: chamadas[0] ? /\d{4}-\d{9}-\d{3}/.test(JSON.stringify(chamadas[0].corpo)) : null, resultado: /Resumo enviado: 3 aparelho/.test(document.getElementById('notifResumoCard').textContent) && /avisos ativos em 2 de 2/.test(document.getElementById('notifResumoCard').textContent) };
+      // quem não é administrador não vê o cartão
+      ppvdPerfil = { aprovado: true, is_admin: false, nome: 'Cb Fulano', cargo: 'Cb', cidade: 'Medina' };
+      goToPage('notificacoes'); await esp(400);
+      out.semCartaoParaComum = !document.getElementById('notifResumoCard');
+      return out;
+    });
+    checa(r.cidades === 'ARACUAI|ARACUAI|ARACUAI|CORONEL MURTA|ITAOBIM|ITAOBIM|ITINGA||', 'cadastro de cidade digitado à mão é reconhecido (acento, caixa, "- MG", "/MG", uma letra errada)', 'cidades: ' + r.cidades);
+    checa(r.botao && r.tabela.linhas === 13 && r.tabela.aracuai && r.tabela.aracuai.militares === '2' && r.tabela.aracuai.marcada && r.tabela.itinga.militares === '1' && r.tabela.itinga.marcada && r.tabela.medina.militares === '0' && r.tabela.medina.desabilitada && r.tabela.aviso, 'administrador monta o resumo: 13 cidades, militares por cidade (inclusive "ITNGA"), só quem tem militar vem marcado e o cadastro sem cidade é avisado', 'tabela: ' + JSON.stringify(r.tabela));
+    checa(r.tabela.aracuai && /Metas até hoje \(dia \d+\): \d+ de \d+ em dia/.test(r.tabela.aracuai.texto) && /Em vermelho: .*2 casos de violência doméstica fora do prazo/.test(r.tabela.aracuai.texto) && /2 mortes violentas no mês/.test(r.tabela.aracuai.texto), 'texto de Araçuaí traz as metas até hoje (quantas em dia, quais atrasadas) e o que está em vermelho, na mesma conta da Auditoria', 'texto: ' + (r.tabela.aracuai && r.tabela.aracuai.texto));
+    checa(r.envio.n === 1 && r.envio.acao === 'resumo' && r.envio.cidades === 'ARACUAI' && r.envio.auth === 'Bearer eyJ.admin.jwt' && /Reunião às 15h\.$/.test(r.envio.texto || '') && r.envio.reds === false && r.envio.resultado, 'enviar: só a cidade marcada, com a mensagem do administrador no fim, login dele no pedido, sem REDS, e mostra quantos receberam', 'envio: ' + JSON.stringify(r.envio));
+    checa(r.semCartaoParaComum, 'quem não é administrador não vê o resumo do dia', 'cartão apareceu para usuário comum');
+    checa(errosU.length === 0, 'resumo do dia sem erro de JavaScript', 'erros: ' + errosU.slice(0, 3).join(' | '));
+    await ctxU.close();
   }
 
   await browser.close();

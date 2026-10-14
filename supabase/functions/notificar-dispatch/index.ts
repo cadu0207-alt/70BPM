@@ -71,6 +71,19 @@ const deps: Deps = {
     const { error } = await sb.from('push_subscriptions').delete().in('id', ids);
     if (error) console.error('[notificar-dispatch] limpando inscrições mortas:', error.message);
   },
+  async ehAdmin(userId) {
+    const { data, error } = await sb.from('perfis').select('is_admin').eq('user_id', userId).eq('aprovado', true).maybeSingle();
+    return !error && !!data && data.is_admin === true;
+  },
+  async getPerfisPorCidade() {
+    const { data, error } = await sb.from('perfis').select('user_id,cidade').eq('aprovado', true).not('cidade', 'is', null);
+    if (error) throw new Error('perfis: ' + error.message);
+    return (data ?? []) as { user_id: string; cidade: string }[];
+  },
+  async setPrivate(key, value) {
+    const { error } = await sb.from('app_private_config').upsert([{ key, value, updated_at: new Date().toISOString() }], { onConflict: 'key' });
+    if (error) throw new Error('app_private_config(set): ' + error.message);
+  },
   async enviar(sub, payload, vapid) {
     await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh_key, auth: sub.auth_key } }, payload,
       { vapidDetails: { subject: VAPID_SUBJECT, publicKey: vapid.publicKey, privateKey: vapid.privateKey }, TTL: 12 * 3600, urgency: 'high' });
