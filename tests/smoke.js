@@ -1752,6 +1752,58 @@ function auditar() {
     await ctxQ.close();
   }
 
+  // ---------- 39) POG e PPAG, onda 3: operações x crimes (faixa, dia, cidade) e bairros com crime (restrito) ----------
+  console.log('\n[39] POG e PPAG: operações × crimes por faixa, dia, cidade e bairro');
+  {
+    const ctxR = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pr3 = await ctxR.newPage();
+    const errosR = []; pr3.on('pageerror', (e) => errosR.push(e.message));
+    await pr3.goto(base);
+    await pr3.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pr3.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, num = (td) => parseFloat(td.textContent.replace(/[^0-9,]/g, '').replace(',', '.'));
+      setMunFiltro('');
+      const det = DATA.pog_detalhe, ult = (k) => DATA[k].total_acum[DATA[k].total_acum.length - 1];
+      const bc = det.bairro_completo;
+      out.dados = { bairros: Object.values(bc).reduce((a, v) => a + Object.values(v).reduce((x, y) => x + y, 0), 0) === det.total, chaves: Object.keys(bc).length === det.esforco.municipios.length };
+      // anônimo: cruzamento público aparece, bairro de crime só o aviso
+      goToPage('pog'); await esp(400);
+      const linhasF = [...document.querySelectorAll('#opCruzaFaixa tbody tr')], tot = linhasF[linhasF.length - 1];
+      const crimeFaixa = [0, 1, 2, 3].map(j => ['mv', 'cvpe', 'cvpa'].reduce((a, k) => a + DATA[k + '_dia_faixa'].matriz.reduce((b, l) => b + l[j], 0), 0));
+      out.faixa = { linhas: linhasF.length === 5, ops: linhasF.slice(0, 4).map(t => parseInt(t.children[1].textContent)).join() === [0, 1, 2, 3].map(j => det.dia_faixa.matriz.reduce((a, l) => a + l[j], 0)).join(),
+        crimes: linhasF.slice(0, 4).map(t => parseInt(t.children[2].textContent)).join() === crimeFaixa.join(), totais: parseInt(tot.children[1].textContent) === det.total && parseInt(tot.children[2].textContent) === ult('mv') + ult('cvpe') + ult('cvpa'),
+        situacao: linhasF.slice(0, 4).every(t => /muito abaixo|abaixo|em linha|acima|sem/.test(t.children[4].textContent)) };
+      out.dia = document.querySelectorAll('#opCruzaDia tbody tr').length === 8;
+      const cid = [...document.querySelectorAll('#opCruzaCidade tbody tr.rank-clic')];
+      const idx = cid.map(t => ({ ops: num(t.children[1]), cr: num(t.children[2]) })).filter(x => x.cr > 0).map(x => x.ops / x.cr);
+      out.cidade = { linhas: cid.length === det.esforco.municipios.length, ordenada: idx.every((v, i) => i === 0 || v >= idx[i - 1] - 1e-9) };
+      out.anonimo = { aviso: /Detalhe restrito/.test(document.getElementById('main').textContent), semTabela: !document.getElementById('opBairroCrime') };
+      // aprovado: lista restrita (fabricada) de crimes por bairro
+      ppvdRestritoCarregado = true;
+      const cidade = det.esforco.municipios[0].nome, bairroComOp = Object.keys(bc[cidade])[0];
+      DATA.crimes_violentos = { ...(DATA.crimes_violentos || {}), mv_ocorrencias: { [cidade]: [{ r: 'X', b: bairroComOp, d: '01/01/2026' }, { r: 'Y', b: 'BAIRRO QUE NAO EXISTE', d: '02/01/2026' }, { r: 'Z', b: 'INVÁLIDO', d: '03/01/2026' }] }, cvpe_ocorrencias: {}, cvpa_ocorrencias: {} };
+      goToPage('pog'); await esp(400);
+      const lb = [...document.querySelectorAll('#opBairroCrime tbody tr')];
+      out.bairro = { linhas: lb.length === 2, semOp: /sem operação/.test(lb[0].textContent) && /BAIRRO QUE NAO EXISTE/.test(lb[0].textContent), comOp: /com operação|poucas operações/.test(lb[1].textContent), invalido: /1 ocorrência\(s\) com bairro "inválido"/.test(document.getElementById('main').textContent), semRuas: !/GENTIL DE CASTRO/.test(document.getElementById('main').textContent) };
+      // PPAG
+      goToPage('ppag'); await esp(400);
+      const sub = async (k) => { document.querySelector('#ppagSubs button[data-p="' + k + '"]').click(); await esp(100); const c = document.getElementById('ppagSubCorpo'); return { rural: /Operações rurais × furto rural/.test(c.textContent), vd: /Operações de prevenção × violência doméstica/.test(c.textContent), faixa: !!c.querySelector('#opCruzaFaixa'), dia: !!c.querySelector('#opCruzaDia'), cidade: c.querySelectorAll('#opCruzaCidade tbody tr').length }; };
+      out.ppag = { y15001: await sub('y15001'), y07012: await sub('y07012'), y07014: await sub('y07014') };
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.dados.bairros && r.dados.chaves, 'operações por bairro (lista completa) fecham com o total de operações do POG', 'dados: ' + JSON.stringify(r.dados));
+    checa(r.faixa.linhas && r.faixa.ops && r.faixa.crimes && r.faixa.totais && r.faixa.situacao, 'POG × crimes por faixa horária: operações e vítimas conferem com os dados (MV + CVPE + CVPa) e cada faixa tem situação', 'faixa: ' + JSON.stringify(r.faixa));
+    checa(r.dia && r.cidade.linhas && r.cidade.ordenada, 'POG × crimes por dia da semana e por cidade (ordenado da que tem menos operação por vítima)', 'dia/cidade: ' + JSON.stringify([r.dia, r.cidade]));
+    checa(r.anonimo.aviso && r.anonimo.semTabela, 'visitante sem login: bairros com crime só mostram o aviso de detalhe restrito', 'anônimo: ' + JSON.stringify(r.anonimo));
+    checa(r.bairro.linhas && r.bairro.semOp && r.bairro.comOp && r.bairro.invalido && r.bairro.semRuas, 'PPVD aprovado: bairros com crime × operações (sem operação primeiro, bairro inválido avisado, sem rua nem REDS)', 'bairro: ' + JSON.stringify(r.bairro));
+    checa(!r.ppag.y15001.rural && !r.ppag.y15001.vd && !r.ppag.y15001.faixa && r.ppag.y07014.rural && r.ppag.y07014.faixa && !r.ppag.y07014.dia && r.ppag.y07014.cidade > 0 && r.ppag.y07012.vd && !r.ppag.y07012.faixa && r.ppag.y07012.cidade > 0, 'PPAG: Y07014 × furto rural (faixa e cidade), Y07012 × violência doméstica (cidade) e Y15001 sem cruzamento', 'ppag: ' + JSON.stringify(r.ppag));
+    checa(r.largura, 'cruzamentos no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosR.length === 0, 'cruzamentos sem erro de JavaScript', 'erros: ' + errosR.slice(0, 3).join(' | '));
+    await ctxR.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

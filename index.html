@@ -2098,6 +2098,109 @@ function opDetalheHtml(det, ctx) {
   return h;
 }
 
+// ---- Operações, onda 3: onde e quando operamos x onde e quando acontece o crime ----
+// "Operações por crime" de cada faixa/dia/cidade, comparado com a média do batalhão. Muito abaixo da média = pouca operação para o crime.
+function opIndiceSituacao(ops, crimes, ref) {
+  if (!crimes) return { v: '—', sit: `<span style="color:var(--muted)">sem ${ref.unidade}</span>`, cls: 'ok', idx: Infinity };
+  const r = ops / crimes, idx = ref.media ? r / ref.media * 100 : 100, pctTxt = fmtBr(idx, 0) + '% da média';
+  let sit;
+  if (ops === 0) sit = `<span class="pos">sem operação</span>`;
+  else if (idx < 50) sit = `<span class="pos">muito abaixo (${pctTxt})</span>`;
+  else if (idx < 75) sit = `<span style="color:var(--caution)">! abaixo (${pctTxt})</span>`;
+  else if (idx < 150) sit = `<span class="neg">em linha (${pctTxt})</span>`;
+  else sit = `<span style="color:var(--muted)">acima (${pctTxt})</span>`;
+  return { v: fmtBr(r, r >= 10 ? 0 : 1), sit, idx };
+}
+function opCruzaTabelaHtml(id, rotCol, linhas, unidade, munFiltro) {
+  const opsTot = linhas.reduce((a, l) => a + l.ops, 0), crimeTot = linhas.reduce((a, l) => a + l.crimes, 0);
+  const ref = { media: crimeTot ? opsTot / crimeTot : 0, unidade };
+  const dados = linhas.map(l => ({ l, i: opIndiceSituacao(l.ops, l.crimes, ref) }));
+  if (linhas.some(l => l.mun)) dados.sort((a, b) => (a.i.idx - b.i.idx) || (b.l.crimes - a.l.crimes));
+  let h = `<div class="table-wrap"><table class="data-table ind-tab" id="${id}"><thead><tr><th style="text-align:left">${rotCol}</th><th>Operações</th><th>${unidade[0].toUpperCase() + unidade.slice(1)}</th><th>Operações por ${unidade.replace(/s$/, '')}</th><th style="text-align:left">Situação</th></tr></thead><tbody>`;
+  dados.forEach(({ l, i }) => {
+    h += `<tr${l.mun ? ` class="rank-clic${normMun(l.mun) === munFiltro ? ' sel' : ''}" data-mun="${l.mun}" title="Filtrar por ${l.mun}"` : ''}><td style="text-align:left">${l.rot}</td><td>${l.ops}</td><td>${l.crimes}</td><td>${i.v}</td><td style="text-align:left">${i.sit}</td></tr>`;
+  });
+  const it = opIndiceSituacao(opsTot, crimeTot, ref);
+  h += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">TOTAL</td><td>${opsTot}</td><td>${crimeTot}</td><td>${it.v}</td><td style="text-align:left">média do batalhão</td></tr></tbody></table></div>`;
+  return h;
+}
+// cfg: { titulo, det, crimeRot, unidade, crimeFaixa [4]|null, crimeDia [7]|null, crimeCidade [{nome, n}]|null, munFiltro, rotulo }
+function opCruzamentoHtml(cfg) {
+  const { det, crimeFaixa, crimeDia, crimeCidade, munFiltro } = cfg, df = det.dia_faixa, suf = cfg.rotulo ? ' — ' + cfg.rotulo : '';
+  const crimeTot = (crimeCidade || []).reduce((a, x) => a + x.n, 0) || (crimeFaixa || []).reduce((a, b) => a + b, 0);
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">${cfg.titulo}${suf}</h3>`;
+  h += `<div class="vd-recorte">Compara onde e quando a operação acontece com onde e quando acontece o crime (${cfg.crimeRot}, no ano). "Operações por ${cfg.unidade.replace(/s$/, '')}" é o total de operações dividido pelo de ${cfg.unidade}; a situação compara com a média do batalhão — muito abaixo da média = pouca operação para o crime naquela faixa, dia ou cidade.${crimeTot && crimeTot < 100 ? ` São poucos casos (${crimeTot}): leia como tendência, não como certeza.` : ''}</div>`;
+  if (crimeFaixa && df) {
+    const ops = df.faixas.map((_, j) => df.matriz.reduce((a, l) => a + l[j], 0));
+    h += `<div class="vd-recorte"><b>Por faixa horária</b> (batalhão inteiro)</div>` + opCruzaTabelaHtml('opCruzaFaixa', 'Faixa', df.faixas.map((f, j) => ({ rot: f, ops: ops[j], crimes: crimeFaixa[j] })), cfg.unidade, munFiltro);
+  }
+  if (crimeDia && df) {
+    h += `<div class="vd-recorte" style="margin-top:14px"><b>Por dia da semana</b> (batalhão inteiro)</div>` + opCruzaTabelaHtml('opCruzaDia', 'Dia', df.dias.map((d, i) => ({ rot: d, ops: df.matriz[i].reduce((a, b) => a + b, 0), crimes: crimeDia[i] })), cfg.unidade, munFiltro);
+  }
+  if (crimeCidade) {
+    const cn = (nome) => (crimeCidade.find(x => normMun(x.nome) === normMun(nome)) || { n: 0 }).n;
+    h += `<div class="vd-recorte" style="margin-top:14px"><b>Por cidade</b> — da que tem menos operação por ${cfg.unidade.replace(/s$/, '')} para a que tem mais. Clique numa cidade para filtrar.</div>` + opCruzaTabelaHtml('opCruzaCidade', 'Município', det.esforco.municipios.map(m => ({ rot: m.nome, mun: m.nome, ops: m.ops, crimes: cn(m.nome) })), cfg.unidade, munFiltro);
+  }
+  return h + `</div>`;
+}
+// Cruzamentos disponíveis (dados públicos já agregados): POG x crimes violentos; PPAG Y07012 x violência doméstica; Y07014 x furto rural. Y15001 (escolar) não tem crime correspondente.
+function opCruzamentoDe(chave, det, munFiltro) {
+  const ult = (m) => (m.realizado_acum && m.realizado_acum.length ? m.realizado_acum[m.realizado_acum.length - 1] : 0);
+  const soma3 = (fn) => ['mv', 'cvpe', 'cvpa'].reduce((a, k) => a + fn(DATA[k + '_dia_faixa']), 0);
+  if (chave === 'pog') {
+    const fx = [0, 1, 2, 3].map(j => soma3(m => (m ? m.matriz.reduce((a, l) => a + l[j], 0) : 0)));
+    const dia = [0, 1, 2, 3, 4, 5, 6].map(i => soma3(m => (m ? m.matriz[i].reduce((a, b) => a + b, 0) : 0)));
+    const nomes = DATA.mv.municipios.map(m => m.nome);
+    const cid = nomes.map(nome => ({ nome, n: ['mv', 'cvpe', 'cvpa'].reduce((a, k) => a + ult(DATA[k].municipios.find(x => normMun(x.nome) === normMun(nome)) || {}), 0) }));
+    return opCruzamentoHtml({ titulo: 'Operações × crimes violentos', det, crimeRot: 'vítimas de morte violenta, CVPE e CVPa', unidade: 'vítimas', crimeFaixa: fx, crimeDia: dia, crimeCidade: cid, munFiltro, rotulo: '' });
+  }
+  if (chave === 'y07014' && Array.isArray(DATA.furto_faixa)) {
+    const fx = [0, 0, 0, 0];
+    DATA.furto_faixa.forEach(x => { const m = /(\d{2}):/.exec(x[0]); if (m) fx[Math.min(3, Math.floor(parseInt(m[1]) / 6))] += x[1]; });
+    const cid = DATA.furto.municipios.map(m => ({ nome: m.nome, n: ult(m) }));
+    return opCruzamentoHtml({ titulo: 'Operações rurais × furto rural', det, crimeRot: 'ocorrências de furto em zona rural', unidade: 'ocorrências', crimeFaixa: fx, crimeDia: null, crimeCidade: cid, munFiltro, rotulo: 'Y07014 · Zona rural' });
+  }
+  if (chave === 'y07012' && DATA.violencia_domestica) {
+    const cid = DATA.violencia_domestica.municipios.map(m => ({ nome: m.nome, n: m.total_periodo || 0 }));
+    return opCruzamentoHtml({ titulo: 'Operações de prevenção × violência doméstica', det, crimeRot: 'casos de violência doméstica (REDS com a marcação U33004)', unidade: 'casos', crimeFaixa: null, crimeDia: null, crimeCidade: cid, munFiltro, rotulo: 'Y07012 · Violência doméstica' });
+  }
+  return '';
+}
+// RESTRITO (PPVD aprovado): bairros com crime violento x operações no mesmo bairro. Os bairros de crime vêm das listas restritas (Supabase); as operações por bairro são públicas.
+function opBairroCrimeHtml(det, munFiltro) {
+  const nomeF = munFiltro ? ((det.esforco.municipios.find(m => normMun(m.nome) === munFiltro) || {}).nome || '') : '';
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Bairros com crime violento × operações${nomeF ? ' — ' + nomeF : ''}</h3>`;
+  if (!ppvdDadosRestritosLiberados()) return h + ppvdAvisoRestrito() + `</div>`;
+  const cv = DATA.crimes_violentos || {}, comp = det.bairro_completo || {}, compN = {};
+  Object.keys(comp).forEach(c => { compN[normMun(c)] = {}; Object.keys(comp[c]).forEach(b => { compN[normMun(c)][normKey(b)] = comp[c][b]; }); });
+  const linhas = {}; let invalidos = 0, totalOc = 0;
+  [['mv', 'MV'], ['cvpe', 'CVPE'], ['cvpa', 'CVPa']].forEach(([k]) => {
+    const oc = cv[k + '_ocorrencias'] || {};
+    Object.keys(oc).forEach(cid => (oc[cid] || []).forEach(o => {
+      totalOc++;
+      const b = normKey(o.b || '');
+      if (!b || b.startsWith('INV')) { invalidos++; return; }
+      const key = normMun(cid) + '|' + b;
+      const L = linhas[key] = linhas[key] || { cid, b: o.b, mv: 0, cvpe: 0, cvpa: 0 };
+      L[k]++;
+    }));
+  });
+  let rows = Object.values(linhas).map(L => ({ ...L, crimes: L.mv + L.cvpe + L.cvpa, ops: (compN[normMun(L.cid)] || {})[normKey(L.b)] || 0 }));
+  if (munFiltro) rows = rows.filter(r => normMun(r.cid) === munFiltro);
+  if (!rows.length) return h + `<div class="pending-box">Nenhum bairro com crime violento${nomeF ? ' em ' + nomeF : ''} no ano.</div></div>`;
+  // por bairro o volume de operações é pequeno e muito desigual (o Centro concentra): só aponta o que importa — nenhuma operação ou poucas (até 5 no ano)
+  const POUCAS = 5;
+  const dados = rows.map(r => { const q = r.ops / r.crimes; return { r, i: { v: fmtBr(q, q >= 10 ? 0 : 1), sit: r.ops === 0 ? `<span class="pos">sem operação</span>` : (r.ops <= POUCAS ? `<span style="color:var(--caution)">! poucas operações</span>` : `<span style="color:var(--muted)">com operação</span>`) } }; }).sort((a, b) => (a.r.ops - b.r.ops) || (b.r.crimes - a.r.crimes));
+  const semOp = dados.filter(x => x.r.ops === 0).length, poucas = dados.filter(x => x.r.ops > 0 && x.r.ops <= POUCAS).length;
+  h += `<div class="vd-recorte">${rows.length} bairro(s) com ocorrência de MV, CVPE ou CVPa no ano, do que tem menos operação para o que tem mais${semOp ? `; ${semOp} sem nenhuma operação registrada no bairro` : ''}${poucas ? `, ${poucas} com até ${POUCAS} no ano` : ''}. ${invalidos ? invalidos + ' ocorrência(s) com bairro "inválido" no REDS não entram aqui (corrigir o bairro no REDS completa o cruzamento). ' : ''}O bairro do RAT da operação e o do REDS do crime podem ser escritos diferente: se um bairro aparece "sem operação", confira o nome antes de concluir.</div>`;
+  h += `<div style="overflow-x:auto"><table class="data-table vd-casos" id="opBairroCrime"><thead><tr><th>Município</th><th>Bairro</th><th>Crimes violentos</th><th>Operações no bairro</th><th>Operações por ocorrência</th><th>Situação</th></tr></thead><tbody>`;
+  dados.forEach(({ r, i }) => {
+    const comp2 = [r.mv ? r.mv + ' MV' : '', r.cvpe ? r.cvpe + ' CVPE' : '', r.cvpa ? r.cvpa + ' CVPa' : ''].filter(Boolean).join(' · ');
+    h += `<tr><td data-l="Município">${msgEsc(r.cid)}</td><td data-l="Bairro">${msgEsc(r.b)}</td><td data-l="Crimes violentos">${r.crimes} <small>(${comp2})</small></td><td data-l="Operações no bairro">${r.ops}</td><td data-l="Operações por ocorrência">${i.v}</td><td data-l="Situação">${i.sit}</td></tr>`;
+  });
+  return h + `</tbody></table></div></div>`;
+}
+
 function pogBandColor(v) {
   if (v >= 95 && v <= 105) return { bg: 'rgba(33,201,138,0.22)', fg: '#3fe0a5' };
   if ((v >= 90 && v < 95) || (v > 105 && v <= 110)) return { bg: 'rgba(212,194,42,0.22)', fg: '#d4c22a' };
@@ -2155,7 +2258,7 @@ function renderPOGPage() {
     <th style="text-align:left">Município</th><th>Mês</th><th class="col-divider">Acumulado</th><th>Desemp. acumulado</th>
   </tr></thead><tbody>${table(mi)}</tbody></table></div>`;
   html += blocos.ano + blocos.cidade + blocos.quadro;
-  html += DATA.pog_detalhe ? opDetalheHtml(DATA.pog_detalhe, { munFiltro, rotulo: '', alertaBairro: true })
+  html += DATA.pog_detalhe ? opDetalheHtml(DATA.pog_detalhe, { munFiltro, rotulo: '', alertaBairro: true }) + opCruzamentoDe('pog', DATA.pog_detalhe, munFiltro) + opBairroCrimeHtml(DATA.pog_detalhe, munFiltro)
     : `<div class="ind-sec charts-row" style="gap:16px">${barras(DATA.pog_bairros, 'POG por bairros', '')}${barras(DATA.pog_natureza, 'POG por natureza', 'verde')}</div>`;
   document.getElementById('main').innerHTML = html;
 
@@ -2169,7 +2272,7 @@ function renderPOGPage() {
     document.getElementById('pogTitulo').textContent = titulo(mi);
     document.getElementById('pogNota').textContent = opNotaMesParcial(d, mesesLocais, mi);
   });
-  opLigarCidades(['pogTable', 'opQuadro', 'opEsforco']);
+  opLigarCidades(['pogTable', 'opQuadro', 'opEsforco', 'opCruzaCidade']);
 }
 
 function renderPPAGPage() {
@@ -2214,7 +2317,7 @@ function renderPPAGPage() {
   function corpoSub() {
     const s = subs.find(x => x.key === subSel), b = opBlocosHtml(DATA.ppag[s.key], cfg, { mesesLocais, ultimoIdx, munFiltro, rotulo: s.label + ' · ' + s.nome });
     const det = (DATA.ppag_detalhe || {})[s.key];
-    return b.ano + b.cidade + b.quadro + (det ? opDetalheHtml(det, { munFiltro, rotulo: s.label + ' · ' + s.nome, alertaBairro: s.key !== 'y07014' }) : '');
+    return b.ano + b.cidade + b.quadro + (det ? opDetalheHtml(det, { munFiltro, rotulo: s.label + ' · ' + s.nome, alertaBairro: s.key !== 'y07014' }) + opCruzamentoDe(s.key, det, munFiltro) : '');
   }
   const notaPer = (p) => opNotaMesParcial(dRef, mesesLocais, p === 'acum' ? ultimoIdx : parseInt(p));
 
@@ -5450,7 +5553,7 @@ function ppvdLimparDadosRestritos() {
   window.ppvdOcorrenciaLookup = {}; window.ppvdCVLookup = {}; window.ppvdReincLookup = {};
   ppvdRestritoCarregado = false;
 }
-const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv', 'cvpe', 'cvpa', 'notificacoes'];
+const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv', 'cvpe', 'cvpa', 'notificacoes', 'pog'];
 
 async function ppvdInit() {
   if (!ppvdSupa) return;
