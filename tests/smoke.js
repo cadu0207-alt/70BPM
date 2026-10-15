@@ -1804,6 +1804,77 @@ function auditar() {
     await ctxR.close();
   }
 
+  // ---------- 40) IDOB · Boemia, onda 1: botões de mês, quanto falta para o verde, índice sem negativo, meta proporcional ----------
+  console.log('\n[40] IDOB · Boemia no padrão das páginas de indicador');
+  {
+    const ctxI = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pi = await ctxI.newPage();
+    const errosI = []; pi.on('pageerror', (e) => errosI.push(e.message));
+    await pi.goto(base);
+    await pi.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pi.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, d = DATA.idob, bm = DATA.boemia_meta, ult = Math.min(MES_ATUAL_IDX, d.meses.length - 1);
+      try { localStorage.removeItem('indMes_idob'); } catch (e) {}
+      setMunFiltro('');
+      out.faltam = [idobFaltam(66, 1, 85), idobFaltam(66, 1, 95), idobFaltam(414, 3, 95), idobFaltam(500, 0, 95), idobFaltam(1000, 1, 95)].join();
+      goToPage('idob'); await esp(400);
+      const m = document.getElementById('main');
+      const linhas = [...document.querySelectorAll('#idobTable tbody tr')];
+      out.estrutura = { semSelect: !document.getElementById('idobMonthSel') && !document.getElementById('boemiaMetaMonthSel'), pills: document.querySelectorAll('#idobMeses button').length === ult + 1 && document.querySelector('#idobMeses button.on').dataset.p === String(ult), linhas: linhas.length, subtotais: linhas.filter(t => t.classList.contains('cia-sub')).length, colunas: document.querySelectorAll('#idobTable thead th').length,
+        metodologia: !!document.querySelector('details.aud-como') && !document.querySelector('details.aud-como').open, secoes: /Qualidade: IDOB/.test(m.textContent) && /Meta de operações Boemia/.test(m.textContent) };
+      // cidades com vítima: a situação diz quantas operações faltam
+      const comVit = d.municipios.filter(x => x.mv_acum[ult] + x.cvpe_acum[ult] + x.cvpa_acum[ult] > 0);
+      out.situacao = comVit.every(x => { const q = x.qop_acum[ult], v = x.mv_acum[ult] + x.cvpe_acum[ult] + x.cvpa_acum[ult], tr = document.querySelector('#idobTable tr[data-mun="' + x.nome + '"]'), idx = calcIdobIndice(q, v), t = tr.children[3].textContent;
+        return idx >= 95 ? /no verde/.test(t) : (idx >= 85 ? new RegExp('\\+' + idobFaltam(q, v, 95) + ' op\\. para 95%').test(t) : new RegExp('\\+' + idobFaltam(q, v, 85) + ' op\\. para sair do vermelho').test(t)); });
+      out.nVit = comVit.length;
+      out.semVitima = d.municipios.filter(x => x.mv_acum[ult] + x.cvpe_acum[ult] + x.cvpa_acum[ult] === 0).every(x => /sem vítima em bar/.test(document.querySelector('#idobTable tr[data-mun="' + x.nome + '"]').children[3].textContent));
+      // índice nunca negativo na tela; amostra pequena sinalizada
+      const mesNeg = d.total_qtdeop_mes.findIndex((q, i) => i <= ult && calcIdobIndice(q, d.total_mv_mes[i] + d.total_cvpe_mes[i] + d.total_cvpa_mes[i]) < 0);
+      const cidNeg = (() => { for (const x of d.municipios) for (let i = 0; i <= ult; i++) if (calcIdobIndice(x.qop_mes[i], x.mv_mes[i] + x.cvpe_mes[i] + x.cvpa_mes[i]) < 0) return { nome: x.nome, i }; return null; })();
+      out.cidNeg = !!cidNeg;
+      if (cidNeg) {
+        document.querySelector('#idobMeses button[data-p="' + cidNeg.i + '"]').click(); await esp(100);
+        const td = document.querySelector('#idobTable tr[data-mun="' + cidNeg.nome + '"]').children[1];
+        out.negativo = { zero: /^0,0%/.test(td.textContent), dica: /Valor real -/.test(td.title) && /exibido como 0%/.test(td.title), semSinal: !/-\d/.test(td.textContent) };
+      }
+      const peq = (() => { for (const x of d.municipios) for (let i = 0; i <= ult; i++) { const v = x.mv_mes[i] + x.cvpe_mes[i] + x.cvpa_mes[i]; if (v > 0 && x.qop_mes[i] < 20) return { nome: x.nome, i }; } return null; })();
+      if (peq) { document.querySelector('#idobMeses button[data-p="' + peq.i + '"]').click(); await esp(100); out.pequena = /amostra pequena/.test(document.querySelector('#idobTable tr[data-mun="' + peq.nome + '"]').children[1].textContent); } else out.pequena = true;
+      document.querySelector('#idobMeses button[data-p="0"]').click(); await esp(100);
+      out.titulo = /Janeiro/.test(document.getElementById('idobTitulo').textContent);
+      // meta de operações: proporcional no mês em andamento
+      document.querySelector('#idobMeses button[data-p="' + ult + '"]').click(); await esp(100);
+      const ltot = [...document.querySelectorAll('#idobMetaTable tbody tr')].pop(), f = fatorMesEmAndamento(bm, ult);
+      out.meta = { linhas: document.querySelectorAll('#idobMetaTable tbody tr').length, prop: ltot.children[1].textContent.includes('/ ' + Math.floor(bm.total_meta_mes[ult] * f + 1e-9)), nota: f < 1 ? /proporcional aos dias já fechados/.test(document.getElementById('idobNota').textContent) : true, ano: !!document.querySelector('#main svg.ano-svg') };
+      // quadro do IDOB: • em cada mês com vítima
+      const celulas = [...document.querySelectorAll('#idobQuadro tbody td')].filter(td => td.textContent.includes('•')).length;
+      let esperadas = 0;
+      d.municipios.forEach(x => { for (let i = 0; i <= ult; i++) if (x.mv_mes[i] + x.cvpe_mes[i] + x.cvpa_mes[i] > 0) esperadas++; });
+      for (let i = 0; i <= ult; i++) if (d.total_mv_mes[i] + d.total_cvpe_mes[i] + d.total_cvpa_mes[i] > 0) esperadas++;
+      out.quadro = { linhas: document.querySelectorAll('#idobQuadro tbody tr').length, marcas: celulas === esperadas };
+      out.link = (() => { const a = document.querySelector('a.link-sigop'); return !!a && /temporal=year/.test(a.href) && !/months=2026:08/.test(a.href) && !/municipios=310340&/.test(a.href) && /unidadeRegistro5=70%20BPM/.test(a.href); })();
+      // cidade clicável: painel do IDOB e da meta
+      document.querySelector('#idobTable tr.rank-clic').click(); await esp(400);
+      out.cidade = { filtro: !!getMunFiltro(), idob: /— IDOB mês a mês/.test(document.getElementById('main').innerHTML), meta: /— mês a mês/.test(document.getElementById('main').innerHTML), svgs: document.querySelectorAll('#main svg.ano-svg').length >= 3 };
+      setMunFiltro('');
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.faltam === '1,134,186,0,0', 'quanto falta para o IDOB chegar a 85% e 95% (cada vítima vale 10 operações)', 'faltam: ' + r.faltam);
+    checa(r.estrutura.semSelect && r.estrutura.pills && r.estrutura.metodologia && r.estrutura.secoes && r.estrutura.colunas === 4, 'IDOB: botões de mês (mês atual marcado), sem seletores antigos, metodologia recolhida e duas seções claras', 'estrutura: ' + JSON.stringify(r.estrutura));
+    checa(r.estrutura.linhas === 17 && r.estrutura.subtotais === 3, 'IDOB: subtotal por companhia (13 cidades + 3 subtotais + batalhão)', 'linhas: ' + JSON.stringify(r.estrutura));
+    checa(r.situacao && r.semVitima, `IDOB: a situação de cada cidade diz quantas operações faltam (${r.nVit} cidade(s) com vítima) ou que não há vítima em bar`, 'situação divergente');
+    checa(r.cidNeg ? (r.negativo.zero && r.negativo.dica && r.negativo.semSinal) : true, 'IDOB: índice abaixo de zero aparece como 0% (valor real no mouse)', 'negativo: ' + JSON.stringify(r.negativo));
+    checa(r.pequena && r.titulo, 'IDOB: mês com vítima e poucas operações marcado como "amostra pequena"; título acompanha o mês', 'amostra/título: ' + JSON.stringify([r.pequena, r.titulo]));
+    checa(r.meta.linhas === 17 && r.meta.prop && r.meta.nota && r.meta.ano, 'Meta de operações Boemia: proporcional no mês em andamento, subtotal por companhia e ano contra a meta', 'meta: ' + JSON.stringify(r.meta));
+    checa(r.quadro.linhas === 14 && r.quadro.marcas, 'IDOB: quadro município × mês marca (•) exatamente os meses com vítima', 'quadro: ' + JSON.stringify(r.quadro));
+    checa(r.link, 'link do SiGOp do IDOB cobre o ano e o batalhão (antes preso em agosto e Araçuaí)', 'link do SiGOp do IDOB ainda restrito');
+    checa(r.cidade.filtro && r.cidade.idob && r.cidade.meta && r.cidade.svgs, 'IDOB: clicar numa cidade filtra e abre o painel do IDOB e o da meta', 'cidade: ' + JSON.stringify(r.cidade));
+    checa(r.largura, 'IDOB no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosI.length === 0, 'IDOB sem erro de JavaScript', 'erros: ' + errosI.slice(0, 3).join(' | '));
+    await ctxI.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

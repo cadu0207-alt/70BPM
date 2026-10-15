@@ -886,7 +886,7 @@ const SIGOP_LINKS = {
 };
 SIGOP_LINKS.ppag = SIGOP_LINKS.pog;
 SIGOP_LINKS.esforco_furto = 'https://intranet.policiamilitar.mg.gov.br/lite/estatisticas/web/?type=reds&nature=geral&isSum=true&isRuralArea=false&temporal=year&isComparing=false&year=2026&unidadeArea4=15%20RPM&unidadeArea5=70%20BPM&naturezas=C01155%20-%20FURTO';
-SIGOP_LINKS.idob = 'https://intranet.policiamilitar.mg.gov.br/lite/estatisticas/web/?type=rat&nature=geral&isSum=true&isRuralArea=false&temporal=months&isComparing=false&months=2026:08&unidadeRegistro4=15%20RPM&municipios=310340&localImediato=BAR%20%2F%20LANCHONETE%20%2F%20RESTAURANTE%20%2F%20SIMILAR&nomeOperacao=0-ERACAO%20BOEMIA;0OPERACAO%20BOEMIA;ACAOOPERACAO%20EM%20AREA%20URBANA%20%20-OPERACAO%20BOEMIA;BOEMIA;OOERACAO%20BOEMIA;OP%20BOEMIA;OPERACAO%20%20%20BOEMIA;OPERACAO%20BATIDA%20POLICIALOPERACAO%20BOEMIA;OPERACAO%20BOEMIA;OPERACAO%20BOEMIA%20%20SEMANA%20NACIONAL%20DO%20TRANSITO;OPERACAO%20BOEMIA%20OPERACAO%20SEMANA%20NACIONAL%20DE%20TRANSITO;OPERACAO%20BOEMIAPOLICIA%20MILITAR%20DE%20MINAS%20GERAIS%20250%20ANOS;OPRACAO%20BOEMIA';
+SIGOP_LINKS.idob = 'https://intranet.policiamilitar.mg.gov.br/lite/estatisticas/web/?type=rat&nature=geral&isSum=true&isRuralArea=false&temporal=year&isComparing=false&year=2026&unidadeRegistro4=15%20RPM&unidadeRegistro5=70%20BPM&municipios=310100;310270;310340;311700;311950;312235;313330;313400;314140;314630;314870;315217;317160&nomeOperacao=0-ERACAO%20BOEMIA;0OPERACAO%20BOEMIA;ACAOOPERACAO%20EM%20AREA%20URBANA%20%20-OPERACAO%20BOEMIA;BOEMIA;OOERACAO%20BOEMIA;OP%20BOEMIA;OPERACAO%20%20%20BOEMIA;OPERACAO%20BATIDA%20POLICIALOPERACAO%20BOEMIA;OPERACAO%20BOEMIA;OPERACAO%20BOEMIA%20%20SEMANA%20NACIONAL%20DO%20TRANSITO;OPERACAO%20BOEMIA%20OPERACAO%20SEMANA%20NACIONAL%20DE%20TRANSITO;OPERACAO%20BOEMIAPOLICIA%20MILITAR%20DE%20MINAS%20GERAIS%20250%20ANOS;OPRACAO%20BOEMIA';
 
 const SIGOP_LABELS = {
   mv: 'MV',
@@ -2367,138 +2367,144 @@ function idobTextColor(v) {
   return '#ff8a8f';
 }
 
+// operações a mais, com as vítimas de hoje, para o IDOB acumulado chegar em `alvo`% (cada vítima em bar vale 10 operações)
+function idobFaltam(q, v, alvo) {
+  if (!v) return 0;
+  return Math.max(0, Math.ceil(v * 10 / (1 - alvo / 100) - q - 1e-9));
+}
+function idobSituacao(q, v) {
+  if (!v) return `<span class="neg">sem vítima em bar</span>`;
+  const idx = calcIdobIndice(q, v), f95 = idobFaltam(q, v, 95), vit = `${v} vítima${v > 1 ? 's' : ''}`;
+  if (idx >= 95) return `<span class="neg">no verde · ${vit}</span>`;
+  if (idx >= 85) return `<span style="color:var(--caution)">! ${vit} · +${f95} op. para 95%</span>`;
+  return `<span class="pos">${vit} · +${idobFaltam(q, v, 85)} op. para sair do vermelho</span><br><small>+${f95} para chegar a 95%</small>`;
+}
+
 function renderIDOBPage() {
-  const d = DATA.idob;
+  const d = DATA.idob, bm = DATA.boemia_meta, cfg = OP_PISO, LM = opLimites(true);
   const mesesLocais = d.meses || MESES.slice(0, d.total_qtdeop_mes.length);
-  let mi = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
+  const ultimoIdx = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
+  let mi = ultimoIdx;
+  try { const s = localStorage.getItem('indMes_idob'); if (/^\d+$/.test(s || '') && parseInt(s) <= ultimoIdx) mi = parseInt(s); } catch (e) {}
+  const munFiltro = normMun(getMunFiltro());
+  const PEQUENA = 20; // menos de 20 operações no período: o índice oscila muito
+  const vitDe = (m, suf, i) => m['mv' + suf][i] + m['cvpe' + suf][i] + m['cvpa' + suf][i];
+  const mostrar = (v) => Math.max(0, v);
+  const par = (real, lim) => `<span class="par"><b>${real}</b> <span class="ind-lim">/ ${lim}</span></span>`;
+  const titulo = (i) => `Indicador de Desempenho da Operação Boemia (IDOB) — ${mesesLocais[i]} de 2026`;
 
-  function calcIdob(qop, vit) {
-    return calcIdobIndice(qop, vit);
+  function celulaIdob(q, v) {
+    const sub = `${q} op.${v ? ' · ' + v + ' vít.' : ''}`;
+    if (!q && !v) return `<td style="color:var(--muted)" title="Sem operação e sem vítima no período: nada a avaliar (100%)">—<br><small>${sub}</small></td>`;
+    const real = calcIdobIndice(q, v), sh = mostrar(real);
+    const tip = real < 0 ? `Valor real ${fmtBr(real, 1)}% (cada vítima em bar vale 10 operações); exibido como 0%` : '';
+    return `<td style="background:${idobColor(sh)};color:${idobTextColor(sh)};font-weight:600" title="${tip}">${fmtBr(sh, 1)}%${q < PEQUENA && v > 0 ? '<br><small>amostra pequena</small>' : ''}<br><small style="font-weight:400">${sub}</small></td>`;
+  }
+  function linhaIdob(nome, qM, vM, qA, vA, atr, cls) {
+    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td>${celulaIdob(qM, vM)}${celulaIdob(qA, vA)}<td style="text-align:left">${idobSituacao(qA, vA)}</td></tr>`;
+  }
+  function tabelaIdob(i) {
+    let rows = '';
+    const sum = (itens, f) => itens.reduce((a, m) => a + f(m), 0);
+    opGruposCia(d.municipios).forEach(g => {
+      g.itens.forEach(m => { rows += linhaIdob(m.nome, m.qop_mes[i], vitDe(m, '_mes', i), m.qop_acum[i], vitDe(m, '_acum', i), ` data-mun="${m.nome}" title="Filtrar por ${m.nome}"`, 'rank-clic' + (normMun(m.nome) === munFiltro ? ' sel' : '')); });
+      rows += linhaIdob('Subtotal ' + g.cia, sum(g.itens, m => m.qop_mes[i]), sum(g.itens, m => vitDe(m, '_mes', i)), sum(g.itens, m => m.qop_acum[i]), sum(g.itens, m => vitDe(m, '_acum', i)), '', 'cia-sub');
+    });
+    rows += linhaIdob('70º BPM', d.total_qtdeop_mes[i], d.total_mv_mes[i] + d.total_cvpe_mes[i] + d.total_cvpa_mes[i], d.total_qtdeop_acum[i], d.total_mv_acum[i] + d.total_cvpe_acum[i] + d.total_cvpa_acum[i], ' style="font-weight:700"', '');
+    return rows;
   }
 
-  function rows(mi) {
-    let html = '';
-    const list = d.municipios.map(m => {
-      const vitMes = m.mv_mes[mi]+m.cvpe_mes[mi]+m.cvpa_mes[mi];
-      const vitAcum = m.mv_acum[mi]+m.cvpe_acum[mi]+m.cvpa_acum[mi];
-      return {
-        nome:m.nome, qopMes:m.qop_mes[mi], qopAcum:m.qop_acum[mi],
-        mvMes:m.mv_mes[mi], cvpeMes:m.cvpe_mes[mi], cvpaMes:m.cvpa_mes[mi],
-        mvAcum:m.mv_acum[mi], cvpeAcum:m.cvpe_acum[mi], cvpaAcum:m.cvpa_acum[mi],
-        idobTotalMes: calcIdob(m.qop_mes[mi], vitMes),
-        idobTotalAcum: calcIdob(m.qop_acum[mi], vitAcum),
-      };
+  // painel da cidade escolhida: IDOB mês a mês (barras, traço em 95%)
+  function cidadeIdobHtml() {
+    const m = d.municipios.find(x => normMun(x.nome) === munFiltro);
+    if (!m) return '';
+    const idx = [], lim = [];
+    for (let i = 0; i <= ultimoIdx; i++) { idx.push(Math.round(mostrar(calcIdobIndice(m.qop_mes[i], vitDe(m, '_mes', i))))); lim.push(95); }
+    const q = m.qop_acum[ultimoIdx], v = vitDe(m, '_acum', ultimoIdx), ia = mostrar(calcIdobIndice(q, v)), st = statusQualidade(ia);
+    const kcls = st === 'verde' ? 'kpi-green' : (st === 'amarelo' ? 'kpi-amber' : 'kpi-red');
+    let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">${m.nome} — IDOB mês a mês</h3><div class="ppvd-card"><div class="kpi-grid">`;
+    h += `<div class="kpi-card ${kcls}"><div class="val">${fmtBr(ia, 1)}%</div><div class="lbl">IDOB acumulado</div><div class="sub">${idobSituacao(q, v)}</div></div>`;
+    h += `<div class="kpi-card kpi-neutral"><div class="val">${q}</div><div class="lbl">Operações Boemia no ano</div></div>`;
+    h += `<div class="kpi-card ${v ? 'kpi-red' : 'kpi-green'}"><div class="val">${v}</div><div class="lbl">Vítimas em bar/boate</div><div class="sub">${m.mv_acum[ultimoIdx]} MV · ${m.cvpe_acum[ultimoIdx]} CVPE · ${m.cvpa_acum[ultimoIdx]} CVPa</div></div></div>`;
+    h += svgBarrasMes(idx, lim, true, `${m.nome}: IDOB por mês`, (val) => val < 85);
+    h += `<div class="ano-leg"><span>barra = IDOB do mês (vermelha abaixo de 85%)</span><span><i class="l"></i>95% (verde a partir daqui)</span></div></div></div>`;
+    return h;
+  }
+  // quadro município x mês do IDOB (cada célula é o índice do mês; • = houve vítima em bar no mês)
+  function quadroIdobHtml() {
+    const cel = (q, v) => {
+      if (!q && !v) return `<td class="hm-zero" title="Sem operação e sem vítima no mês">·</td>`;
+      const real = calcIdobIndice(q, v), sh = mostrar(real), st = statusQualidade(sh);
+      return `<td class="${st === 'verde' ? 'hm-ok' : (st === 'amarelo' ? 'hm-atencao' : 'hm-ruim')}" title="IDOB ${fmtBr(real, 1)}% · ${q} operação(ões) · ${v} vítima(s)">${Math.round(sh)}${v ? '•' : ''}</td>`;
+    };
+    let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">IDOB mês a mês por município</h3>`;
+    h += `<div class="vd-recorte">Cada célula é o IDOB do mês; verde = 95% ou mais, amarelo = 85% a 95%, vermelho = abaixo de 85%, cinza = sem operação e sem vítima. • = houve vítima em bar/boate no mês. Passe o mouse (ou toque) para ver as operações e as vítimas.</div>`;
+    h += `<div class="table-wrap"><table class="data-table hm" id="idobQuadro"><thead><tr><th style="text-align:left">Município</th>${mesesLocais.slice(0, ultimoIdx + 1).map((_, i) => `<th>${MES_ABREV[i]}</th>`).join('')}<th class="col-divider">Acum.</th></tr></thead><tbody>`;
+    d.municipios.forEach(m => {
+      h += `<tr class="rank-clic${normMun(m.nome) === munFiltro ? ' sel' : ''}" data-mun="${m.nome}"><td style="text-align:left">${m.nome}</td>` + m.qop_mes.slice(0, ultimoIdx + 1).map((q, i) => cel(q, vitDe(m, '_mes', i))).join('') + `<td class="col-divider"><b>${Math.round(mostrar(calcIdobIndice(m.qop_acum[ultimoIdx], vitDe(m, '_acum', ultimoIdx))))}</b></td></tr>`;
     });
-    const cell = (v) => `<td style="background:${idobColor(v)};color:${idobTextColor(v)};font-weight:600">${v.toFixed(1)}</td>`;
-    list.forEach(x => {
-      html += `<tr><td style="text-align:left">${x.nome}</td>
-        <td>${x.qopMes}</td>
-        <td>${x.mvMes}</td>
-        <td>${x.cvpeMes}</td>
-        <td>${x.cvpaMes}</td>
-        ${cell(x.idobTotalMes)}
-        <td>${x.qopAcum}</td>
-        <td>${x.mvAcum}</td>
-        <td>${x.cvpeAcum}</td>
-        <td>${x.cvpaAcum}</td>
-        ${cell(x.idobTotalAcum)}
-      </tr>`;
-    });
-    const sum = k => list.reduce((s,x)=>s+x[k],0);
-    const tQopMes = d.total_qtdeop_mes[mi], tQopAcum = d.total_qtdeop_acum[mi];
-    const tMvMes=sum('mvMes'), tCvpeMes=sum('cvpeMes'), tCvpaMes=sum('cvpaMes');
-    const tMvAcum=sum('mvAcum'), tCvpeAcum=sum('cvpeAcum'), tCvpaAcum=sum('cvpaAcum');
-    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
-      <td>${tQopMes}</td>
-      <td>${tMvMes}</td>
-      <td>${tCvpeMes}</td>
-      <td>${tCvpaMes}</td>
-      ${cell(calcIdob(tQopMes, tMvMes+tCvpeMes+tCvpaMes))}
-      <td>${tQopAcum}</td>
-      <td>${tMvAcum}</td>
-      <td>${tCvpeAcum}</td>
-      <td>${tCvpaAcum}</td>
-      ${cell(calcIdob(tQopAcum, tMvAcum+tCvpeAcum+tCvpaAcum))}
-    </tr>`;
-    return html;
+    h += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">TOTAL</td>` + d.total_qtdeop_mes.slice(0, ultimoIdx + 1).map((q, i) => cel(q, d.total_mv_mes[i] + d.total_cvpe_mes[i] + d.total_cvpa_mes[i])).join('') + `<td class="col-divider">${Math.round(mostrar(calcIdobIndice(d.total_qtdeop_acum[ultimoIdx], d.total_mv_acum[ultimoIdx] + d.total_cvpe_acum[ultimoIdx] + d.total_cvpa_acum[ultimoIdx])))}</td></tr></tbody></table></div></div>`;
+    return h;
   }
 
-  let html = `<div class="page-title">Indicador de Desempenho da Operação Boemia (IDOB) em ${mesesLocais[mi]} de 2026</div>`;
-  html += sigopButton('idob');
-  html += `<div class="def-box">${DEFS.idob}</div>`;
-  html += `<select class="month-select" id="idobMonthSel">`;
-  mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
-  html += `</select>`;
-  html += `<table class="data-table" id="idobTable"><thead><tr>
-    <th style="text-align:left" rowspan="2">Município</th>
-    <th colspan="5" id="idobMesTh">${mesesLocais[mi]}</th><th colspan="5">Acumulado</th>
-  </tr><tr>
-    <th>Qtde Op</th><th>MV</th><th>CVPe</th><th>CVPa</th><th>IDOB</th>
-    <th>Qtde Op</th><th>MV</th><th>CVPe</th><th>CVPa</th><th>IDOB</th>
-  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
-  html += `<div class="updated">IDOB = [Qtde de Operações Boemia − (MV+CVPe+CVPa com vítima em bar/boate como local do fato) × 10] ÷ Qtde de Operações × 100 — índice único, calculado com a soma dos 3 tipos de vítima de uma vez (não um IDOB separado por tipo). As colunas MV/CVPe/CVPa acima mostram a contagem bruta de cada tipo, só pra apoiar a leitura de onde vem a variação do índice. Quanto maior, melhor. Fonte: export específico da pasta IDOB (não mais o RAT geral, que superestimava por capturar operações fora de escopo), cruzado com o REDS geral pelo local do fato.</div>`;
+  // ---- meta de operações Boemia (contagem x meta fixa por fração; no mês em andamento a meta é proporcional aos dias fechados) ----
+  function linhaMeta(nome, rM, mM, rA, mA, f, atr, cls) {
+    const lM = LM.mes(mM, f), lA = LM.acum(mA, mM, f);
+    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
+  }
+  function tabelaMeta(i) {
+    const f = fatorMesEmAndamento(bm, i), rotuloTier = (t) => (t === 3 ? 'Cia' : (t === 2 ? 'Pel' : 'Dest'));
+    let rows = '';
+    opGruposCia(bm.municipios).forEach(g => {
+      g.itens.forEach(m => { rows += linhaMeta(`${m.nome} <span style="opacity:.6;font-size:.92em">(${rotuloTier(m.tier)})</span>`, m.realizado_mes[i], m.meta_mes[i], m.realizado_acum[i], m.meta_acum[i], f, ` data-mun="${m.nome}" title="Filtrar por ${m.nome}"`, 'rank-clic' + (normMun(m.nome) === munFiltro ? ' sel' : '')); });
+      rows += linhaMeta('Subtotal ' + g.cia, opSoma(g.itens, 'realizado_mes', i), opSoma(g.itens, 'meta_mes', i), opSoma(g.itens, 'realizado_acum', i), opSoma(g.itens, 'meta_acum', i), f, '', 'cia-sub');
+    });
+    rows += linhaMeta('70º BPM', bm.total_mes[i], bm.total_meta_mes[i], bm.total_acum[i], bm.total_meta_acum[i], f, ' style="font-weight:700"', '');
+    return rows;
+  }
+  const notaMes = (i) => {
+    const partes = [];
+    if (i === MES_ATUAL_IDX) partes.push(`${mesesLocais[i]} em andamento: o IDOB do mês usa poucas operações e oscila — o que vale é o acumulado.`);
+    const n = bm ? opNotaMesParcial(bm, mesesLocais, i) : '';
+    if (n) partes.push('Meta de operações: ' + n.replace(/^[^:]+: a meta do mês/, 'a meta do mês'));
+    return partes.join(' ');
+  };
 
-  // ---------- Meta de Operações Boemia do Batalhão (contagem x meta fixa por fração, diferente do % de qualidade do IDOB acima) ----------
-  const bm = DATA.boemia_meta;
+  let html = `<div class="page-title" id="idobTitulo">${titulo(mi)}</div>`;
+  html += freshBadge(mesesLocais[ultimoIdx], { semDadoReal: bm ? indicadorSemDadoNoMes(bm, ultimoIdx, false) : false });
+  if (SIGOP_LINKS.idob) html += `<a class="link-sigop" href="${SIGOP_LINKS.idob}" target="_blank" rel="noopener noreferrer">${SIGOP_LABELS.idob} · fonte oficial no SiGOp ↗</a><br>`;
+  html += `<details class="aud-como"><summary>Metodologia e definições</summary><div>${DEFS.idob}<br><br>O índice é único, calculado com a soma dos 3 tipos de vítima de uma vez (não um IDOB separado por tipo). Vítima = MV, CVPE ou CVPa com bar/boate como local do fato (cruzado com o REDS geral). Operações = export específico da pasta IDOB (RAT com "BOEMIA" no nome da operação). Quanto maior, melhor.</div></details>`;
+  html += `<div class="pills-vd" id="idobMeses" role="group" aria-label="Mês">` + mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<button type="button" data-p="${i}">${m}${i === ultimoIdx && ultimoIdx === MES_ATUAL_IDX ? ' (parcial)' : ''}</button>`).join('') + `</div>`;
+  html += `<div class="vd-recorte" id="idobNota">${notaMes(mi)}</div>`;
+
+  html += `<div class="ind-sec" style="margin-top:8px"><h3 class="ind-tit page-title" style="font-size:16px">Qualidade: IDOB</h3>`;
+  html += `<div class="vd-recorte">IDOB = (operações − vítimas × 10) ÷ operações. Cada vítima em bar/boate vale 10 operações. Verde = 95% ou mais, amarelo = 85% a 95%, vermelho = abaixo de 85%. Valor abaixo de zero aparece como 0% (a conta real fica no mouse). A situação é a do acumulado e diz quantas operações a mais levariam o índice ao verde. Clique numa cidade para filtrar a página.</div>`;
+  html += `<div class="table-wrap"><table class="data-table ind-tab" id="idobTable"><thead><tr><th style="text-align:left">Município</th><th>Mês</th><th>Acumulado</th><th style="text-align:left">Situação</th></tr></thead><tbody>${tabelaIdob(mi)}</tbody></table></div></div>`;
+  html += cidadeIdobHtml() + quadroIdobHtml();
+
+  let blocos = null;
   if (bm) {
-    const bmMesesLocais = bm.meses || mesesLocais;
-
-    function bmMonthCell(cumpriu) {
-      return cumpriu
-        ? `<td style="background:rgba(33,201,138,0.22);color:#3fe0a5;font-weight:600">CUMPRIU</td>`
-        : `<td style="background:rgba(230,72,79,0.22);color:#ff8a8f;font-weight:600">NÃO CUMPRIU</td>`;
-    }
-
-    function bmRows(mi) {
-      let html = '';
-      bm.municipios.forEach(m => {
-        const rMes=m.realizado_mes[mi], mMes=m.meta_mes[mi], rAc=m.realizado_acum[mi], mAc=m.meta_acum[mi];
-        const dAc = mAc ? (rAc/mAc*100) : 100;
-        const cls = dAc>=100?'neg':'pos';
-        const cumpriuMes = mMes ? (rMes >= mMes) : true;
-        const tierLabel = m.tier===3?'Cia':(m.tier===2?'Pel':'Dest');
-        html += `<tr><td style="text-align:left">${m.nome} <span style="opacity:.6;font-size:.92em">(${tierLabel})</span></td>
-          <td>${mMes}</td><td>${rMes}</td>${bmMonthCell(cumpriuMes)}
-          <td class="col-divider">${mAc}</td><td>${rAc}</td><td><span class="${cls}">${dAc.toFixed(0)}%</span></td>
-        </tr>`;
-      });
-      const tRMes=bm.total_mes[mi], tMMes=bm.total_meta_mes[mi], tRAc=bm.total_acum[mi], tMAc=bm.total_meta_acum[mi];
-      const tDAc = tMAc? tRAc/tMAc*100:100;
-      const tCumpriuMes = tMMes ? (tRMes >= tMMes) : true;
-      html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
-        <td>${tMMes}</td><td>${tRMes}</td>${bmMonthCell(tCumpriuMes)}
-        <td class="col-divider">${tMAc}</td><td>${tRAc}</td><td><span class="${tDAc>=100?'neg':'pos'}">${tDAc.toFixed(0)}%</span></td>
-      </tr>`;
-      return html;
-    }
-
-    let miBm = Math.min(MES_ATUAL_IDX, bmMesesLocais.length - 1);
-    html += `<div class="page-title" style="margin-top:28px;font-size:1.1em">Meta de Operações Boemia do Batalhão</div>`;
-    html += `<div class="def-box">Métrica DIFERENTE do IDOB acima (que mede qualidade/vítimas em %). Aqui é contagem simples de operações Boemia realizadas × meta fixa por tipo de fração, mesma régua já usada em Cavalo de Aço/Visibilidade: <b>1 operação/mês por Destacamento, 2/mês por sede de Pelotão, 3/mês por sede de Companhia</b> (recorrente todo mês, não meta anual). Meta total do 70º BPM: 23 operações/mês. Fonte do "Realizado": mesmo dado de Qtde de Operações Boemia usado no IDOB (export da pasta entrada/IDOB/, filtro NOME_OPERACAO contém "BOEMIA").</div>`;
+    blocos = opBlocosHtml(bm, cfg, { mesesLocais: bm.meses || mesesLocais, ultimoIdx: Math.min(MES_ATUAL_IDX, (bm.meses || mesesLocais).length - 1), munFiltro, rotulo: 'operações Boemia' });
+    html += `<div class="ind-sec" style="margin-top:34px"><h3 class="ind-tit page-title" style="font-size:16px">Meta de operações Boemia</h3>`;
+    html += `<details class="aud-como"><summary>Regra da meta</summary><div>Métrica diferente do IDOB: contagem simples de operações Boemia × meta fixa por tipo de fração (mesma régua do Cavalo de Aço): <b>1 operação/mês por Destacamento, 2/mês por sede de Pelotão, 3/mês por sede de Companhia</b> (recorrente todo mês, não meta anual; total do 70º BPM: 23/mês). Cia-sede: Araçuaí, Itaobim, Pedra Azul. Pelotão-sede: Itinga, Medina, Padre Paraíso, Divisa Alegre. Destacamento: Coronel Murta, Virgem da Lapa, Ponto dos Volantes, Comercinho, Cachoeira de Pajeú, Águas Vermelhas. Definida por Eduardo em 2026-08-27. O realizado é o mesmo número de operações do IDOB.</div></details>`;
     html += bannerAcompanhamentoDiario([{ label: 'Operações Boemia (Batalhão)', meta: bm.total_meta_mes[MES_ATUAL_IDX], realizado: bm.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(bm) }]);
-    html += `<select class="month-select" id="boemiaMetaMonthSel">`;
-    bmMesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===miBm?'selected':''}>${m}</option>`);
-    html += `</select>`;
-    html += `<table class="data-table" id="boemiaMetaTable"><thead><tr>
-      <th style="text-align:left" rowspan="2">Município</th>
-      <th colspan="3">${bmMesesLocais[miBm]}</th><th colspan="3">Acumulado</th>
-    </tr><tr>
-      <th>Meta</th><th>Realizado</th><th>Status</th>
-      <th>Meta</th><th>Realizado</th><th>% Cumprido</th>
-    </tr></thead><tbody>${bmRows(miBm)}</tbody></table>`;
-    html += `<div class="updated">Meta recorrente mensal por fração (não é meta anual dividida). Cia-sede: Araçuaí, Itaobim, Pedra Azul (3/mês). Pelotão-sede: Itinga, Medina, Padre Paraíso, Divisa Alegre (2/mês). Destacamento: Coronel Murta, Virgem da Lapa, Ponto dos Volantes, Comercinho, Cachoeira de Pajeú, Águas Vermelhas (1/mês). Definida por Eduardo em 2026-08-27.</div>`;
+    html += `<div class="table-wrap"><table class="data-table ind-tab" id="idobMetaTable"><thead><tr><th style="text-align:left">Município</th><th>Mês</th><th class="col-divider">Acumulado</th><th>% da meta</th><th style="text-align:left">Situação</th></tr></thead><tbody>${tabelaMeta(mi)}</tbody></table></div></div>`;
+    html += blocos.ano + blocos.cidade + blocos.quadro;
   }
   document.getElementById('main').innerHTML = html;
-  document.getElementById('idobMonthSel').addEventListener('change', (e) => {
-    document.getElementById('idobMesTh').textContent = mesesLocais[parseInt(e.target.value)]; // o cabeçalho ficava no mês atual (achado ao montar a apresentação de GDO)
-    document.querySelector('#idobTable tbody').innerHTML = rows(parseInt(e.target.value));
+
+  const marcar = () => document.querySelectorAll('#idobMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
+  marcar();
+  document.getElementById('idobMeses').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    mi = parseInt(b.dataset.p); try { localStorage.setItem('indMes_idob', String(mi)); } catch (er) {}
+    marcar();
+    document.querySelector('#idobTable tbody').innerHTML = tabelaIdob(mi);
+    const tm = document.querySelector('#idobMetaTable tbody'); if (tm) tm.innerHTML = tabelaMeta(mi);
+    document.getElementById('idobTitulo').textContent = titulo(mi);
+    document.getElementById('idobNota').textContent = notaMes(mi);
   });
-  if (bm) {
-    const bmSel = document.getElementById('boemiaMetaMonthSel');
-    if (bmSel) bmSel.addEventListener('change', (e) => {
-      document.querySelector('#boemiaMetaTable tbody').innerHTML = bmRows(parseInt(e.target.value));
-    });
-  }
+  opLigarCidades(['idobTable', 'idobQuadro', 'idobMetaTable', 'opQuadro']);
 }
 
 function renderITVDPage() {
