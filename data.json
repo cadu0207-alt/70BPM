@@ -23433,7 +23433,8 @@
     "atualizado_em": "2026-10-15",
     "mv_ocorrencias": {},
     "cvpe_ocorrencias": {},
-    "cvpa_ocorrencias": {}
+    "cvpa_ocorrencias": {},
+    "idob_ocorrencias": {}
   },
   "reincidencia": {
     "meses": [
@@ -28780,5 +28781,66 @@
       },
       "ate": "14/10/2026"
     }
+  },
+  "idob_dia_faixa": {
+    "dias": [
+      "Segunda",
+      "Terça",
+      "Quarta",
+      "Quinta",
+      "Sexta",
+      "Sábado",
+      "Domingo"
+    ],
+    "faixas": [
+      "00h–06h",
+      "06h–12h",
+      "12h–18h",
+      "18h–24h"
+    ],
+    "matriz": [
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        3,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0,
+        0
+      ]
+    ]
   }
 }

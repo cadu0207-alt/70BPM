@@ -1922,6 +1922,59 @@ function auditar() {
     await ctxJ.close();
   }
 
+  // ---------- 42) IDOB · Boemia, onda 3: operações x vítimas em bar (público) e ocorrências em bar com a Boemia ao redor (restrito) ----------
+  console.log('\n[42] IDOB · Boemia: operações × vítimas em bar e ocorrências que derrubaram o índice');
+  {
+    const ctxK = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pk = await ctxK.newPage();
+    const errosK = []; pk.on('pageerror', (e) => errosK.push(e.message));
+    await pk.goto(base);
+    await pk.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pk.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, d = DATA.idob, dfv = DATA.idob_dia_faixa;
+      const vitBar = d.total_mv_acum[d.total_mv_acum.length - 1] + d.total_cvpe_acum[d.total_cvpe_acum.length - 1] + d.total_cvpa_acum[d.total_cvpa_acum.length - 1];
+      out.dados = { matriz: dfv.matriz.flat().reduce((a, b) => a + b, 0) === vitBar, publicoSemRestrito: Object.keys((DATA.crimes_violentos || {}).idob_ocorrencias || {}).length === 0 };
+      setMunFiltro('');
+      goToPage('idob'); await esp(400);
+      const m = document.getElementById('main');
+      const fx = [...document.querySelectorAll('#opCruzaFaixa tbody tr')];
+      out.publico = { titulo: /Operações Boemia × vítimas em bar/.test(m.textContent), faixa: fx.length === 5 && parseInt(fx[4].children[2].textContent) === vitBar && parseInt(fx[4].children[1].textContent) === DATA.idob_detalhe.total, dia: document.querySelectorAll('#opCruzaDia tbody tr').length === 8,
+        cidade: document.querySelectorAll('#opCruzaCidade tbody tr').length === d.municipios.length + 1, poucos: /São poucos casos/.test(m.textContent) };
+      out.anonimo = { aviso: /Detalhe restrito/.test(m.textContent), semTabela: !document.getElementById('idobOcorrencias'), semReds: !/\d{4}-\d{9}-\d{3}/.test(m.textContent) };
+      // aprovado: ocorrências (fabricadas) com a Boemia ao redor
+      ppvdRestritoCarregado = true;
+      const cid = d.municipios[0].nome, outra = d.municipios[1].nome;
+      DATA.crimes_violentos = { ...(DATA.crimes_violentos || {}), idob_ocorrencias: {
+        [cid]: [{ r: '2026-000000111-001', d: '07/04/2026', h: '16:00', b: 'CENTRO', n: 'Homicidio', c: 'BRIGA', mv: 1, cvpe: 2, cvpa: 0, ops_dia: 0, ops_7d: 0, ultima: '01/04/2026', dias_ultima: 6, ops_bairro_30d: 0, ops_bairro_ano: 0, ops_cidade_ano: 5 }],
+        [outra]: [{ r: '2026-000000222-001', d: '10/05/2026', h: '23:30', b: 'INVÁLIDO', n: 'Roubo', c: '', mv: 0, cvpe: 0, cvpa: 1, ops_dia: 2, ops_7d: 4, ultima: '09/05/2026', dias_ultima: 1, ops_bairro_30d: null, ops_bairro_ano: null, ops_cidade_ano: 40 }] } };
+      goToPage('idob'); await esp(400);
+      const lin = [...document.querySelectorAll('#idobOcorrencias tbody tr')], t = document.getElementById('main').textContent;
+      out.restrito = { linhas: lin.length === 2, ordem: /10\/05\/2026/.test(lin[0].textContent) && /07\/04\/2026/.test(lin[1].textContent), vitimas: /1 MV · 2 CVPE/.test(lin[1].textContent) && /1 CVPa/.test(lin[0].textContent),
+        redor: /Dia do fato: 0/.test(lin[1].textContent) && /7 dias antes: 0/.test(lin[1].textContent) && /Última antes: 01\/04\/2026 \(há 6 dias\)/.test(lin[1].textContent) && /0 nos 30 dias antes · 0 no ano/.test(lin[1].textContent),
+        marcadores: /Sem Boemia na semana anterior/.test(lin[1].textContent) && /Bairro sem Boemia no ano/.test(lin[1].textContent) && /Fora do horário da Boemia/.test(lin[1].textContent),
+        comBoemia: /Boemia no dia/.test(lin[0].textContent) && !/Sem Boemia na semana anterior/.test(lin[0].textContent) && !/Fora do horário/.test(lin[0].textContent), invalido: /bairro inválido no REDS/.test(lin[0].textContent), soma: /2 ocorrência\(s\) com 4 vítima\(s\)/.test(t) };
+      // filtro por cidade
+      setMunFiltro(cid); goToPage('idob'); await esp(400);
+      out.filtro = document.querySelectorAll('#idobOcorrencias tbody tr').length === 1;
+      setMunFiltro('');
+      // logout esvazia a lista
+      ppvdLimparDadosRestritos();
+      out.limpo = Object.keys(DATA.crimes_violentos.idob_ocorrencias || {}).length === 0;
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.dados.matriz && r.dados.publicoSemRestrito, 'dia × faixa das vítimas em bar fecha com o IDOB e o arquivo público não traz a lista restrita', 'dados: ' + JSON.stringify(r.dados));
+    checa(r.publico.titulo && r.publico.faixa && r.publico.dia && r.publico.cidade && r.publico.poucos, 'IDOB: operações × vítimas em bar por faixa, dia e cidade, com o aviso de poucos casos', 'público: ' + JSON.stringify(r.publico));
+    checa(r.anonimo.aviso && r.anonimo.semTabela && r.anonimo.semReds, 'visitante sem login: ocorrências em bar só mostram o aviso de detalhe restrito (sem REDS)', 'anônimo: ' + JSON.stringify(r.anonimo));
+    checa(r.restrito.linhas && r.restrito.ordem && r.restrito.vitimas && r.restrito.soma, 'PPVD aprovado: lista das ocorrências em bar (mais recente primeiro) com as vítimas por tipo', 'restrito: ' + JSON.stringify(r.restrito));
+    checa(r.restrito.redor && r.restrito.marcadores && r.restrito.comBoemia && r.restrito.invalido, 'PPVD aprovado: "Boemia ao redor" (dia, 7 dias antes, última, bairro) e marcadores certos para cada ocorrência', 'ao redor: ' + JSON.stringify(r.restrito));
+    checa(r.filtro && r.limpo, 'cidade filtra a lista e o logout esvazia as ocorrências restritas do IDOB', 'filtro/logout: ' + JSON.stringify([r.filtro, r.limpo]));
+    checa(r.largura, 'IDOB onda 3 no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosK.length === 0, 'IDOB onda 3 sem erro de JavaScript', 'erros: ' + errosK.slice(0, 3).join(' | '));
+    await ctxK.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

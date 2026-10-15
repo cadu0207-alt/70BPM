@@ -30,7 +30,7 @@ RESTRITO = {
     'violencia_domestica': ['ocorrencias', 'enderecos_reincidentes'],
     'analise_preditiva': ['ocorrencias_graves', 'enderecos_reincidentes'],
     'reincidencia': ['enderecos'],
-    'crimes_violentos': ['ocorrencias', 'mv_ocorrencias', 'cvpe_ocorrencias', 'cvpa_ocorrencias'],  # *_ocorrencias: REDS/endereço das páginas MV, CVPE e CVPA
+    'crimes_violentos': ['ocorrencias', 'mv_ocorrencias', 'cvpe_ocorrencias', 'cvpa_ocorrencias', 'idob_ocorrencias'],  # *_ocorrencias: REDS/endereço das páginas MV, CVPE, CVPA e IDOB (ocorrências em bar/boate)
 }
 
 SUPABASE_URL = 'https://qzhhuxzdilwdsulttdhq.supabase.co'

@@ -2419,6 +2419,47 @@ function idobLocalHtml(det) {
   return h;
 }
 
+// ---- IDOB, onda 3: operações Boemia x vítimas em bar/boate ----
+// PÚBLICO: faixa, dia e cidade (poucas vítimas: leitura como tendência). RESTRITO (PPVD aprovado): cada ocorrência em bar que derrubou o índice, com a Boemia ao redor dela.
+function idobCruzamentoPublico(dd, munFiltro) {
+  const dfv = DATA.idob_dia_faixa, d = DATA.idob;
+  if (!dfv || !dd) return '';
+  const fx = [0, 1, 2, 3].map(j => dfv.matriz.reduce((a, l) => a + l[j], 0)), dia = dfv.matriz.map(l => l.reduce((a, b) => a + b, 0));
+  const ult = (m) => m.mv_acum[m.mv_acum.length - 1] + m.cvpe_acum[m.cvpe_acum.length - 1] + m.cvpa_acum[m.cvpa_acum.length - 1];
+  const cid = d.municipios.map(m => ({ nome: m.nome, n: ult(m) }));
+  return opCruzamentoHtml({ titulo: 'Operações Boemia × vítimas em bar', det: dd, crimeRot: 'vítimas de morte violenta, CVPE e CVPa em bar, lanchonete ou boate', unidade: 'vítimas', crimeFaixa: fx, crimeDia: dia, crimeCidade: cid, munFiltro, rotulo: '' });
+}
+function idobOcorrenciasHtml(dd, munFiltro) {
+  const nomeF = munFiltro ? ((DATA.idob.municipios.find(m => normMun(m.nome) === munFiltro) || {}).nome || '') : '';
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Ocorrências em bar que entraram no IDOB${nomeF ? ' — ' + nomeF : ''}</h3>`;
+  if (!ppvdDadosRestritosLiberados()) return h + ppvdAvisoRestrito() + `</div>`;
+  const oc = (DATA.crimes_violentos || {}).idob_ocorrencias || {};
+  let lista = [];
+  Object.keys(oc).forEach(cid => (oc[cid] || []).forEach(o => lista.push({ cid, o })));
+  if (munFiltro) lista = lista.filter(x => normMun(x.cid) === munFiltro);
+  if (!lista.length) return h + `<div class="pending-box">Nenhuma ocorrência com vítima em bar ou boate${nomeF ? ' em ' + nomeF : ''} no ano.</div></div>`;
+  const dk = (s) => (s || '').split('/').reverse().join('');
+  lista.sort((a, b) => dk(b.o.d).localeCompare(dk(a.o.d)));
+  const vit = lista.reduce((a, x) => a + (x.o.mv || 0) + (x.o.cvpe || 0) + (x.o.cvpa || 0), 0);
+  const df = dd && dd.dia_faixa, noturna = df ? (df.matriz.reduce((a, l) => a + l[0] + l[3], 0) / Math.max(1, df.matriz.flat().reduce((a, b) => a + b, 0)) * 100) : 0;
+  h += `<div class="vd-recorte">${lista.length} ocorrência(s) com ${vit} vítima(s) em bar, lanchonete ou boate no ano, da mais recente para a mais antiga. Cada vítima vale 10 operações no IDOB. Para cada uma, a coluna "Boemia ao redor" mostra quantas operações Boemia houve na cidade no dia do fato e nos 7 dias antes, a última antes do fato e as do bairro (30 dias antes e no ano). Não prova falha nem nexo: mostra se havia presença Boemia por perto.</div>`;
+  h += `<div style="overflow-x:auto"><table class="data-table vd-casos" id="idobOcorrencias"><thead><tr><th>Data / REDS</th><th>Município</th><th>Natureza / Causa</th><th>Vítimas</th><th>Bairro</th><th>Boemia ao redor</th><th>Marcadores</th></tr></thead><tbody>`;
+  lista.forEach(({ cid, o }) => {
+    const hora = parseInt((o.h || '').slice(0, 2)), fora = !isNaN(hora) && hora >= 6 && hora < 18;
+    const tipos = [o.mv ? o.mv + ' MV' : '', o.cvpe ? o.cvpe + ' CVPE' : '', o.cvpa ? o.cvpa + ' CVPa' : ''].filter(Boolean).join(' · ');
+    const bairro = o.ops_bairro_ano === null || o.ops_bairro_ano === undefined ? 'bairro inválido no REDS — sem como cruzar' : `${o.ops_bairro_30d} nos 30 dias antes · ${o.ops_bairro_ano} no ano`;
+    const ao_redor = `Dia do fato: <b>${o.ops_dia}</b><br>7 dias antes: <b>${o.ops_7d}</b><br>Última antes: ${o.ultima ? msgEsc(o.ultima) + ' (há ' + o.dias_ultima + ' dia' + (o.dias_ultima === 1 ? '' : 's') + ')' : 'nenhuma no ano'}<br>Bairro: ${bairro}`;
+    const marc = [
+      !o.ops_dia && !o.ops_7d ? pgMk('Sem Boemia na semana anterior', 'Nenhuma operação Boemia na cidade no dia do fato nem nos 7 dias antes', 'risco') : '',
+      o.ops_bairro_ano === 0 ? pgMk('Bairro sem Boemia no ano', 'Nenhuma operação Boemia registrada nesse bairro em 2026', 'risco') : '',
+      fora ? pgMk('Fora do horário da Boemia', `Fato às ${msgEsc(o.h)}; ${fmtBr(noturna, 0)}% das operações Boemia são de 18h a 6h`, 'risco') : '',
+      o.ops_dia ? pgMk('Boemia no dia', 'Houve operação Boemia na cidade no dia do fato') : '',
+    ].join('') || '—';
+    h += `<tr><td data-l="Data / REDS">${msgEsc(o.d)}${o.h ? ' ' + msgEsc(o.h) : ''}<br><small>${msgEsc(o.r)}</small></td><td data-l="Município">${msgEsc(cid)}</td><td data-l="Natureza / Causa">${msgEsc(acentuaNat(o.n))}${o.c ? '<br><small>' + msgEsc(o.c) + '</small>' : ''}</td><td data-l="Vítimas">${msgEsc(tipos)}</td><td data-l="Bairro">${msgEsc(o.b) || '—'}</td><td data-l="Boemia ao redor">${ao_redor}</td><td data-l="Marcadores">${marc}</td></tr>`;
+  });
+  return h + `</tbody></table></div></div>`;
+}
+
 function renderIDOBPage() {
   const d = DATA.idob, bm = DATA.boemia_meta, cfg = OP_PISO, LM = opLimites(true);
   const mesesLocais = d.meses || MESES.slice(0, d.total_qtdeop_mes.length);
@@ -2531,7 +2572,7 @@ function renderIDOBPage() {
     html += blocos.ano + blocos.cidade + blocos.quadro;
   }
   const dd = DATA.idob_detalhe;
-  if (dd) html += idobRegularidadeHtml(dd, munFiltro) + opDetalheHtml(dd, { munFiltro, rotulo: 'Operações Boemia', alertaBairro: true }) + idobLocalHtml(dd);
+  if (dd) html += idobRegularidadeHtml(dd, munFiltro) + opDetalheHtml(dd, { munFiltro, rotulo: 'Operações Boemia', alertaBairro: true }) + idobLocalHtml(dd) + idobCruzamentoPublico(dd, munFiltro) + idobOcorrenciasHtml(dd, munFiltro);
   document.getElementById('main').innerHTML = html;
 
   const marcar = () => document.querySelectorAll('#idobMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
@@ -2545,7 +2586,7 @@ function renderIDOBPage() {
     document.getElementById('idobTitulo').textContent = titulo(mi);
     document.getElementById('idobNota').textContent = notaMes(mi);
   });
-  opLigarCidades(['idobTable', 'idobQuadro', 'idobMetaTable', 'opQuadro', 'idobReg', 'opEsforco']);
+  opLigarCidades(['idobTable', 'idobQuadro', 'idobMetaTable', 'opQuadro', 'idobReg', 'opEsforco', 'opCruzaCidade']);
 }
 
 function renderITVDPage() {
@@ -5577,7 +5618,7 @@ const PPVD_RESTRITO_VAZIO = () => ({
   violencia_domestica: { ocorrencias: {}, enderecos_reincidentes: {} },
   analise_preditiva: { ocorrencias_graves: {}, enderecos_reincidentes: {} },
   reincidencia: { enderecos: {} },
-  crimes_violentos: { ocorrencias: {}, mv_ocorrencias: {}, cvpe_ocorrencias: {}, cvpa_ocorrencias: {} },
+  crimes_violentos: { ocorrencias: {}, mv_ocorrencias: {}, cvpe_ocorrencias: {}, cvpa_ocorrencias: {}, idob_ocorrencias: {} },
 });
 function ppvdDadosRestritosLiberados() { return ppvdRestritoCarregado; }
 function ppvdAvisoRestrito() {
@@ -5600,7 +5641,7 @@ function ppvdLimparDadosRestritos() {
   window.ppvdOcorrenciaLookup = {}; window.ppvdCVLookup = {}; window.ppvdReincLookup = {};
   ppvdRestritoCarregado = false;
 }
-const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv', 'cvpe', 'cvpa', 'notificacoes', 'pog'];
+const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv', 'cvpe', 'cvpa', 'notificacoes', 'pog', 'idob'];
 
 async function ppvdInit() {
   if (!ppvdSupa) return;

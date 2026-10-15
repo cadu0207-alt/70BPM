@@ -893,6 +893,101 @@ def _top_com_outros_rot(contador, limite):
     return [[k, v] for k, v in lista[:limite]] + [['OUTROS LOCAIS', sum(v for _, v in lista[limite:])]]
 
 
+# ---- IDOB onda 3: operações Boemia x vítimas em bar/boate ----
+# PÚBLICO (`idob_dia_faixa`): dia da semana x faixa de 6h das vítimas em bar/boate (as que derrubam o IDOB), só números.
+# RESTRITO (`crimes_violentos.idob_ocorrencias`, só PPVD aprovado): cada ocorrência em bar/boate com REDS/data/bairro e quanta Boemia houve ao redor
+# (no dia, nos 7 dias antes, última antes, no bairro). Os RATs de Boemia só entram como contagem/data — nunca nome de policial.
+def _sem_acento_up(t):
+    import unicodedata
+    return ''.join(c for c in unicodedata.normalize('NFD', (t or '')) if unicodedata.category(c) != 'Mn').upper().strip()
+
+
+def run_idob_cruzamento(data, rows_bo, report):
+    f = latest_csv('IDOB')
+    if not f or 'idob' not in data:
+        report['idob_cruzamento'] = {'skipped': True, 'reason': 'sem export em entrada/IDOB'}
+        return
+    ops_rows = read_csv(f, encoding='utf-8')
+    if not ops_rows or 'NOME_OPERACAO' not in ops_rows[0]:
+        report['idob_cruzamento'] = {'skipped': True, 'reason': 'export de IDOB sem NOME_OPERACAO'}
+        return
+    bar = ag.BAR_LOCAIS
+    matriz = [[0] * 4 for _ in range(7)]
+    eventos = {}
+    for r in rows_bo:
+        if (r.get('DESCRICAO_LOCAL_IMEDIATO') or '').strip() not in bar:
+            continue
+        mv, pe, pa = _num(r.get('IMV_TOTAL')), _num(r.get('ICVPE_TOTAL')), _num(r.get('ICVPA_TOTAL'))
+        tot = mv + pe + pa
+        if tot <= 0:
+            continue
+        pref = (r.get('DIA_DA_SEMANA_FATO') or '').strip().upper()[:3]
+        i_d = next((i for i, (pf, _) in enumerate(DIAS_SEMANA) if pf == pref), None)
+        m = re.search(r'(\d\d):', r.get('FAIXA_HORA_6') or '')
+        i_f = int(m.group(1)) // 6 if m else None
+        if i_d is not None and i_f is not None and i_f < 4:
+            matriz[i_d][i_f] += tot
+        eventos[(r.get('NUMERO_REDS') or '').strip()] = (r, mv, pe, pa)
+    esperado = sum(data['idob'].get(k, [0])[-1] for k in ('total_mv_acum', 'total_cvpe_acum', 'total_cvpa_acum'))
+    soma = sum(sum(l) for l in matriz)
+    res = {'file': f, 'vitimas_em_bar': soma, 'esperado': esperado}
+    if soma == esperado:
+        data['idob_dia_faixa'] = {'dias': [n for _, n in DIAS_SEMANA], 'faixas': FAIXAS_6H, 'matriz': matriz}
+        res['dia_faixa'] = 'ok'
+    else:
+        res['dia_faixa'] = f'não confere ({soma} x {esperado}) — mantido o anterior'
+    # Boemia por cidade/data e por bairro
+    def dia(t):
+        try:
+            return datetime.datetime.strptime((t or '').strip(), '%d/%m/%Y').date()
+        except ValueError:
+            return None
+    por_cid, por_bairro = collections.defaultdict(list), collections.defaultdict(list)
+    for r in ops_rows:
+        if 'BOEMIA' not in (r.get('NOME_OPERACAO') or '').upper():
+            continue
+        d = dia(r.get('DATA_FATO'))
+        if not d:
+            continue
+        cid = (r.get('MUNICIPIO') or '').strip().upper()
+        por_cid[cid].append(d)
+        b = _sem_acento_up(r.get('BAIRRO'))
+        if b and not b.startswith('INV'):
+            por_bairro[(cid, b)].append(d)
+    # natureza/causa/meio vêm das listas restritas já montadas (MV/CVPE/CVPA), pelo nº do REDS
+    info = {}
+    for k in ('mv', 'cvpe', 'cvpa'):
+        for cid, lst in (data.get('crimes_violentos', {}).get(k + '_ocorrencias') or {}).items():
+            for o in lst:
+                if o.get('r') and o['r'] not in info:
+                    info[o['r']] = o
+    saida = {}
+    for reds, (r, mv, pe, pa) in eventos.items():
+        d = dia(r.get('DATA_FATO'))
+        cid = (r.get('MUNICIPIO') or '').strip().upper()
+        if not d:
+            continue
+        ds = por_cid.get(cid, [])
+        antes = [x for x in ds if x < d]
+        b = _sem_acento_up(r.get('BAIRRO'))
+        db = por_bairro.get((cid, b), []) if b and not b.startswith('INV') else None
+        o = info.get(reds, {})
+        saida.setdefault(cid, []).append({
+            'r': reds, 'd': d.strftime('%d/%m/%Y'), 'h': (r.get('HORARIO_FATO') or '')[:5], 'b': (r.get('BAIRRO') or '').strip(),
+            'n': o.get('n'), 'c': o.get('c'), 'meio': o.get('meio'), 'mv': mv, 'cvpe': pe, 'cvpa': pa,
+            'ops_dia': sum(1 for x in ds if x == d), 'ops_7d': sum(1 for x in ds if 0 < (d - x).days <= 7),
+            'ultima': max(antes).strftime('%d/%m/%Y') if antes else None, 'dias_ultima': (d - max(antes)).days if antes else None,
+            'ops_bairro_30d': None if db is None else sum(1 for x in db if 0 < (d - x).days <= 30),
+            'ops_bairro_ano': None if db is None else len(db),
+            'ops_cidade_ano': len(ds),
+        })
+    for lst in saida.values():
+        lst.sort(key=lambda x: x['d'].split('/')[::-1])
+    data.setdefault('crimes_violentos', {})['idob_ocorrencias'] = saida
+    res['ocorrencias'] = sum(len(v) for v in saida.values())
+    report['idob_cruzamento'] = res
+
+
 
 def _extras_cvpa(r, vit):
     """CVPA: o alvo do roubo, o que foi levado (objetos FURTADO/ROUBADO) e os veículos roubados/liberados — campos de texto do SiGOp."""
@@ -948,6 +1043,8 @@ def main():
     run_mv_ocorrencias(data, report)
     run_cvpe_ocorrencias(data, report)
     run_cvpa_ocorrencias(data, report)
+    if f_bo:
+        run_idob_cruzamento(data, rows_bo, report)  # precisa das listas de ocorrências (natureza/causa) já montadas
 
     # Carimba atualizado_em em todo bloco tocado (e não pulado) nesta rodada — mesmo
     # motivo do aggregate.py (ver 2026-09-28): sem isso o campo ficava parado na última
