@@ -705,7 +705,7 @@ def _top_com_outros(contador, limite):
     return [[k, v] for k, v in lista[:limite]] + [['OUTROS BAIRROS', resto]]
 
 
-def _agg_operacoes(rows, com_natureza):
+def _agg_operacoes(rows, com_natureza, completo=False):
     nat, bai = collections.Counter(), collections.Counter()
     bai_mun, por_mun = {}, {}
     matriz = [[0] * 4 for _ in range(7)]
@@ -767,9 +767,10 @@ def _agg_operacoes(rows, com_natureza):
         'esforco': {'municipios': esforco, 'total': total, 'duracao_suspeita': susp, 'sem_duracao': sem_dur, 'sem_efetivo': sem_ef},
         'qualidade': {'sem_bairro': bai.get('(sem bairro)', 0), 'por_municipio': dict(sem_bairro_mun)},
     }
-    if com_natureza:
+    if com_natureza or completo:
         # lista COMPLETA município × bairro (só contagem de operações): base do cruzamento com os crimes violentos (a parte que mostra bairro de crime é restrita, no painel)
         res['bairro_completo'] = {m: dict(sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))) for m, c in sorted(bai_mun.items())}
+    if com_natureza:
         res['natureza'] = [[k, v] for k, v in sorted(nat.items(), key=lambda kv: (-kv[1], kv[0]))]
     return res
 
@@ -809,6 +810,87 @@ def run_operacoes_detalhe(data, report):
     if len(ppag) == len(PPAG_CODIGOS):
         data['ppag_detalhe'] = ppag
     report['operacoes_detalhe'] = res
+
+
+# ---- IDOB / Operação Boemia: mesmo detalhamento do POG + local (bar x fora), qualidade da localização e REGULARIDADE por fim de semana ----
+# Regularidade (informativa, não entra na nota): a meta mensal de Boemia é sempre cumprida (23/mês contra ~230 feitas); aqui se vê se cada cidade
+# operou em TODO fim de semana (sexta a domingo, só os já encerrados). Tudo agregado: contagem por cidade e fim de semana, nada pessoal.
+def _fins_de_semana(rows, municipios):
+    datas = []
+    for r in rows:
+        try:
+            datas.append(datetime.datetime.strptime((r.get('DATA_FATO') or '').strip(), '%d/%m/%Y').date())
+        except ValueError:
+            continue
+    if not datas:
+        return None
+    ref = max(datas)
+    d0 = datetime.date(datetime.date.today().year, 1, 1)
+    sextas = []
+    d = d0 + datetime.timedelta(days=(4 - d0.weekday()) % 7)
+    while d + datetime.timedelta(days=2) <= ref:
+        sextas.append(d)
+        d += datetime.timedelta(days=7)
+    por = {m: [0] * len(sextas) for m in municipios}
+    for r in rows:
+        try:
+            dt = datetime.datetime.strptime((r.get('DATA_FATO') or '').strip(), '%d/%m/%Y').date()
+        except ValueError:
+            continue
+        mun = (r.get('MUNICIPIO') or '').strip().upper()
+        if mun not in por:
+            continue
+        for i, f in enumerate(sextas):
+            if 0 <= (dt - f).days <= 2:
+                por[mun][i] += 1
+                break
+    return {'rotulos': [f.strftime('%d/%m') for f in sextas], 'municipios': por, 'ate': ref.strftime('%d/%m/%Y')}
+
+
+def run_idob_detalhe(data, report):
+    f = latest_csv('IDOB')
+    if not f or 'idob' not in data:
+        report['idob_detalhe'] = {'skipped': True, 'reason': 'sem export em entrada/IDOB'}
+        return
+    try:
+        rows = read_csv(f, encoding='utf-8')
+    except UnicodeDecodeError:
+        report['idob_detalhe'] = {'skipped': True, 'reason': 'arquivo não é UTF-8 (export do tipo errado)'}
+        return
+    if not rows or 'NOME_OPERACAO' not in rows[0]:
+        report['idob_detalhe'] = {'skipped': True, 'reason': 'arquivo sem a coluna NOME_OPERACAO'}
+        return
+
+    def valido(r):
+        try:
+            return 'BOEMIA' in (r.get('NOME_OPERACAO') or '').upper() and 1 <= int(r.get('MES_NUMERICO') or 0) <= N_MESES
+        except Exception:
+            return False
+    boemia = [r for r in rows if valido(r)]
+    esperado = data['idob']['total_qtdeop_acum'][-1] if data['idob'].get('total_qtdeop_acum') else None
+    if esperado != len(boemia):
+        report['idob_detalhe'] = {'skipped': True, 'reason': f'não confere ({len(boemia)} no export x {esperado} no indicador) — mantido o anterior'}
+        return
+    det = _agg_operacoes(boemia, False, completo=True)
+    bar_locais = {'BAR / LANCHONETE / RESTAURANTE / SIMILAR', 'BOATE / CASA DE SHOW / SIMILAR'}
+    loc = collections.Counter((r.get('LOCAL_IMEDIATO') or '').strip() or 'NAO INFORMADO' for r in boemia)
+    em_bar = sum(v for k, v in loc.items() if k in bar_locais)
+    det['local'] = {'em_bar': em_bar, 'fora_bar': len(boemia) - em_bar, 'lista': _top_com_outros_rot(loc, 6)}
+    det['qualidade']['localizacao_erro'] = sum(1 for r in boemia if 'ERRO' in (r.get('DESCRICAO_LOCALIZACAO') or '').upper())
+    det['qualidade']['zona_rural'] = sum(1 for r in boemia if 'RURAL' in (r.get('DESCRICAO_LOCALIZACAO') or '').upper())
+    nomes = [m['nome'].upper() for m in data['idob']['municipios']]
+    fs = _fins_de_semana(boemia, nomes)
+    if fs:
+        det['fins_de_semana'] = fs
+    data['idob_detalhe'] = det
+    report['idob_detalhe'] = {'file': f, 'ops': len(boemia), 'em_bar': em_bar, 'sem_bairro': det['qualidade']['sem_bairro'], 'fins_de_semana': len(fs['rotulos']) if fs else 0}
+
+
+def _top_com_outros_rot(contador, limite):
+    lista = sorted(contador.items(), key=lambda kv: (-kv[1], kv[0]))
+    if len(lista) <= limite:
+        return [[k, v] for k, v in lista]
+    return [[k, v] for k, v in lista[:limite]] + [['OUTROS LOCAIS', sum(v for _, v in lista[limite:])]]
 
 
 
@@ -862,6 +944,7 @@ def main():
     run_local_faixa(data, report)
     run_extras_indicadores(data, report)
     run_operacoes_detalhe(data, report)
+    run_idob_detalhe(data, report)
     run_mv_ocorrencias(data, report)
     run_cvpe_ocorrencias(data, report)
     run_cvpa_ocorrencias(data, report)

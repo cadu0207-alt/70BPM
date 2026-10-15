@@ -342,7 +342,7 @@
   /* Páginas de indicador — onda 2 (2026-10-13): quadro mês a mês, ano vs limite, painel da cidade, barras e detalhamento */
   .hm2 td.hm2-n { font-weight:700; } .hm2 td, .hm2 th { padding:7px 8px; }
   .ind-sec { margin-top:30px; } .ind-sec h3.ind-tit { font-size:16px; margin:0 0 8px; }
-  .hm td.hm-ok { background:rgba(33,201,138,.16); } .hm td.hm-atencao { background:rgba(212,194,42,.2); } .ind-tab small { font-size:11px; } .hm td.hm-ruim { background:rgba(230,72,79,.26); font-weight:700; } .hm td.hm-zero { color:#8aa0b4; }
+  .hm td.hm-ok { background:rgba(33,201,138,.16); } .hm td.hm-atencao { background:rgba(212,194,42,.2); } .ind-tab small { font-size:11px; } .fs { display:inline-block; width:13px; text-align:center; font-size:12px; line-height:1; } .fs.ok { color:var(--signal); } .fs.no { color:var(--alert-text); } .hm td.hm-ruim { background:rgba(230,72,79,.26); font-weight:700; } .hm td.hm-zero { color:#8aa0b4; }
   .hm td, .hm th { padding:6px 6px; } .hm tr.rank-clic.sel td { outline:1px solid rgba(232,168,60,.45); }
   .ano-svg { width:100%; height:auto; max-height:260px; display:block; margin-top:8px; }
   .ano-svg text { fill:#a9bccd; font-size:11px; font-family:var(--mono); } .ano-svg line.gr { stroke:rgba(234,241,248,.12); stroke-width:1; }
@@ -2380,6 +2380,45 @@ function idobSituacao(q, v) {
   return `<span class="pos">${vit} · +${idobFaltam(q, v, 85)} op. para sair do vermelho</span><br><small>+${f95} para chegar a 95%</small>`;
 }
 
+// ---- IDOB, onda 2: regularidade por fim de semana (informativa), local das operações e o mesmo detalhamento do POG (esforço, dia × faixa, bairro) ----
+// Fim de semana = sexta a domingo, só os já encerrados. Não entra na nota nem nos semáforos: a meta mensal de Boemia é sempre cumprida e aqui se vê se a cidade operou todo fim de semana.
+function idobRegularidadeHtml(det, munFiltro) {
+  const fs = det.fins_de_semana;
+  if (!fs || !fs.rotulos.length) return '';
+  const N = fs.rotulos.length, ULT = 12;
+  const linhas = Object.keys(fs.municipios).map(nome => {
+    const v = fs.municipios[nome], cob = v.filter(x => x > 0).length;
+    let seq = 0, atual = 0;
+    v.forEach(x => { atual = x > 0 ? 0 : atual + 1; seq = Math.max(seq, atual); });
+    let aberto = 0;
+    for (let i = v.length - 1; i >= 0 && v[i] === 0; i--) aberto++;
+    return { nome, v, cob, sem: N - cob, seq, aberto };
+  }).sort((a, b) => (a.cob - b.cob) || a.nome.localeCompare(b.nome));
+  const todas = fs.rotulos.filter((_, i) => linhas.every(l => l.v[i] > 0)).length;
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Regularidade — fins de semana com operação Boemia</h3>`;
+  h += `<div class="vd-recorte">Indicador informativo (não entra na nota nem nos semáforos): a meta mensal de Boemia é sempre cumprida, então aqui se vê se cada cidade operou em todo fim de semana (sexta a domingo, só os já encerrados — ${N} até ${fs.ate}). Em ${todas} deles houve Boemia nas ${linhas.length} cidades. Da que tem menos fins de semana cobertos para a que tem mais; clique numa cidade para filtrar. Leitura: verde = 90% ou mais, amarelo = 75% a 90%, vermelho = abaixo disso.</div>`;
+  h += `<div class="table-wrap"><table class="data-table ind-tab" id="idobReg"><thead><tr><th style="text-align:left">Município</th><th>Cobertos</th><th style="text-align:left">Últimos ${ULT} fins de semana</th></tr></thead><tbody>`;
+  linhas.forEach(l => {
+    const pc = l.cob / N * 100, st = pc >= 90 ? 'verde' : (pc >= 75 ? 'amarelo' : 'vermelho');
+    const cor = st === 'verde' ? 'neg' : '';
+    const pcTxt = `${l.cob} de ${N} · ${fmtBr(pc, 0)}%`;
+    const pcHtml = st === 'verde' ? `<span class="neg">${pcTxt}</span>` : (st === 'amarelo' ? `<span style="color:var(--caution)">! ${pcTxt}</span>` : `<span class="pos">${pcTxt}</span>`);
+    const strip = l.v.slice(-ULT).map((x, k) => { const rot = fs.rotulos[N - Math.min(ULT, N) + k]; return `<span class="fs ${x > 0 ? 'ok' : 'no'}" title="Fim de semana de ${rot}: ${x} operação(ões)">${x > 0 ? '●' : '○'}</span>`; }).join('');
+    h += `<tr class="rank-clic${normMun(l.nome) === munFiltro ? ' sel' : ''}" data-mun="${l.nome}" title="Filtrar por ${l.nome}"><td style="text-align:left">${l.nome}</td><td>${pcHtml}<br><small>${l.sem} sem operação${l.seq > 1 ? ' · maior sequência ' + l.seq : ''}</small></td><td style="text-align:left">${strip}${l.aberto ? '<br><small>sem Boemia há ' + l.aberto + ' fim' + (l.aberto > 1 ? 's' : '') + ' de semana</small>' : ''}</td></tr>`;
+  });
+  return h + `</tbody></table></div><div class="vd-recorte">● = houve operação Boemia no fim de semana · ○ = nenhuma. Passe o mouse (ou toque) para ver a data e a quantidade.</div></div>`;
+}
+function idobLocalHtml(det) {
+  const l = det.local, q = det.qualidade, tot = det.total || 1;
+  if (!l) return '';
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Onde as operações acontecem</h3><div class="kpi-grid">`;
+  h += `<div class="kpi-card kpi-neutral"><div class="val">${l.em_bar}</div><div class="lbl">Em bar, lanchonete ou boate</div><div class="sub">${fmtBr(l.em_bar / tot * 100, 0)}% das operações Boemia</div></div>`;
+  h += `<div class="kpi-card kpi-neutral"><div class="val">${l.fora_bar}</div><div class="lbl">Fora de bar</div><div class="sub">${fmtBr(l.fora_bar / tot * 100, 0)}% — via pública e outros. O IDOB conta todas as operações Boemia, em bar ou não.</div></div>`;
+  if (q && (q.localizacao_erro || q.zona_rural)) h += `<div class="kpi-card ${q.localizacao_erro ? 'kpi-amber' : 'kpi-neutral'}"><div class="val">${q.localizacao_erro}</div><div class="lbl">Localização com erro de processamento</div><div class="sub">${q.zona_rural} em zona rural</div></div>`;
+  h += `</div><div class="chart-box" style="min-width:0"><h3>Local imediato da operação</h3>${barrasHtml(l.lista, false, '')}<div class="vd-recorte">${det.total} operações no ano.</div></div></div>`;
+  return h;
+}
+
 function renderIDOBPage() {
   const d = DATA.idob, bm = DATA.boemia_meta, cfg = OP_PISO, LM = opLimites(true);
   const mesesLocais = d.meses || MESES.slice(0, d.total_qtdeop_mes.length);
@@ -2491,6 +2530,8 @@ function renderIDOBPage() {
     html += `<div class="table-wrap"><table class="data-table ind-tab" id="idobMetaTable"><thead><tr><th style="text-align:left">Município</th><th>Mês</th><th class="col-divider">Acumulado</th><th>% da meta</th><th style="text-align:left">Situação</th></tr></thead><tbody>${tabelaMeta(mi)}</tbody></table></div></div>`;
     html += blocos.ano + blocos.cidade + blocos.quadro;
   }
+  const dd = DATA.idob_detalhe;
+  if (dd) html += idobRegularidadeHtml(dd, munFiltro) + opDetalheHtml(dd, { munFiltro, rotulo: 'Operações Boemia', alertaBairro: true }) + idobLocalHtml(dd);
   document.getElementById('main').innerHTML = html;
 
   const marcar = () => document.querySelectorAll('#idobMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
@@ -2504,7 +2545,7 @@ function renderIDOBPage() {
     document.getElementById('idobTitulo').textContent = titulo(mi);
     document.getElementById('idobNota').textContent = notaMes(mi);
   });
-  opLigarCidades(['idobTable', 'idobQuadro', 'idobMetaTable', 'opQuadro']);
+  opLigarCidades(['idobTable', 'idobQuadro', 'idobMetaTable', 'opQuadro', 'idobReg', 'opEsforco']);
 }
 
 function renderITVDPage() {

@@ -27283,5 +27283,1502 @@
         }
       }
     }
+  },
+  "idob_detalhe": {
+    "total": 2105,
+    "bairro": [
+      [
+        "CENTRO",
+        741
+      ],
+      [
+        "(sem bairro)",
+        139
+      ],
+      [
+        "NOVA ESPERANCA",
+        108
+      ],
+      [
+        "BELA VISTA",
+        87
+      ],
+      [
+        "ESPERANCA",
+        75
+      ],
+      [
+        "BONFIM",
+        69
+      ],
+      [
+        "MARIA DA GLORIA",
+        66
+      ],
+      [
+        "ALTO MERCADO",
+        60
+      ],
+      [
+        "VILA NOVA",
+        54
+      ],
+      [
+        "CIDADE NOVA",
+        38
+      ],
+      [
+        "ALTO DO CEMITERIO",
+        36
+      ],
+      [
+        "VALMIRA FARIAS",
+        32
+      ],
+      [
+        "CANOEIRO JOSE ALVES DE CARVALHO",
+        28
+      ],
+      [
+        "ESPLANADA",
+        28
+      ],
+      [
+        "SERRA AZUL",
+        25
+      ],
+      [
+        "OUTROS BAIRROS",
+        519
+      ]
+    ],
+    "bairro_municipio": {
+      "COMERCINHO": [
+        [
+          "CENTRO",
+          59
+        ],
+        [
+          "CIDADE NOVA",
+          22
+        ],
+        [
+          "CRUZEIRO",
+          13
+        ],
+        [
+          "(sem bairro)",
+          10
+        ],
+        [
+          "SAO JUDAS",
+          2
+        ],
+        [
+          "BELA VISTA",
+          1
+        ]
+      ],
+      "MEDINA": [
+        [
+          "CENTRO",
+          60
+        ],
+        [
+          "BELA VISTA",
+          44
+        ],
+        [
+          "BONFIM",
+          40
+        ],
+        [
+          "SERRA AZUL",
+          25
+        ],
+        [
+          "SAUDADE",
+          12
+        ],
+        [
+          "SAO GERALDO",
+          8
+        ],
+        [
+          "VARZEA GRANDE",
+          8
+        ],
+        [
+          "(sem bairro)",
+          6
+        ],
+        [
+          "OUTROS BAIRROS",
+          8
+        ]
+      ],
+      "PADRE PARAISO": [
+        [
+          "VALMIRA FARIAS",
+          32
+        ],
+        [
+          "(sem bairro)",
+          28
+        ],
+        [
+          "CENTRO",
+          14
+        ],
+        [
+          "BOM JESUS",
+          6
+        ],
+        [
+          "D N E R",
+          3
+        ],
+        [
+          "PANTANAL",
+          3
+        ],
+        [
+          "BAIRRO CALDEIROES",
+          1
+        ],
+        [
+          "BELA VISTA",
+          1
+        ],
+        [
+          "OUTROS BAIRROS",
+          1
+        ]
+      ],
+      "ITAOBIM": [
+        [
+          "CENTRO",
+          177
+        ],
+        [
+          "ESPERANCA",
+          75
+        ],
+        [
+          "(sem bairro)",
+          51
+        ],
+        [
+          "VILA NOVA",
+          50
+        ],
+        [
+          "ESTACAO DA LUZ",
+          20
+        ],
+        [
+          "SANTO ANTONIO",
+          11
+        ],
+        [
+          "SAO CRISTOVAO",
+          9
+        ],
+        [
+          "VILA RICA",
+          6
+        ],
+        [
+          "OUTROS BAIRROS",
+          15
+        ]
+      ],
+      "CACHOEIRA DE PAJEU": [
+        [
+          "CENTRO",
+          11
+        ],
+        [
+          "POVOADO AGUAS ALTAS",
+          10
+        ],
+        [
+          "ALTO DOS REIS",
+          7
+        ],
+        [
+          "DERALDO DANTAS",
+          7
+        ],
+        [
+          "POVOADO TANCREDO NEVES",
+          7
+        ],
+        [
+          "POVOADO ÁGUAS ALTAS",
+          2
+        ]
+      ],
+      "PONTO DOS VOLANTES": [
+        [
+          "CENTRO",
+          118
+        ],
+        [
+          "SANTANA DO ARACUAI",
+          1
+        ]
+      ],
+      "ARACUAI": [
+        [
+          "NOVA ESPERANCA",
+          108
+        ],
+        [
+          "CENTRO",
+          71
+        ],
+        [
+          "ALTO MERCADO",
+          60
+        ],
+        [
+          "CANOEIRO JOSE ALVES DE CARVALHO",
+          28
+        ],
+        [
+          "ESPLANADA",
+          28
+        ],
+        [
+          "ALTO SANTUARIO",
+          19
+        ],
+        [
+          "(sem bairro)",
+          12
+        ],
+        [
+          "VILA MAGNOLIA",
+          12
+        ],
+        [
+          "OUTROS BAIRROS",
+          84
+        ]
+      ],
+      "CORONEL MURTA": [
+        [
+          "MARIA DA GLORIA",
+          66
+        ],
+        [
+          "CENTRO",
+          30
+        ],
+        [
+          "ITAPORE VELHO",
+          22
+        ],
+        [
+          "ACARI",
+          4
+        ],
+        [
+          "VILA PALMEIRAS",
+          4
+        ],
+        [
+          "(sem bairro)",
+          2
+        ],
+        [
+          "DISTRITO FREI CARDOSO",
+          2
+        ]
+      ],
+      "VIRGEM DA LAPA": [
+        [
+          "CENTRO",
+          38
+        ],
+        [
+          "BELA VISTA",
+          22
+        ],
+        [
+          "NOVO HORIZONTE",
+          20
+        ],
+        [
+          "ALTO SAO VICENTE",
+          11
+        ],
+        [
+          "VILA NOVA",
+          4
+        ],
+        [
+          "TURMALINA",
+          3
+        ],
+        [
+          "(sem bairro)",
+          2
+        ]
+      ],
+      "AGUAS VERMELHAS": [
+        [
+          "CENTRO",
+          21
+        ],
+        [
+          "ALVORADA",
+          8
+        ],
+        [
+          "RECREIO DA VISTA",
+          8
+        ],
+        [
+          "DISTRITO DE MACHADO MINEIRO",
+          6
+        ],
+        [
+          "NOVO PROGRESSO",
+          6
+        ],
+        [
+          "(sem bairro)",
+          5
+        ],
+        [
+          "CAMPO NOVO",
+          3
+        ],
+        [
+          "IPANEMA",
+          3
+        ],
+        [
+          "OUTROS BAIRROS",
+          6
+        ]
+      ],
+      "ITINGA": [
+        [
+          "CENTRO",
+          48
+        ],
+        [
+          "CIDADE NOVA",
+          16
+        ],
+        [
+          "(sem bairro)",
+          8
+        ],
+        [
+          "PORTO ALEGRE",
+          7
+        ],
+        [
+          "PLANALTO",
+          5
+        ]
+      ],
+      "PEDRA AZUL": [
+        [
+          "CENTRO",
+          39
+        ],
+        [
+          "BONFIM",
+          29
+        ],
+        [
+          "INCONFIDENTES",
+          19
+        ],
+        [
+          "(sem bairro)",
+          15
+        ],
+        [
+          "JOAO PESSOA",
+          15
+        ],
+        [
+          "JOÃO PESSOA",
+          14
+        ],
+        [
+          "PAINEIRAS",
+          12
+        ],
+        [
+          "MANOEL GUSMÃO",
+          9
+        ],
+        [
+          "OUTROS BAIRROS",
+          38
+        ]
+      ],
+      "DIVISA ALEGRE": [
+        [
+          "CENTRO",
+          55
+        ],
+        [
+          "ALTO DO CEMITERIO",
+          36
+        ],
+        [
+          "JARDIM MARINOPOLIS",
+          18
+        ],
+        [
+          "BAIRRO BELA VISTA",
+          5
+        ],
+        [
+          "BELA VISTA",
+          5
+        ],
+        [
+          "CAMACA",
+          5
+        ],
+        [
+          "FRONTEIRA",
+          4
+        ],
+        [
+          "ALTO DA COPASA",
+          1
+        ]
+      ]
+    },
+    "dia_faixa": {
+      "dias": [
+        "Segunda",
+        "Terça",
+        "Quarta",
+        "Quinta",
+        "Sexta",
+        "Sábado",
+        "Domingo"
+      ],
+      "faixas": [
+        "00h–06h",
+        "06h–12h",
+        "12h–18h",
+        "18h–24h"
+      ],
+      "matriz": [
+        [
+          27,
+          5,
+          15,
+          119
+        ],
+        [
+          19,
+          4,
+          15,
+          188
+        ],
+        [
+          23,
+          2,
+          15,
+          129
+        ],
+        [
+          22,
+          8,
+          25,
+          225
+        ],
+        [
+          31,
+          4,
+          29,
+          350
+        ],
+        [
+          38,
+          9,
+          24,
+          398
+        ],
+        [
+          39,
+          7,
+          23,
+          312
+        ]
+      ]
+    },
+    "esforco": {
+      "municipios": [
+        {
+          "nome": "AGUAS VERMELHAS",
+          "ops": 66,
+          "dur_media_min": 66.2,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.26,
+          "vtr_media": 1.02,
+          "horas_policial": 163.3
+        },
+        {
+          "nome": "ARACUAI",
+          "ops": 422,
+          "dur_media_min": 35.0,
+          "dur_mediana_min": 30,
+          "efetivo_medio": 2.62,
+          "vtr_media": 1.27,
+          "horas_policial": 619.1
+        },
+        {
+          "nome": "CACHOEIRA DE PAJEU",
+          "ops": 44,
+          "dur_media_min": 55.9,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.66,
+          "vtr_media": 1.02,
+          "horas_policial": 106.7
+        },
+        {
+          "nome": "COMERCINHO",
+          "ops": 107,
+          "dur_media_min": 45.1,
+          "dur_mediana_min": 34,
+          "efetivo_medio": 2.35,
+          "vtr_media": 1.01,
+          "horas_policial": 198.1
+        },
+        {
+          "nome": "CORONEL MURTA",
+          "ops": 130,
+          "dur_media_min": 48.7,
+          "dur_mediana_min": 45,
+          "efetivo_medio": 2.57,
+          "vtr_media": 1.06,
+          "horas_policial": 280.2
+        },
+        {
+          "nome": "DIVISA ALEGRE",
+          "ops": 129,
+          "dur_media_min": 68.2,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.53,
+          "vtr_media": 1.02,
+          "horas_policial": 374.0
+        },
+        {
+          "nome": "ITAOBIM",
+          "ops": 414,
+          "dur_media_min": 60.5,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.07,
+          "vtr_media": 1.01,
+          "horas_policial": 822.5
+        },
+        {
+          "nome": "ITINGA",
+          "ops": 84,
+          "dur_media_min": 62.8,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.54,
+          "vtr_media": 1.01,
+          "horas_policial": 219.6
+        },
+        {
+          "nome": "MEDINA",
+          "ops": 211,
+          "dur_media_min": 55.2,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.59,
+          "vtr_media": 1.07,
+          "horas_policial": 477.7
+        },
+        {
+          "nome": "PADRE PARAISO",
+          "ops": 89,
+          "dur_media_min": 114.6,
+          "dur_mediana_min": 120,
+          "efetivo_medio": 2.25,
+          "vtr_media": 1.0,
+          "horas_policial": 382.1
+        },
+        {
+          "nome": "PEDRA AZUL",
+          "ops": 190,
+          "dur_media_min": 70.9,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.32,
+          "vtr_media": 1.0,
+          "horas_policial": 459.5
+        },
+        {
+          "nome": "PONTO DOS VOLANTES",
+          "ops": 119,
+          "dur_media_min": 58.9,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.32,
+          "vtr_media": 1.03,
+          "horas_policial": 264.3
+        },
+        {
+          "nome": "VIRGEM DA LAPA",
+          "ops": 100,
+          "dur_media_min": 67.7,
+          "dur_mediana_min": 60,
+          "efetivo_medio": 2.53,
+          "vtr_media": 1.01,
+          "horas_policial": 288.8
+        }
+      ],
+      "total": {
+        "ops": 2105,
+        "dur_media_min": 57.5,
+        "dur_mediana_min": 60,
+        "efetivo_medio": 2.41,
+        "vtr_media": 1.07,
+        "horas_policial": 4655.7
+      },
+      "duracao_suspeita": 5,
+      "sem_duracao": 4,
+      "sem_efetivo": 52
+    },
+    "qualidade": {
+      "sem_bairro": 139,
+      "por_municipio": {
+        "COMERCINHO": 10,
+        "MEDINA": 6,
+        "ITAOBIM": 51,
+        "ITINGA": 8,
+        "PADRE PARAISO": 28,
+        "ARACUAI": 12,
+        "VIRGEM DA LAPA": 2,
+        "PEDRA AZUL": 15,
+        "AGUAS VERMELHAS": 5,
+        "CORONEL MURTA": 2
+      },
+      "localizacao_erro": 20,
+      "zona_rural": 76
+    },
+    "bairro_completo": {
+      "AGUAS VERMELHAS": {
+        "CENTRO": 21,
+        "ALVORADA": 8,
+        "RECREIO DA VISTA": 8,
+        "DISTRITO DE MACHADO MINEIRO": 6,
+        "NOVO PROGRESSO": 6,
+        "(sem bairro)": 5,
+        "CAMPO NOVO": 3,
+        "IPANEMA": 3,
+        "PANORAMA": 2,
+        "POVOADO ABACAXI": 2,
+        "ITAMARATI": 1,
+        "POVOADO DO ABACAXI - AGUAS VERMELHAS": 1
+      },
+      "ARACUAI": {
+        "NOVA ESPERANCA": 108,
+        "CENTRO": 71,
+        "ALTO MERCADO": 60,
+        "CANOEIRO JOSE ALVES DE CARVALHO": 28,
+        "ESPLANADA": 28,
+        "ALTO SANTUARIO": 19,
+        "(sem bairro)": 12,
+        "VILA MAGNOLIA": 12,
+        "JUPARANA": 10,
+        "GREBETHANIA": 9,
+        "SANTA TEREZA": 8,
+        "BELA VISTA": 7,
+        "ARRAIAL": 6,
+        "NOVA TERRA": 6,
+        "SAO GERALDO": 6,
+        "SAO FRANCISCO": 5,
+        "SAO PEDRO": 5,
+        "BAIRRO FATIMA": 3,
+        "JARDIM NAZARETH": 3,
+        "CORREDOR": 2,
+        "SITIO SENHOR MARINHO": 2,
+        "SÃO FRANCISCO": 2,
+        "SÃO MATEUS": 2,
+        "ALTO PARAISO": 1,
+        "ENGENHEIRO SCHNOOR": 1,
+        "JUSCELINO KUBITSCHEK": 1,
+        "LAZAREDO": 1,
+        "SÃO GERALDO": 1,
+        "SÃO PEDRO": 1,
+        "VALE DOS CRISTAIS": 1,
+        "VERA CRUZ": 1
+      },
+      "CACHOEIRA DE PAJEU": {
+        "CENTRO": 11,
+        "POVOADO AGUAS ALTAS": 10,
+        "ALTO DOS REIS": 7,
+        "DERALDO DANTAS": 7,
+        "POVOADO TANCREDO NEVES": 7,
+        "POVOADO ÁGUAS ALTAS": 2
+      },
+      "COMERCINHO": {
+        "CENTRO": 59,
+        "CIDADE NOVA": 22,
+        "CRUZEIRO": 13,
+        "(sem bairro)": 10,
+        "SAO JUDAS": 2,
+        "BELA VISTA": 1
+      },
+      "CORONEL MURTA": {
+        "MARIA DA GLORIA": 66,
+        "CENTRO": 30,
+        "ITAPORE VELHO": 22,
+        "ACARI": 4,
+        "VILA PALMEIRAS": 4,
+        "(sem bairro)": 2,
+        "DISTRITO FREI CARDOSO": 2
+      },
+      "DIVISA ALEGRE": {
+        "CENTRO": 55,
+        "ALTO DO CEMITERIO": 36,
+        "JARDIM MARINOPOLIS": 18,
+        "BAIRRO BELA VISTA": 5,
+        "BELA VISTA": 5,
+        "CAMACA": 5,
+        "FRONTEIRA": 4,
+        "ALTO DA COPASA": 1
+      },
+      "ITAOBIM": {
+        "CENTRO": 177,
+        "ESPERANCA": 75,
+        "(sem bairro)": 51,
+        "VILA NOVA": 50,
+        "ESTACAO DA LUZ": 20,
+        "SANTO ANTONIO": 11,
+        "SAO CRISTOVAO": 9,
+        "VILA RICA": 6,
+        "SAO JORGE": 5,
+        "ALVORADA": 2,
+        "GUADALUPE": 2,
+        "BEIRA DA PRAIA": 1,
+        "BEIRA RIO": 1,
+        "LOCALIDADE DE PASMADINHO": 1,
+        "SANTO ANTONIO II": 1,
+        "SÃO CRISTÓVÃO": 1,
+        "SÃO JORGE": 1
+      },
+      "ITINGA": {
+        "CENTRO": 48,
+        "CIDADE NOVA": 16,
+        "(sem bairro)": 8,
+        "PORTO ALEGRE": 7,
+        "PLANALTO": 5
+      },
+      "MEDINA": {
+        "CENTRO": 60,
+        "BELA VISTA": 44,
+        "BONFIM": 40,
+        "SERRA AZUL": 25,
+        "SAUDADE": 12,
+        "SAO GERALDO": 8,
+        "VARZEA GRANDE": 8,
+        "(sem bairro)": 6,
+        "SANTO ANTONIO": 2,
+        "ALIANCA": 1,
+        "BEIRA RIO": 1,
+        "CIDADE JARDIM": 1,
+        "DISTRITO DE TUPARECE": 1,
+        "LOCALIDADE GENERAL DUTRA": 1,
+        "SANTA MAURA": 1
+      },
+      "PADRE PARAISO": {
+        "VALMIRA FARIAS": 32,
+        "(sem bairro)": 28,
+        "CENTRO": 14,
+        "BOM JESUS": 6,
+        "D N E R": 3,
+        "PANTANAL": 3,
+        "BAIRRO CALDEIROES": 1,
+        "BELA VISTA": 1,
+        "CORONEL OLINTO VIEIRA": 1
+      },
+      "PEDRA AZUL": {
+        "CENTRO": 39,
+        "BONFIM": 29,
+        "INCONFIDENTES": 19,
+        "(sem bairro)": 15,
+        "JOAO PESSOA": 15,
+        "JOÃO PESSOA": 14,
+        "PAINEIRAS": 12,
+        "MANOEL GUSMÃO": 9,
+        "PLATAFORMA": 9,
+        "SEBASTIAO FARIAS": 8,
+        "BELA VISTA": 7,
+        "PLANALTO": 7,
+        "MANOEL GUSMAO": 3,
+        "NOVO BELVEDERE": 2,
+        "CRUZEIRO": 1,
+        "RECANTO DO VALE": 1
+      },
+      "PONTO DOS VOLANTES": {
+        "CENTRO": 118,
+        "SANTANA DO ARACUAI": 1
+      },
+      "VIRGEM DA LAPA": {
+        "CENTRO": 38,
+        "BELA VISTA": 22,
+        "NOVO HORIZONTE": 20,
+        "ALTO SAO VICENTE": 11,
+        "VILA NOVA": 4,
+        "TURMALINA": 3,
+        "(sem bairro)": 2
+      }
+    },
+    "local": {
+      "em_bar": 1956,
+      "fora_bar": 149,
+      "lista": [
+        [
+          "BAR / LANCHONETE / RESTAURANTE / SIMILAR",
+          1956
+        ],
+        [
+          "VIA DE ACESSO PUBLICA",
+          137
+        ],
+        [
+          "JARDIM / PARQUE / PRACA",
+          2
+        ],
+        [
+          "MOTOCICLETA",
+          2
+        ],
+        [
+          "OUTROS - ESTABELECIMENTOS DE LAZER/ CULTURA /",
+          2
+        ],
+        [
+          "POSTO DE COMBUSTIVEL",
+          2
+        ],
+        [
+          "OUTROS LOCAIS",
+          4
+        ]
+      ]
+    },
+    "fins_de_semana": {
+      "rotulos": [
+        "02/01",
+        "09/01",
+        "16/01",
+        "23/01",
+        "30/01",
+        "06/02",
+        "13/02",
+        "20/02",
+        "27/02",
+        "06/03",
+        "13/03",
+        "20/03",
+        "27/03",
+        "03/04",
+        "10/04",
+        "17/04",
+        "24/04",
+        "01/05",
+        "08/05",
+        "15/05",
+        "22/05",
+        "29/05",
+        "05/06",
+        "12/06",
+        "19/06",
+        "26/06",
+        "03/07",
+        "10/07",
+        "17/07",
+        "24/07",
+        "31/07",
+        "07/08",
+        "14/08",
+        "21/08",
+        "28/08",
+        "04/09",
+        "11/09",
+        "18/09",
+        "25/09",
+        "02/10",
+        "09/10"
+      ],
+      "municipios": {
+        "AGUAS VERMELHAS": [
+          0,
+          2,
+          1,
+          2,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          1,
+          1,
+          0,
+          2,
+          2,
+          2,
+          2,
+          0,
+          2,
+          2,
+          2,
+          0,
+          1,
+          1,
+          2,
+          0,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          0,
+          2,
+          1,
+          3,
+          3,
+          0,
+          1
+        ],
+        "ARACUAI": [
+          2,
+          3,
+          2,
+          2,
+          0,
+          2,
+          2,
+          2,
+          2,
+          4,
+          2,
+          2,
+          1,
+          3,
+          1,
+          4,
+          7,
+          7,
+          6,
+          2,
+          3,
+          4,
+          2,
+          0,
+          1,
+          1,
+          4,
+          3,
+          15,
+          6,
+          11,
+          7,
+          3,
+          11,
+          8,
+          8,
+          6,
+          2,
+          5,
+          3,
+          9
+        ],
+        "CACHOEIRA DE PAJEU": [
+          0,
+          1,
+          1,
+          1,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1,
+          0,
+          2,
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "COMERCINHO": [
+          2,
+          0,
+          1,
+          1,
+          0,
+          1,
+          2,
+          2,
+          2,
+          7,
+          6,
+          5,
+          1,
+          1,
+          3,
+          4,
+          6,
+          5,
+          6,
+          3,
+          0,
+          1,
+          1,
+          2,
+          1,
+          1,
+          1,
+          2,
+          4,
+          3,
+          2,
+          1,
+          2,
+          1,
+          2,
+          1,
+          2,
+          3,
+          2,
+          1,
+          0
+        ],
+        "CORONEL MURTA": [
+          1,
+          2,
+          3,
+          3,
+          4,
+          3,
+          1,
+          2,
+          1,
+          2,
+          3,
+          4,
+          1,
+          3,
+          2,
+          4,
+          2,
+          3,
+          3,
+          2,
+          2,
+          2,
+          3,
+          2,
+          2,
+          3,
+          4,
+          2,
+          5,
+          2,
+          3,
+          4,
+          3,
+          2,
+          2,
+          2,
+          2,
+          3,
+          3,
+          2,
+          2
+        ],
+        "DIVISA ALEGRE": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          1,
+          4,
+          2,
+          3,
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          3,
+          1,
+          2,
+          3,
+          3,
+          2,
+          3,
+          3,
+          2,
+          3,
+          3,
+          3,
+          3,
+          0,
+          1,
+          2,
+          2,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          0
+        ],
+        "ITAOBIM": [
+          4,
+          5,
+          3,
+          3,
+          6,
+          2,
+          2,
+          4,
+          4,
+          3,
+          1,
+          1,
+          2,
+          3,
+          1,
+          3,
+          2,
+          3,
+          6,
+          7,
+          8,
+          9,
+          6,
+          5,
+          3,
+          10,
+          8,
+          7,
+          2,
+          7,
+          7,
+          11,
+          10,
+          10,
+          9,
+          12,
+          11,
+          2,
+          3,
+          2,
+          3
+        ],
+        "ITINGA": [
+          0,
+          0,
+          0,
+          0,
+          2,
+          1,
+          1,
+          1,
+          3,
+          1,
+          2,
+          3,
+          1,
+          2,
+          1,
+          2,
+          1,
+          2,
+          2,
+          1,
+          2,
+          2,
+          1,
+          1,
+          2,
+          2,
+          2,
+          1,
+          2,
+          2,
+          1,
+          3,
+          2,
+          2,
+          2,
+          1,
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "MEDINA": [
+          3,
+          3,
+          3,
+          4,
+          4,
+          3,
+          4,
+          1,
+          2,
+          2,
+          2,
+          3,
+          3,
+          2,
+          2,
+          3,
+          10,
+          7,
+          11,
+          2,
+          1,
+          1,
+          2,
+          0,
+          1,
+          0,
+          2,
+          2,
+          1,
+          5,
+          6,
+          4,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          3
+        ],
+        "PADRE PARAISO": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          2,
+          4,
+          2,
+          2,
+          2,
+          2,
+          2,
+          3,
+          2,
+          3,
+          2,
+          3,
+          2,
+          2,
+          1,
+          2,
+          1,
+          0,
+          2,
+          2,
+          2,
+          5,
+          2,
+          2,
+          3,
+          2,
+          3,
+          3,
+          3,
+          3,
+          2,
+          2,
+          1,
+          3
+        ],
+        "PEDRA AZUL": [
+          0,
+          2,
+          1,
+          1,
+          3,
+          2,
+          1,
+          2,
+          17,
+          4,
+          4,
+          2,
+          4,
+          3,
+          4,
+          3,
+          2,
+          4,
+          4,
+          2,
+          3,
+          0,
+          4,
+          0,
+          2,
+          0,
+          4,
+          2,
+          1,
+          2,
+          1,
+          2,
+          3,
+          3,
+          1,
+          1,
+          2,
+          3,
+          1,
+          0,
+          1
+        ],
+        "PONTO DOS VOLANTES": [
+          2,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          2,
+          2,
+          3,
+          2,
+          2,
+          3,
+          3,
+          3,
+          3,
+          2,
+          3,
+          2,
+          1,
+          2,
+          2,
+          2,
+          1,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          1,
+          2,
+          3,
+          3,
+          1,
+          1,
+          3,
+          1,
+          2,
+          2,
+          3
+        ],
+        "VIRGEM DA LAPA": [
+          3,
+          2,
+          2,
+          3,
+          2,
+          0,
+          2,
+          1,
+          2,
+          1,
+          2,
+          2,
+          0,
+          3,
+          1,
+          2,
+          3,
+          3,
+          1,
+          3,
+          2,
+          1,
+          2,
+          0,
+          0,
+          0,
+          3,
+          2,
+          3,
+          1,
+          2,
+          3,
+          1,
+          3,
+          1,
+          3,
+          3,
+          3,
+          3,
+          2,
+          3
+        ]
+      },
+      "ate": "14/10/2026"
+    }
   }
 }

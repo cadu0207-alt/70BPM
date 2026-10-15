@@ -1875,6 +1875,53 @@ function auditar() {
     await ctxI.close();
   }
 
+  // ---------- 41) IDOB · Boemia, onda 2: esforço, quando e onde operamos, bairro, local e regularidade por fim de semana ----------
+  console.log('\n[41] IDOB · Boemia: detalhamento automático e regularidade por fim de semana');
+  {
+    const ctxJ = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pj = await ctxJ.newPage();
+    const errosJ = []; pj.on('pageerror', (e) => errosJ.push(e.message));
+    await pj.goto(base);
+    await pj.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pj.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, det = DATA.idob_detalhe, d = DATA.idob, tot = d.total_qtdeop_acum[d.total_qtdeop_acum.length - 1], soma = (l) => l.reduce((a, x) => a + x[1], 0);
+      setMunFiltro('');
+      const fs = det.fins_de_semana;
+      out.dados = { total: det.total === tot, bairro: soma(det.bairro) === tot, completo: Object.values(det.bairro_completo).reduce((a, v) => a + Object.values(v).reduce((x, y) => x + y, 0), 0) === tot, matriz: det.dia_faixa.matriz.flat().reduce((a, b) => a + b, 0) === tot, esforco: det.esforco.municipios.reduce((a, m) => a + m.ops, 0) === tot,
+        local: det.local.em_bar + det.local.fora_bar === tot && soma(det.local.lista) === tot, fins: fs.rotulos.length >= 40 && Object.values(fs.municipios).every(v => v.length === fs.rotulos.length),
+        semFimSemanaTotal: Object.values(fs.municipios).reduce((a, v) => a + v.reduce((x, y) => x + y, 0), 0) <= tot };
+      out.publico = !/matricula|NUMERO_RAT|postGrad|\d{4}-\d{9}-\d{3}/i.test(JSON.stringify(det));
+      goToPage('idob'); await esp(400);
+      const m = document.getElementById('main'), linhas = [...document.querySelectorAll('#idobReg tbody tr')];
+      const N = fs.rotulos.length, cobOf = (nome) => fs.municipios[nome].filter(x => x > 0).length;
+      const cobTela = linhas.map(t => parseInt(/(\d+) de \d+/.exec(t.children[1].textContent)[1]));
+      out.reg = { titulo: /Regularidade — fins de semana com operação Boemia/.test(m.textContent), informativo: /não entra na nota nem nos semáforos/.test(m.textContent), linhas: linhas.length === Object.keys(fs.municipios).length,
+        ordem: cobTela.every((v, i) => i === 0 || v >= cobTela[i - 1]), valores: linhas.every(t => parseInt(/(\d+) de \d+/.exec(t.children[1].textContent)[1]) === cobOf(t.dataset.mun)),
+        tira: linhas.every(t => t.querySelectorAll('.fs').length === 12), simbolos: !!document.querySelector('#idobReg .fs.ok') && !!document.querySelector('#idobReg .fs.no') };
+      out.detalhe = { esforco: !!document.getElementById('opEsforco') && document.querySelectorAll('#opEsforco tbody tr').length === det.esforco.municipios.length + 1, dia: !!document.getElementById('opDiaFaixa'), bairro: /Por bairro/.test(m.textContent), alerta: /Operações sem bairro/.test(m.textContent), semNatureza: !/Por natureza/.test(m.textContent) };
+      out.local = { titulo: /Onde as operações acontecem/.test(m.textContent), forabar: new RegExp('Fora de bar').test(m.textContent) && new RegExp('>' + det.local.fora_bar + '<').test(m.innerHTML), aviso: /O IDOB conta todas as operações Boemia/.test(m.textContent) };
+      // cidade clicável a partir da regularidade: bairros da cidade
+      const alvo = linhas[0].dataset.mun;
+      linhas[0].click(); await esp(400);
+      const kM = Object.keys(det.bairro_municipio).find(k => normMun(k) === normMun(alvo));
+      out.cidade = { filtro: normMun(getMunFiltro()) === normMun(alvo), bairros: new RegExp('Por bairro — ' + kM).test(document.getElementById('main').textContent) };
+      setMunFiltro('');
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(Object.values(r.dados).every(Boolean), 'dados do IDOB fecham com o total de operações (bairro, bairro completo, dia × faixa, esforço, local, fins de semana)', 'dados: ' + JSON.stringify(r.dados));
+    checa(r.publico, 'detalhamento público do IDOB só traz agregados (sem RAT, matrícula ou nome de policial)', 'apareceu dado pessoal');
+    checa(r.reg.titulo && r.reg.informativo && r.reg.linhas && r.reg.ordem && r.reg.valores, 'IDOB: regularidade por fim de semana (informativa), da cidade com menos para a com mais, valores conferem com os dados', 'regularidade: ' + JSON.stringify(r.reg));
+    checa(r.reg.tira && r.reg.simbolos, 'IDOB: tira dos últimos 12 fins de semana com símbolo além da cor (● operou, ○ não)', 'tira: ' + JSON.stringify(r.reg));
+    checa(r.detalhe.esforco && r.detalhe.dia && r.detalhe.bairro && r.detalhe.alerta && r.detalhe.semNatureza, 'IDOB: esforço empregado, dia × faixa horária, bairro e aviso de operações sem bairro', 'detalhe: ' + JSON.stringify(r.detalhe));
+    checa(r.local.titulo && r.local.forabar && r.local.aviso, 'IDOB: onde as operações acontecem (bar x fora) com o aviso de que o IDOB conta todas', 'local: ' + JSON.stringify(r.local));
+    checa(r.cidade.filtro && r.cidade.bairros, 'IDOB: clicar numa cidade da regularidade filtra e mostra os bairros dela', 'cidade: ' + JSON.stringify(r.cidade));
+    checa(r.largura, 'IDOB onda 2 no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosJ.length === 0, 'IDOB onda 2 sem erro de JavaScript', 'erros: ' + errosJ.slice(0, 3).join(' | '));
+    await ctxJ.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
