@@ -768,6 +768,8 @@ def _agg_operacoes(rows, com_natureza):
         'qualidade': {'sem_bairro': bai.get('(sem bairro)', 0), 'por_municipio': dict(sem_bairro_mun)},
     }
     if com_natureza:
+        # lista COMPLETA município × bairro (só contagem de operações): base do cruzamento com os crimes violentos (a parte que mostra bairro de crime é restrita, no painel)
+        res['bairro_completo'] = {m: dict(sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))) for m, c in sorted(bai_mun.items())}
         res['natureza'] = [[k, v] for k, v in sorted(nat.items(), key=lambda kv: (-kv[1], kv[0]))]
     return res
 
