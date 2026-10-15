@@ -1975,6 +1975,56 @@ function auditar() {
     await ctxK.close();
   }
 
+  // ---------- 43) Cavalo de Aço, onda 1: botões de mês, meta proporcional, regra da meta correta, eficácia compacta ----------
+  console.log('\n[43] Cavalo de Aço no padrão das páginas de indicador');
+  {
+    const ctxC = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pc = await ctxC.newPage();
+    const errosC = []; pc.on('pageerror', (e) => errosC.push(e.message));
+    await pc.goto(base);
+    await pc.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pc.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, d = DATA.cavaloaco, ef = DATA.cavaloaco_eficacia, ult = Math.min(MES_ATUAL_IDX, d.meses.length - 1);
+      try { localStorage.removeItem('indMes_cavaloaco'); } catch (e) {}
+      setMunFiltro('');
+      goToPage('cavaloaco'); await esp(400);
+      const m = document.getElementById('main'), linhas = [...document.querySelectorAll('#cavTable tbody tr')], f = fatorMesEmAndamento(d, ult);
+      out.estrutura = { semSelect: !document.getElementById('cavaloacoMonthSel'), pills: document.querySelectorAll('#cavMeses button').length === ult + 1 && document.querySelector('#cavMeses button.on').dataset.p === String(ult), linhas: linhas.length, subtotais: linhas.filter(t => t.classList.contains('cia-sub')).length,
+        metodologia: !!document.querySelector('details.aud-como') && !document.querySelector('details.aud-como').open, regra: /1 por semana por destacamento, 2 por pelotão e 4 por sede de companhia/.test(m.textContent) && !/4\/companhia por mês/.test(m.textContent) };
+      // meta proporcional: "faltam" só onde o realizado está abaixo da meta dos dias fechados
+      const esperado = d.municipios.filter(x => x.realizado_mes[ult] < Math.floor(x.meta_mes[ult] * f + 1e-9)).map(x => normMun(x.nome)).sort().join();
+      const naTela = linhas.filter(t => t.dataset.mun && /faltam/.test(t.children[1].textContent)).map(t => normMun(t.dataset.mun)).sort().join();
+      out.prop = { igual: esperado === naTela, total: linhas[linhas.length - 1].children[1].textContent.includes('/ ' + Math.floor(d.total_meta_mes[ult] * f + 1e-9)), nota: f < 1 ? /proporcional aos dias já fechados/.test(document.getElementById('cavNota').textContent) : true, semNaoCumpriu: !/NÃO CUMPRIU/.test(m.textContent) };
+      out.blocos = { ano: !!m.querySelector('svg.ano-svg') && /Projeção para o ano/.test(m.textContent), quadro: document.querySelectorAll('#opQuadro tbody tr').length === 14 };
+      // eficácia compacta: cartões, tabela de 5 colunas e total coerente
+      const ops = ef.municipios.reduce((a, x) => a + x.num_ops.slice(0, ult + 1).reduce((p, q) => p + q, 0), 0);
+      const le = [...document.querySelectorAll('#cavEfTable tbody tr')];
+      out.ef = { cartoes: document.querySelectorAll('#cavEfKpis .kpi-card').length === 5, colunas: document.querySelectorAll('#cavEfTable thead th').length === 5, linhas: le.length === ef.municipios.length + 1, total: parseInt(le[le.length - 1].children[1].textContent) === ops,
+        aviso: /RATs com "CAVALO" no nome da operação/.test(m.textContent), semZero: !/ · 0 min/.test(document.getElementById('cavEfTable').textContent), naturezas: /Naturezas dos REDS gerados/.test(m.textContent) };
+      // trocar o mês: tabela, título e eficácia acompanham
+      document.querySelector('#cavMeses button[data-p="0"]').click(); await esp(100);
+      const t0 = [...document.querySelectorAll('#cavTable tbody tr')].pop();
+      out.janeiro = { titulo: /Janeiro/.test(document.getElementById('cavTitulo').textContent), metaCheia: t0.children[1].textContent.includes('/ ' + d.total_meta_mes[0]), nota: document.getElementById('cavNota').textContent === '', ef: /acumulado até Janeiro/.test(document.getElementById('cavEfRotulo').textContent) && parseInt([...document.querySelectorAll('#cavEfTable tbody tr')].pop().children[1].textContent) === ef.municipios.reduce((a, x) => a + x.num_ops[0], 0) };
+      // cidade clicável
+      document.querySelector('#cavTable tr.rank-clic').click(); await esp(400);
+      out.cidade = { filtro: !!getMunFiltro(), painel: /— mês a mês/.test(document.getElementById('main').innerHTML) && document.querySelectorAll('#main svg.ano-svg').length >= 2 };
+      setMunFiltro('');
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.estrutura.semSelect && r.estrutura.pills && r.estrutura.metodologia && r.estrutura.linhas === 17 && r.estrutura.subtotais === 3, 'Cavalo de Aço: botões de mês (mês atual marcado), sem seletor antigo, metodologia recolhida e subtotal por companhia', 'estrutura: ' + JSON.stringify(r.estrutura));
+    checa(r.estrutura.regra, 'Cavalo de Aço: a regra da meta está certa no texto (1/2/4 por semana, não por mês)', 'texto da meta ainda errado');
+    checa(r.prop.igual && r.prop.total && r.prop.nota && r.prop.semNaoCumpriu, 'Cavalo de Aço: no mês em andamento a meta é proporcional — só "faltam" quem está abaixo da meta dos dias fechados', 'meta proporcional: ' + JSON.stringify(r.prop));
+    checa(r.blocos.ano && r.blocos.quadro, 'Cavalo de Aço: ano contra a meta com projeção e quadro município × mês', 'blocos: ' + JSON.stringify(r.blocos));
+    checa(r.ef.cartoes && r.ef.colunas && r.ef.linhas && r.ef.total && r.ef.aviso && r.ef.semZero && r.ef.naturezas, 'Cavalo de Aço: eficácia compacta (5 cartões, tabela de 5 colunas), aviso do universo diferente e sem "0 min" falso', 'eficácia: ' + JSON.stringify(r.ef));
+    checa(r.janeiro.titulo && r.janeiro.metaCheia && r.janeiro.nota && r.janeiro.ef, 'Cavalo de Aço: trocar o mês muda título, meta cheia e a eficácia acumulada', 'janeiro: ' + JSON.stringify(r.janeiro));
+    checa(r.cidade.filtro && r.cidade.painel, 'Cavalo de Aço: clicar numa cidade filtra e abre o painel da cidade', 'cidade: ' + JSON.stringify(r.cidade));
+    checa(r.largura, 'Cavalo de Aço no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosC.length === 0, 'Cavalo de Aço sem erro de JavaScript', 'erros: ' + errosC.slice(0, 3).join(' | '));
+    await ctxC.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

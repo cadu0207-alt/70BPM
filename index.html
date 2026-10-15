@@ -863,7 +863,7 @@ const DEFS = {
   pog: '<b>Naturezas das operações de POG</b><br><code>Y04009</code> Operação Trânsito Seguro &middot; <code>Y07001</code> Batida Policial &middot; <code>Y07002</code> Operação Presença &middot; <code>Y07003</code> Incursão em Zona Quente de Criminalidade &middot; <code>Y07010</code> Divisas Seguras &middot; <code>Y10001</code> Cumprimento de Busca e Apreensão de Objetos, Pessoas e/ou Animais.',
   ppag: '<b>Naturezas do PPAG (policiamento de proximidade)</b><br><code>Y15001</code> Patrulha Escolar/Prevenção às Drogas &middot; <code>Y07012</code> Prevenção à Violência Doméstica &middot; <code>Y15010</code> Ação/Operação em Zona Rural (na base atual do SiGOp esse tipo de operação é lançado como <code>Y07014</code>, a Metas26 ainda usa o nome legado Y15010) &middot; <code>Y15020</code> Ação/Operação em Área de Risco (sem indicador de meta definido ainda).',
   idob: '<span class="formula">IDOB = [Qtde de Operações em Bares/Botecos &minus; Nº de Vítimas (MV + CVPe + CVPa) &times; 10] &divide; Qtde de Operações em Bares/Botecos &times; 100</span><span class="polarity">Polaridade: quanto maior (%), melhor</span><br>O multiplicador ×10 é intencional — o sistema é justamente pra inflar o peso das vítimas no indicador (confirmado por Eduardo em 2026-08-03). O guia oficial da DOP registra a fórmula sem esse peso, mas o painel usa a versão mais rígida de propósito.',
-  cavaloaco: '<b>Operação Cavalo de Aço</b><br>Meta de operações (Ro): mesma régua do Visibilidade — 1 abordagem/destacamento, 2/pelotão, 4/companhia por mês. <b>Filtro de busca no Sistema REDS (confirmado por Eduardo em 2026-08-11)</b>: Natureza = Y01003 <b>E</b> Histórico contém "Cavalo de Aço" <b>E</b> Unidade Responsável pelo Registro = 70 BPM. Esse filtro é mais restrito que o usado até 2026-08-07 (que não exigia o Histórico) — os números caíram porque passou a considerar só as operações realmente registradas como Cavalo de Aço, não todo Y01003.<br>Motos Abordadas (A): extraído do indicador de produtividade "Qde de motocicletas fiscalizadas" registrado em cada RAT — como cada operação costuma abordar mais de uma moto, esse número é bem maior que o de operações.',
+  cavaloaco: '<b>Operação Cavalo de Aço</b><br>Meta mínima de operações: <b>1 por semana por destacamento, 2 por pelotão e 4 por sede de companhia</b> (no painel a meta mensal é 4, 8 e 15 por mês — 101 no batalhão; Cia-sede: Araçuaí, Itaobim, Pedra Azul; Pelotão: Divisa Alegre, Itinga, Medina, Padre Paraíso; Destacamento: os demais). <b>Filtro de busca no Sistema REDS (confirmado por Eduardo em 2026-08-11)</b>: Natureza = Y01003 <b>E</b> Histórico contém "Cavalo de Aço" <b>E</b> Unidade Responsável pelo Registro = 70 BPM. Esse filtro é mais restrito que o usado até 2026-08-07 (que não exigia o Histórico) — os números caíram porque passou a considerar só as operações realmente registradas como Cavalo de Aço, não todo Y01003.<br>Motos Abordadas (A): extraído do indicador de produtividade "Qde de motocicletas fiscalizadas" registrado em cada RAT — como cada operação costuma abordar mais de uma moto, esse número é bem maior que o de operações.',
   rolezinho: '<b>Operação Rolezinho</b><br>Meta: 1 operação por semana, por município. <b>Filtro de busca no Sistema REDS (confirmado por Eduardo em 2026-08-04)</b>: Natureza = Y01003 <b>E</b> Histórico contém "ROLEZINHO" <b>E</b> Unidade Responsável pelo Registro = 70 BPM.<span class="polarity">Polaridade: quanto maior, melhor.</span><br><span class="neg">⚠ Atenção pra todas as frações: o registro só entra nesse indicador se a natureza da ocorrência for Y01003. Já foram identificados casos de operações de Rolezinho reais lançadas com outra natureza (ex: Y04999, Y07001) — esses não aparecem na busca oficial e o indicador fica subcontado. Ao lançar um Rolezinho, confirmar SEMPRE natureza Y01003 + "ROLEZINHO" no histórico.</span>',
   esforco_furto: '<span class="formula">DES% = Qtde de Prisões (autores de Furto) &divide; Qtde de REDS de Furto &times; 100</span><span class="polarity">Polaridade: quanto maior, melhor.</span><br>Fonte: <b>universo GERAL de furto</b> (natureza C01155, consumado+tentado, rural + urbano), export REDS/SiGOp, jan-ago/2026. Prisões extraídas do campo QTDE_PRISAO de cada ocorrência dessa mesma natureza.<br><b>Diferença importante em relação ao indicador Furto em Zona Rural</b> (que usa só a flag <code>IFZR</code>, subconjunto rural): checado por Eduardo em 2026-08-10 — a maior parte das prisões de autores de furto (65 de 75 no ano) acontece em furtos FORA da zona rural, então restringir esse indicador só ao universo rural subcontava o esforço real. Por isso o Esforço-Furto usa o universo geral de C01155, e o Furto em Zona Rural continua usando só IFZR — são denominadores propositalmente diferentes.',
   saque_seguro: '<b>Critérios da Operação Saque Seguro</b><br>Natureza: A21.007. Preencher no histórico "OPERAÇÃO SAQUE SEGURO". Será executada em dias úteis, entre os dias 25 do mês que se encerra e 10 do mês que inicia. As atividades ocorrerão entre 10:00 e 15:00 horas. Duração mínima de 15 minutos. Cadastrar no mínimo um CPF.<br>A21.007 é o mesmo código de VCP e Padrinho da Escola — diferenciado apenas pelo histórico; Eduardo traz o export já filtrado (RAT "VISITA PREVENTIVA A21007", jan-jul/2026, 801 registros, confirmado como exclusivo de Saque Seguro).<br><b>Meta mensal por tipo de unidade</b> (confirmado por Eduardo em 2026-08-04): Companhia = 16/mês (Araçuaí, Itaobim, Pedra Azul) &middot; Pelotão = 8/mês (Medina, Itinga, Divisa Alegre) &middot; Destacamento = 4/mês (demais 7 municípios). Meta acumulada = meta mensal &times; nº de meses.<span class="polarity">Polaridade: quanto maior, melhor.</span>',
@@ -2638,135 +2638,100 @@ function renderITVDPage() {
 }
 
 function renderCavaloAcoPage() {
-  const d = DATA.cavaloaco;
+  const d = DATA.cavaloaco, cfg = OP_PISO, LM = opLimites(true), ef = DATA.cavaloaco_eficacia;
   const mesesLocais = d.meses || MESES.slice(0, d.total_mes.length);
-  let mi = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
+  const ultimoIdx = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
+  let mi = ultimoIdx;
+  try { const s = localStorage.getItem('indMes_cavaloaco'); if (/^\d+$/.test(s || '') && parseInt(s) <= ultimoIdx) mi = parseInt(s); } catch (e) {}
+  const munFiltro = normMun(getMunFiltro());
+  const par = (real, lim) => `<span class="par"><b>${real}</b> <span class="ind-lim">/ ${lim}</span></span>`;
+  const titulo = (i) => `Operação Cavalo de Aço — ${mesesLocais[i]} de 2026`;
 
-  function monthCell(cumpriu) {
-    return cumpriu
-      ? `<td style="background:rgba(33,201,138,0.22);color:#3fe0a5;font-weight:600">CUMPRIU</td>`
-      : `<td style="background:rgba(230,72,79,0.22);color:#ff8a8f;font-weight:600">NÃO CUMPRIU</td>`;
+  // ---- meta de operações (no mês em andamento a meta é proporcional aos dias já fechados; piso, arredonda para baixo) ----
+  function linhaMeta(nome, rM, mM, rA, mA, f, atr, cls) {
+    const lM = LM.mes(mM, f), lA = LM.acum(mA, mM, f);
+    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
   }
-
-  function rows(mi) {
-    let html = '';
-    d.municipios.forEach(m => {
-      const rMes=m.realizado_mes[mi], mMes=m.meta_mes[mi], rAc=m.realizado_acum[mi], mAc=m.meta_acum[mi];
-      const dAc = mAc ? (rAc/mAc*100) : 100;
-      const cls = dAc>=100?'neg':'pos';
-      const cumpriuMes = mMes ? (rMes >= mMes) : true;
-      html += `<tr><td style="text-align:left">${m.nome}</td>
-        <td>${mMes}</td><td>${rMes}</td>${monthCell(cumpriuMes)}
-        <td class="col-divider">${mAc}</td><td>${rAc}</td><td><span class="${cls}">${dAc.toFixed(0)}%</span></td>
-      </tr>`;
+  function tabelaMeta(i) {
+    const f = fatorMesEmAndamento(d, i);
+    let rows = '';
+    opGruposCia(d.municipios).forEach(g => {
+      g.itens.forEach(m => { rows += linhaMeta(m.nome, m.realizado_mes[i], m.meta_mes[i], m.realizado_acum[i], m.meta_acum[i], f, ` data-mun="${m.nome}" title="Filtrar por ${m.nome}"`, 'rank-clic' + (normMun(m.nome) === munFiltro ? ' sel' : '')); });
+      rows += linhaMeta('Subtotal ' + g.cia, opSoma(g.itens, 'realizado_mes', i), opSoma(g.itens, 'meta_mes', i), opSoma(g.itens, 'realizado_acum', i), opSoma(g.itens, 'meta_acum', i), f, '', 'cia-sub');
     });
-    const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
-    const tDAc = tMAc? tRAc/tMAc*100:100;
-    const tCumpriuMes = tMMes ? (tRMes >= tMMes) : true;
-    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
-      <td>${tMMes}</td><td>${tRMes}</td>${monthCell(tCumpriuMes)}
-      <td class="col-divider">${tMAc}</td><td>${tRAc}</td><td><span class="${tDAc>=100?'neg':'pos'}">${tDAc.toFixed(0)}%</span></td>
-    </tr>`;
-    return html;
+    rows += linhaMeta('70º BPM', d.total_mes[i], d.total_meta_mes[i], d.total_acum[i], d.total_meta_acum[i], f, ' style="font-weight:700"', '');
+    return rows;
   }
 
-  // ---------- Eficácia e Eficiência (produtividade extraída do RAT) ----------
-  const ef = DATA.cavaloaco_eficacia;
-  const efMesesLocais = ef ? ef.meses : mesesLocais;
-
-  function efSum(arr, mi, acum) {
-    return acum ? arr.slice(0, mi + 1).reduce((a, b) => a + b, 0) : arr[mi];
+  // ---- eficácia e eficiência (produtividade extraída do RAT) ----
+  const efSum = (arr, i) => arr.slice(0, i + 1).reduce((a, b) => a + b, 0);
+  const efPct = (num, den) => (den > 0 ? num / den * 100 : 0);
+  function efLinhas(i) {
+    return ef.municipios.map(m => {
+      const s = (a) => efSum(a, i), ops = s(m.num_ops), efs = s(m.efetivo_sum);
+      return { nome: m.nome, ops, mf: s(m.motos_fisc), ma: s(m.motos_autu), vf: s(m.veic_fisc), vr: s(m.veic_retidos), rg: s(m.reds_gerado), ab: s(m.inabilitados), efMed: ops ? efs / ops : 0, efs, tempo: m.num_ops[i] ? (m.tempo_mediana_min[i] || 0) : 0 };
+    }).sort((a, b) => b.ops - a.ops);
   }
-  function efPct(num, den) { return den > 0 ? (num / den * 100) : 0; }
-
-  function efKpis(mi) {
-    const ops = ef.municipios.reduce((s, m) => s + efSum(m.num_ops, mi, true), 0);
-    const motosFisc = ef.municipios.reduce((s, m) => s + efSum(m.motos_fisc, mi, true), 0);
-    const motosAutu = ef.municipios.reduce((s, m) => s + efSum(m.motos_autu, mi, true), 0);
-    const veicRetidos = ef.municipios.reduce((s, m) => s + efSum(m.veic_retidos, mi, true), 0);
-    const inabilitados = ef.municipios.reduce((s, m) => s + efSum(m.inabilitados, mi, true), 0);
-    const redsGerado = ef.municipios.reduce((s, m) => s + efSum(m.reds_gerado, mi, true), 0);
-    const efetivoSum = ef.municipios.reduce((s, m) => s + efSum(m.efetivo_sum, mi, true), 0);
-    const taxaAutuacao = efPct(motosAutu, motosFisc);
-    const taxaReds = efPct(redsGerado, ops);
-    const motosPorOp = ops > 0 ? (motosFisc / ops) : 0;
-    const efetivoMedio = ops > 0 ? (efetivoSum / ops) : 0;
-
+  function efKpis(i) {
+    const L = efLinhas(i), t = (k) => L.reduce((a, x) => a + x[k], 0);
+    const ops = t('ops'), mf = t('mf'), ma = t('ma'), vr = t('vr'), rg = t('rg'), ab = t('ab'), efs = t('efs');
     let h = `<div class="kpi-grid">`;
-    h += `<div class="kpi-card kpi-neutral"><div class="val">${motosFisc.toLocaleString('pt-BR')}</div><div class="lbl">Motos Fiscalizadas</div></div>`;
-    h += `<div class="kpi-card kpi-green"><div class="val">${taxaAutuacao.toFixed(1)}%</div><div class="lbl">Taxa de Autuação (${motosAutu}/${motosFisc})</div></div>`;
-    h += `<div class="kpi-card kpi-neutral"><div class="val">${veicRetidos}</div><div class="lbl">Veículos Retidos por Infração</div></div>`;
-    h += `<div class="kpi-card ${redsGerado > 0 ? 'kpi-green' : 'kpi-neutral'}"><div class="val">${redsGerado}</div><div class="lbl">REDS Gerados (${taxaReds.toFixed(1)}% das op.)</div></div>`;
-    h += `</div>`;
-    h += `<div class="kpi-grid">`;
-    h += `<div class="kpi-card kpi-neutral"><div class="val">${efetivoMedio.toFixed(1)}</div><div class="lbl">Efetivo Médio/Operação</div></div>`;
-    h += `<div class="kpi-card kpi-neutral"><div class="val">${motosPorOp.toFixed(1)}</div><div class="lbl">Motos Fiscalizadas/Operação</div></div>`;
-    h += `<div class="kpi-card kpi-neutral"><div class="val">${inabilitados}</div><div class="lbl">Inabilitados Autuados</div></div>`;
-    h += `<div class="kpi-card kpi-neutral"><div class="val">${ops.toLocaleString('pt-BR')}</div><div class="lbl">Total de Operações (RAT)</div></div>`;
-    h += `</div>`;
+    h += `<div class="kpi-card kpi-neutral"><div class="val">${fmtBr(mf, 0)}</div><div class="lbl">Motos fiscalizadas</div><div class="sub">${ops ? fmtBr(mf / ops, 1) : 0} por operação</div></div>`;
+    h += `<div class="kpi-card kpi-green"><div class="val">${fmtBr(efPct(ma, mf), 1)}%</div><div class="lbl">Taxa de autuação</div><div class="sub">${ma} autuadas de ${fmtBr(mf, 0)} · ${ab} inabilitados</div></div>`;
+    h += `<div class="kpi-card kpi-neutral"><div class="val">${vr}</div><div class="lbl">Veículos retidos por infração</div></div>`;
+    h += `<div class="kpi-card ${rg > 0 ? 'kpi-green' : 'kpi-neutral'}"><div class="val">${rg}</div><div class="lbl">REDS gerados</div><div class="sub">${fmtBr(efPct(rg, ops), 1)}% das operações</div></div>`;
+    h += `<div class="kpi-card kpi-neutral"><div class="val">${ops ? fmtBr(efs / ops, 1) : 0}</div><div class="lbl">Efetivo médio por operação</div><div class="sub">${fmtBr(ops, 0)} operações (RAT)</div></div></div>`;
     return h;
   }
-
-  function efRows(mi) {
+  function efTabela(i) {
+    const L = efLinhas(i);
+    const celula = (x, nome, atr, cls) => `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${x.ops}</td><td><b>${fmtBr(x.mf, 0)}</b> fisc.<br><small>${x.ma} autuadas · ${fmtBr(efPct(x.ma, x.mf), 1)}%</small></td><td><b>${fmtBr(x.vf, 0)}</b> fisc.<br><small>${x.vr} retidos</small></td><td><b>${x.rg}</b> REDS<br><small>efetivo ${fmtBr(x.efMed, 1)}${x.tempo ? ' · ' + x.tempo + ' min' : ''}</small></td></tr>`;
     let h = '';
-    ef.municipios.forEach(m => {
-      const ops = efSum(m.num_ops, mi, true), motosFisc = efSum(m.motos_fisc, mi, true), motosAutu = efSum(m.motos_autu, mi, true);
-      const veicFisc = efSum(m.veic_fisc, mi, true), veicRet = efSum(m.veic_retidos, mi, true), redsGer = efSum(m.reds_gerado, mi, true);
-      const efetivo = efSum(m.efetivo_sum, mi, true);
-      const taxa = efPct(motosAutu, motosFisc);
-      const efetivoMedio = ops > 0 ? (efetivo / ops) : 0;
-      const tempoMed = m.tempo_mediana_min[mi] || 0;
-      h += `<tr><td style="text-align:left">${m.nome}</td>
-        <td>${ops}</td><td>${motosFisc}</td><td>${motosAutu}</td><td>${taxa.toFixed(1)}%</td>
-        <td class="col-divider">${veicFisc}</td><td>${veicRet}</td>
-        <td class="col-divider">${redsGer}</td><td>${efetivoMedio.toFixed(1)}</td><td>${tempoMed}</td>
-      </tr>`;
-    });
+    L.forEach(x => { h += celula(x, x.nome, ` data-mun="${x.nome}" title="Filtrar por ${x.nome}"`, 'rank-clic' + (normMun(x.nome) === munFiltro ? ' sel' : '')); });
+    const t = (k) => L.reduce((a, x) => a + x[k], 0), ops = t('ops');
+    h += celula({ ops, mf: t('mf'), ma: t('ma'), vf: t('vf'), vr: t('vr'), rg: t('rg'), efMed: ops ? t('efs') / ops : 0, tempo: 0 }, '70º BPM', ' style="font-weight:700"', '');
     return h;
   }
+  const efTotalOps = ef ? ef.municipios.reduce((a, m) => a + efSum(m.num_ops, ultimoIdx), 0) : 0;
 
-  let natRows = '';
-  (ef.naturezas_reds_geradas || []).slice(0, 12).forEach(n => {
-    natRows += `<tr><td style="text-align:left"><code>${n.codigo}</code></td><td style="text-align:left">${n.descricao}</td><td>${n.qtd}</td></tr>`;
-  });
-
-  let html = `<div class="page-title">Operação Cavalo de Aço em ${mesesLocais[mi]} de 2026</div>`;
-  html += `<div class="def-box">${DEFS.cavaloaco}</div>`;
+  const blocos = opBlocosHtml(d, cfg, { mesesLocais, ultimoIdx, munFiltro, rotulo: '' });
+  let html = `<div class="page-title" id="cavTitulo">${titulo(mi)}</div>`;
+  html += freshBadge(mesesLocais[ultimoIdx], { semDadoReal: indicadorSemDadoNoMes(d, ultimoIdx, false) });
+  html += `<details class="aud-como"><summary>Metodologia e definições</summary><div>${DEFS.cavaloaco}</div></details>`;
   html += bannerAcompanhamentoDiario([{ label: 'Cavalo de Aço (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(d) }]);
-  html += `<select class="month-select" id="cavaloacoMonthSel">`;
-  mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
-  html += `</select>`;
-  html += `<table class="data-table" id="cavaloacoTable"><thead><tr>
-    <th style="text-align:left">Município</th><th>Meta Op. Mês</th><th>Op. Mês</th><th>Cumpriu Mês?</th>
-    <th class="col-divider">Meta Op. Acum</th><th>Op. Acum</th><th>Desemp.</th>
-  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
-  html += `<div class="updated">Fonte: export REDS (Natureza=Y01003 E Histórico contém "Cavalo de Aço" E Unidade Responsável=70 BPM), ${d.total_acum[d.total_acum.length-1]} operações jan-ago/2026 (filtro atualizado em 2026-08-11 — antes não exigia o Histórico, o que contava toda operação Y01003, não só as de Cavalo de Aço). Op. = nº de REDS; Motos Abordadas = soma do indicador "Qde de motocicletas fiscalizadas" de cada RAT (fonte separada, não tocada por essa mudança). Falta confirmar os códigos exatos dos componentes de recuperação de veículo/prisão/arma/drogas/clonagem pra fechar o indicador IDOCA completo (fórmula ainda pendente de validação).</div>`;
-
+  html += `<div class="pills-vd" id="cavMeses" role="group" aria-label="Mês">` + mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<button type="button" data-p="${i}">${m}${i === ultimoIdx && ultimoIdx === MES_ATUAL_IDX ? ' (parcial)' : ''}</button>`).join('') + `</div>`;
+  html += `<div class="vd-recorte" id="cavNota">${opNotaMesParcial(d, mesesLocais, mi)}</div>`;
+  html += `<div class="vd-recorte">Mês e acumulado mostram realizado / meta de operações. A situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). Fonte: ${d.total_acum[d.total_acum.length - 1]} operações em ${mesesLocais[ultimoIdx]} (RAT com natureza Y01003 e o Histórico citando "Cavalo de Aço").</div>`;
+  html += `<div class="table-wrap"><table class="data-table ind-tab" id="cavTable"><thead><tr><th style="text-align:left">Município</th><th>Mês</th><th class="col-divider">Acumulado</th><th>% da meta</th><th style="text-align:left">Situação</th></tr></thead><tbody>${tabelaMeta(mi)}</tbody></table></div>`;
+  html += blocos.ano + blocos.cidade + blocos.quadro;
   if (ef) {
-    html += `<div class="page-title" style="margin-top:34px;font-size:16px">Eficácia e Eficiência (Acumulado até ${mesesLocais[mi]})</div>`;
-    html += `<div class="def-box">Extraído do campo <code>PRODUTIVIDADE</code> de cada RAT de Cavalo de Aço (indicadores lançados pela guarnição na hora de fechar o registro) e do campo <code>REDS_RELACIONADOS</code> (quando a fiscalização gera um REDS à parte — clonagem, drogas, arma, foragido etc.). <b>Eficácia</b> = o que a fiscalização efetivamente produz (autuações, retenções, REDS gerados). <b>Eficiência</b> = quanto recurso (efetivo, tempo) foi empregado pra produzir isso. Contagem de operações aqui vem do RAT (NOME_OPERACAO contém "CAVALO"), levemente diferente do nº oficial de operações (que vem do REDS com Histórico) — números próximos mas não idênticos, tratar como uma lente complementar, não substituta.</div>`;
-    html += `<div id="cavaloacoEfKpis">${efKpis(mi)}</div>`;
-    html += `<table class="data-table" id="cavaloacoEfTable"><thead><tr>
-      <th style="text-align:left">Município</th><th>Op. (RAT)</th><th>Motos Fisc.</th><th>Motos Autu.</th><th>Taxa Autu.</th>
-      <th class="col-divider">Veíc. Fisc.</th><th>Veíc. Retidos</th>
-      <th class="col-divider">REDS Gerados</th><th>Efetivo Méd.</th><th>Tempo Med.(min)</th>
-    </tr></thead><tbody>${efRows(mi)}</tbody></table>`;
-    if (natRows) {
-      html += `<div class="page-title" style="margin-top:24px;font-size:14px">Naturezas dos REDS Gerados a partir da Fiscalização (70º BPM, ano)</div>`;
-      html += `<table class="data-table"><thead><tr><th style="text-align:left">Código</th><th style="text-align:left">Natureza</th><th>Qtde</th></tr></thead><tbody>${natRows}</tbody></table>`;
-    }
-    html += `<div class="updated">Tempo mediano exclui registros com OPR_TEMPO_TOTAL_MINUTOS &gt; 480 (RATs provavelmente esquecidos abertos — outlier de digitação, não representa a duração real da operação). ${ef.fonte}.</div>`;
+    html += `<div class="ind-sec" style="margin-top:34px"><h3 class="ind-tit page-title" style="font-size:16px">Eficácia e eficiência <span id="cavEfRotulo">(acumulado até ${mesesLocais[mi]})</span></h3>`;
+    html += `<details class="aud-como"><summary>Como ler esta seção</summary><div>Extraído do campo <code>PRODUTIVIDADE</code> de cada RAT (indicadores lançados pela guarnição ao fechar o registro) e do campo <code>REDS_RELACIONADOS</code> (quando a fiscalização gera um REDS à parte — clonagem, drogas, arma, foragido etc.). <b>Eficácia</b> = o que a fiscalização produz (autuações, retenções, REDS gerados). <b>Eficiência</b> = quanto recurso (efetivo, tempo) foi empregado. O tempo mediano é do mês e exclui registros com mais de 480 minutos (RAT esquecido aberto).</div></details>`;
+    html += `<div class="vd-recorte"><b>Atenção:</b> esta seção usa ${fmtBr(efTotalOps, 0)} RATs com "CAVALO" no nome da operação; a meta acima usa ${d.total_acum[d.total_acum.length - 1]} (filtro pelo Histórico). Só parte dos RATs está nos dois conjuntos, por isso os totais por cidade não batem entre as duas seções.</div>`;
+    html += `<div id="cavEfKpis">${efKpis(mi)}</div>`;
+    html += `<div class="table-wrap"><table class="data-table ind-tab" id="cavEfTable"><thead><tr><th style="text-align:left">Município</th><th>Operações</th><th>Motos</th><th>Veículos</th><th>REDS gerados · esforço</th></tr></thead><tbody>${efTabela(mi)}</tbody></table></div>`;
+    const nat = (ef.naturezas_reds_geradas || []).slice(0, 8).map(n => [n.codigo + ' · ' + n.descricao, n.qtd]);
+    if (nat.length) html += `<div class="chart-box" style="min-width:0;margin-top:16px"><h3>Naturezas dos REDS gerados pela fiscalização (ano)</h3>${barrasHtml(nat, false, 'verde')}</div>`;
+    html += `</div>`;
   }
-
   document.getElementById('main').innerHTML = html;
-  document.getElementById('cavaloacoMonthSel').addEventListener('change', (e) => {
-    const mi2 = parseInt(e.target.value);
-    document.querySelector('#cavaloacoTable tbody').innerHTML = rows(mi2);
+
+  const marcar = () => document.querySelectorAll('#cavMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
+  marcar();
+  document.getElementById('cavMeses').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    mi = parseInt(b.dataset.p); try { localStorage.setItem('indMes_cavaloaco', String(mi)); } catch (er) {}
+    marcar();
+    document.querySelector('#cavTable tbody').innerHTML = tabelaMeta(mi);
+    document.getElementById('cavTitulo').textContent = titulo(mi);
+    document.getElementById('cavNota').textContent = opNotaMesParcial(d, mesesLocais, mi);
     if (ef) {
-      document.getElementById('cavaloacoEfKpis').innerHTML = efKpis(mi2);
-      document.querySelector('#cavaloacoEfTable tbody').innerHTML = efRows(mi2);
+      document.getElementById('cavEfKpis').innerHTML = efKpis(mi);
+      document.querySelector('#cavEfTable tbody').innerHTML = efTabela(mi);
+      document.getElementById('cavEfRotulo').textContent = `(acumulado até ${mesesLocais[mi]})`;
     }
   });
+  opLigarCidades(['cavTable', 'opQuadro', 'cavEfTable']);
 }
 
 function renderRolezinhoPage() {
