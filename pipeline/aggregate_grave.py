@@ -566,7 +566,7 @@ def _fix_mojibake(s):
         return s
 
 
-def build_cavalo_eficacia(rows, municipios_order, n_meses):
+def build_cavalo_eficacia(rows, municipios_order, n_meses, todas_as_linhas=False):
     """rows = CSV de entrada/TODOS OS RAT, filtro NOME_OPERACAO contém CAVALO (Y01003).
     Retorna dict pronto pra substituir DATA.cavaloaco_eficacia['municipios'/'totais'/'naturezas_reds_geradas'].
     Campos extraídos do PRODUTIVIDADE (idIndicador:X/descricao:Y/quantidade:Z/):
@@ -595,7 +595,8 @@ def build_cavalo_eficacia(rows, municipios_order, n_meses):
     nat_reds_count = {}
 
     for r in rows:
-        if 'CAVALO' not in r.get('NOME_OPERACAO', '').upper():
+        # todas_as_linhas=True: o export já é o conjunto OFICIAL da meta (natureza Y01003 + Histórico), sem filtrar pelo nome da operação
+        if not todas_as_linhas and 'CAVALO' not in r.get('NOME_OPERACAO', '').upper():
             continue
         try:
             mi = int(r['MES_NUMERICO']) - 1

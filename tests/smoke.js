@@ -2001,7 +2001,7 @@ function auditar() {
       const ops = ef.municipios.reduce((a, x) => a + x.num_ops.slice(0, ult + 1).reduce((p, q) => p + q, 0), 0);
       const le = [...document.querySelectorAll('#cavEfTable tbody tr')];
       out.ef = { cartoes: document.querySelectorAll('#cavEfKpis .kpi-card').length === 5, colunas: document.querySelectorAll('#cavEfTable thead th').length === 5, linhas: le.length === ef.municipios.length + 1, total: parseInt(le[le.length - 1].children[1].textContent) === ops,
-        aviso: /RATs com "CAVALO" no nome da operação/.test(m.textContent), semZero: !/ · 0 min/.test(document.getElementById('cavEfTable').textContent), naturezas: /Naturezas dos REDS gerados/.test(m.textContent) };
+        aviso: ef.universo === 'oficial' ? /mesmo conjunto da meta/.test(m.textContent) : /RATs com "CAVALO" no nome da operação/.test(m.textContent), semZero: !/ · 0 min/.test(document.getElementById('cavEfTable').textContent), naturezas: /Naturezas dos REDS gerados/.test(m.textContent) };
       // trocar o mês: tabela, título e eficácia acompanham
       document.querySelector('#cavMeses button[data-p="0"]').click(); await esp(100);
       const t0 = [...document.querySelectorAll('#cavTable tbody tr')].pop();
@@ -2023,6 +2023,52 @@ function auditar() {
     checa(r.largura, 'Cavalo de Aço no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
     checa(errosC.length === 0, 'Cavalo de Aço sem erro de JavaScript', 'erros: ' + errosC.slice(0, 3).join(' | '));
     await ctxC.close();
+  }
+
+  // ---------- 44) Cavalo de Aço, onda 2: mesmo conjunto da meta, regularidade semanal, esforço, dia × faixa, bairro e local ----------
+  console.log('\n[44] Cavalo de Aço: eficácia no mesmo conjunto da meta, regularidade semanal e detalhamento automático');
+  {
+    const ctxD = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pd = await ctxD.newPage();
+    const errosD = []; pd.on('pageerror', (e) => errosD.push(e.message));
+    await pd.goto(base);
+    await pd.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pd.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, d = DATA.cavaloaco, ef = DATA.cavaloaco_eficacia, det = DATA.cavaloaco_detalhe, tot = d.total_acum[d.total_acum.length - 1], soma = (l) => l.reduce((a, x) => a + x[1], 0);
+      setMunFiltro('');
+      const por = (m) => m.num_ops.reduce((a, b) => a + b, 0);
+      out.unificado = { universo: ef.universo === 'oficial', total: ef.municipios.reduce((a, m) => a + por(m), 0) === tot,
+        cidades: ef.municipios.every(m => { const x = d.municipios.find(y => normMun(y.nome) === normMun(m.nome)); return x && por(m) === x.realizado_acum[x.realizado_acum.length - 1]; }),
+        mensal: ef.municipios.every(m => { const x = d.municipios.find(y => normMun(y.nome) === normMun(m.nome)); return m.num_ops.every((v, i) => v === x.realizado_mes[i]); }) };
+      const sm = det.semanas;
+      out.dados = { total: det.total === tot, bairro: soma(det.bairro) === tot, completo: Object.values(det.bairro_completo).reduce((a, v) => a + Object.values(v).reduce((x, y) => x + y, 0), 0) === tot, matriz: det.dia_faixa.matriz.flat().reduce((a, b) => a + b, 0) === tot, esforco: det.esforco.municipios.reduce((a, m) => a + m.ops, 0) === tot,
+        local: soma(det.local.lista) === tot, semanas: sm.rotulos.length >= 40 && Object.values(sm.municipios).every(v => v.length === sm.rotulos.length), metaSemanal: Object.values(sm.meta_semanal).sort().join() === [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4].join(),
+        somaSemanas: Object.values(sm.municipios).reduce((a, v) => a + v.reduce((x, y) => x + y, 0), 0) <= tot };
+      out.publico = !/matricula|NUMERO_RAT|postGrad|\d{4}-\d{9}-\d{3}/i.test(JSON.stringify(det));
+      goToPage('cavaloaco'); await esp(400);
+      const m = document.getElementById('main'), linhas = [...document.querySelectorAll('#cavReg tbody tr')], N = sm.rotulos.length;
+      const okDe = (nome) => sm.municipios[nome].filter(x => x >= sm.meta_semanal[nome]).length;
+      const okTela = linhas.map(t => parseInt(/(\d+) de \d+/.exec(t.children[1].textContent)[1]));
+      out.reg = { titulo: /Regularidade — semanas com a meta semanal cumprida/.test(m.textContent), informativo: /não entra na nota nem nos semáforos/.test(m.textContent), regra: /1 operação por semana em destacamento, 2 em pelotão e 4 em sede de companhia/.test(m.textContent), linhas: linhas.length === Object.keys(sm.municipios).length,
+        ordem: okTela.every((v, i) => i === 0 || v >= okTela[i - 1]), valores: linhas.every(t => parseInt(/(\d+) de \d+/.exec(t.children[1].textContent)[1]) === okDe(t.dataset.mun)), tira: linhas.every(t => t.querySelectorAll('.fs').length === 12), simbolos: !!document.querySelector('#cavReg .fs.ok') && !!document.querySelector('#cavReg .fs.no') };
+      out.detalhe = { esforco: !!document.getElementById('opEsforco') && document.querySelectorAll('#opEsforco tbody tr').length === det.esforco.municipios.length + 1, dia: !!document.getElementById('opDiaFaixa'), bairro: /Por bairro/.test(m.textContent), alerta: /Operações sem bairro/.test(m.textContent), local: /Onde as operações acontecem/.test(m.textContent) && /Local imediato da operação/.test(m.textContent), aviso: /mesmo conjunto da meta/.test(m.textContent) };
+      linhas[0].click(); await esp(400);
+      const alvo = linhas[0].dataset.mun, kM = Object.keys(det.bairro_municipio).find(k => normMun(k) === normMun(alvo));
+      out.cidade = { filtro: normMun(getMunFiltro()) === normMun(alvo), bairros: new RegExp('Por bairro — ' + kM).test(document.getElementById('main').textContent) };
+      setMunFiltro('');
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.unificado.universo && r.unificado.total && r.unificado.cidades && r.unificado.mensal, 'Cavalo de Aço: a eficácia usa o MESMO conjunto da meta (total, cidade a cidade e mês a mês idênticos)', 'unificação: ' + JSON.stringify(r.unificado));
+    checa(Object.values(r.dados).every(Boolean) && r.publico, 'dados do Cavalo de Aço fecham com a meta (bairro, dia × faixa, esforço, local, semanas) e só trazem agregados', 'dados: ' + JSON.stringify([r.dados, r.publico]));
+    checa(r.reg.titulo && r.reg.informativo && r.reg.regra && r.reg.linhas && r.reg.ordem && r.reg.valores, 'Cavalo de Aço: regularidade semanal (informativa), da cidade com menos para a com mais semanas cumpridas, valores conferem com os dados', 'regularidade: ' + JSON.stringify(r.reg));
+    checa(r.reg.tira && r.reg.simbolos, 'Cavalo de Aço: tira das últimas 12 semanas com símbolo além da cor (● cumpriu, ○ abaixo)', 'tira: ' + JSON.stringify(r.reg));
+    checa(r.detalhe.esforco && r.detalhe.dia && r.detalhe.bairro && r.detalhe.alerta && r.detalhe.local && r.detalhe.aviso, 'Cavalo de Aço: esforço empregado, dia × faixa, bairro, aviso de sem bairro, local e o aviso de que é o mesmo conjunto da meta', 'detalhe: ' + JSON.stringify(r.detalhe));
+    checa(r.cidade.filtro && r.cidade.bairros, 'Cavalo de Aço: clicar numa cidade da regularidade filtra e mostra os bairros dela', 'cidade: ' + JSON.stringify(r.cidade));
+    checa(r.largura, 'Cavalo de Aço onda 2 no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosD.length === 0, 'Cavalo de Aço onda 2 sem erro de JavaScript', 'erros: ' + errosD.slice(0, 3).join(' | '));
+    await ctxD.close();
   }
 
   await browser.close();

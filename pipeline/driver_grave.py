@@ -213,20 +213,40 @@ def run_idob_vitimas(data, rows, f, report):
 
 
 def run_cavalo_eficacia(data, report):
-    f = latest_csv('TODOS OS RAT')
-    if not f:
-        return
-    rows = read_csv(f, encoding='latin-1')
+    # Desde 2026-10-15 a Eficácia usa o MESMO conjunto da meta: o export oficial (entrada/Cavalo de aço, RAT Y01003 + Histórico).
+    # Antes usava TODOS OS RAT com "CAVALO" no nome da operação (2.034 x 2.181 oficiais; só 1.718 RATs nos dois). Se o export oficial não
+    # tiver as colunas de produtividade ou não fechar com o total da meta, cai no método antigo e avisa.
     municipios_order = [m['nome'].upper() for m in data['cavaloaco_eficacia']['municipios']]
-    novo = ag.build_cavalo_eficacia(rows, municipios_order, N_MESES)
-    # rebuild completo (sem proteção de queda) — total_mes_key não existe nessa estrutura,
-    # é dict de campos diretos (num_ops etc.), então só substitui e reporta o delta do total.
+    meta_total = data['cavaloaco']['total_acum'][-1] if data.get('cavaloaco', {}).get('total_acum') else None
+    f_of = latest_csv('Cavalo de aço')
+    novo = None
+    universo = None
+    if f_of:
+        try:
+            rows = read_csv(f_of, encoding='utf-8')
+        except UnicodeDecodeError:
+            rows = []
+        if rows and 'PRODUTIVIDADE' in rows[0] and 'EFETIVOS' in rows[0]:
+            cand = ag.build_cavalo_eficacia(rows, municipios_order, N_MESES, todas_as_linhas=True)
+            if sum(cand['totais'].get('num_ops', [])) == meta_total:
+                novo, universo, f = cand, 'oficial', f_of
+            else:
+                report['cavalo_eficacia_aviso'] = f'export oficial não fecha com a meta ({sum(cand["totais"].get("num_ops", []))} x {meta_total}) — usado o método antigo'
+    if novo is None:
+        f = latest_csv('TODOS OS RAT')
+        if not f:
+            return
+        rows = read_csv(f, encoding='latin-1')
+        novo = ag.build_cavalo_eficacia(rows, municipios_order, N_MESES)
+        universo = 'nome_da_operacao'
     old_total_ops = sum(data['cavaloaco_eficacia']['totais'].get('num_ops', []))
     new_total_ops = sum(novo['totais'].get('num_ops', []))
     data['cavaloaco_eficacia']['municipios'] = novo['municipios']
     data['cavaloaco_eficacia']['totais'] = novo['totais']
     data['cavaloaco_eficacia']['naturezas_reds_geradas'] = novo['naturezas_reds_geradas']
-    report['cavalo_eficacia'] = {'file': f, 'old_total_ops': old_total_ops, 'new_total_ops': new_total_ops}
+    data['cavaloaco_eficacia']['universo'] = universo
+    data['cavaloaco_eficacia']['fonte'] = ('entrada/Cavalo de aço (RAT, mesmo conjunto da meta)' if universo == 'oficial' else 'entrada/TODOS OS RAT (nome da operação contém CAVALO)')
+    report['cavalo_eficacia'] = {'file': f, 'universo': universo, 'old_total_ops': old_total_ops, 'new_total_ops': new_total_ops}
 
 
 MESES_LABEL = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -988,6 +1008,77 @@ def run_idob_cruzamento(data, rows_bo, report):
     report['idob_cruzamento'] = res
 
 
+# ---- Cavalo de Aço: detalhamento do conjunto oficial (esforço, dia × faixa, bairro, local, qualidade) + regularidade SEMANAL ----
+# Regularidade (informativa): a meta de verdade é semanal (mínimo 1 por destacamento, 2 por pelotão, 4 por sede de companhia); a meta mensal
+# do painel é sempre cumprida. Semana = segunda a domingo, só as já encerradas. Só contagem por cidade e semana, nada pessoal.
+def _semanas(rows, municipios):
+    datas = []
+    for r in rows:
+        try:
+            datas.append(datetime.datetime.strptime((r.get('DATA_FATO') or '').strip(), '%d/%m/%Y').date())
+        except ValueError:
+            continue
+    if not datas:
+        return None
+    ref = max(datas)
+    d0 = datetime.date(datetime.date.today().year, 1, 1)
+    seg = d0 - datetime.timedelta(days=d0.weekday())
+    segundas = []
+    while seg + datetime.timedelta(days=6) <= ref:
+        segundas.append(seg)
+        seg += datetime.timedelta(days=7)
+    por = {m: [0] * len(segundas) for m in municipios}
+    for r in rows:
+        try:
+            dt = datetime.datetime.strptime((r.get('DATA_FATO') or '').strip(), '%d/%m/%Y').date()
+        except ValueError:
+            continue
+        mun = (r.get('MUNICIPIO') or '').strip().upper()
+        if mun not in por or not segundas:
+            continue
+        i = (dt - segundas[0]).days // 7
+        if 0 <= i < len(segundas):
+            por[mun][i] += 1
+    return {'rotulos': [s.strftime('%d/%m') for s in segundas], 'municipios': por, 'ate': ref.strftime('%d/%m/%Y')}
+
+
+def run_cavalo_detalhe(data, report):
+    f = latest_csv('Cavalo de aço')
+    if not f or 'cavaloaco' not in data:
+        report['cavalo_detalhe'] = {'skipped': True, 'reason': 'sem export em entrada/Cavalo de aço'}
+        return
+    try:
+        rows = read_csv(f, encoding='utf-8')
+    except UnicodeDecodeError:
+        report['cavalo_detalhe'] = {'skipped': True, 'reason': 'arquivo não é UTF-8 (export do tipo errado)'}
+        return
+    if not rows or 'PRODUTIVIDADE' not in rows[0]:
+        report['cavalo_detalhe'] = {'skipped': True, 'reason': 'arquivo sem as colunas do RAT'}
+        return
+    sel = [r for r in rows if 'Y01003' in (r.get('CODIGO_NATUREZA_PRINCIPAL') or '') and '70 BPM' in (r.get('UNID_AREA_NIVEL_5') or '70 BPM')]
+    esperado = data['cavaloaco']['total_acum'][-1] if data['cavaloaco'].get('total_acum') else None
+    if esperado != len(sel):
+        report['cavalo_detalhe'] = {'skipped': True, 'reason': f'não confere ({len(sel)} no export x {esperado} na meta) — mantido o anterior'}
+        return
+    det = _agg_operacoes(sel, False, completo=True)
+    loc = collections.Counter((r.get('LOCAL_IMEDIATO') or '').strip() or 'NAO INFORMADO' for r in sel)
+    det['local'] = {'lista': _top_com_outros_rot(loc, 6)}
+    det['qualidade']['localizacao_erro'] = sum(1 for r in sel if 'ERRO' in (r.get('DESCRICAO_LOCALIZACAO') or '').upper())
+    det['qualidade']['zona_rural'] = sum(1 for r in sel if 'RURAL' in (r.get('DESCRICAO_LOCALIZACAO') or '').upper())
+    nomes = [_sem_acento_up(m['nome']) for m in data['cavaloaco']['municipios']]  # o export grafa AGUAS/ARACUAI sem acento
+    sem = _semanas(sel, nomes)
+    if sem:
+        # meta semanal por cidade (1 destacamento, 2 pelotão, 4 sede de companhia) a partir da meta mensal do painel (4, 8, 15)
+        meta_sem = {}
+        for m in data['cavaloaco']['municipios']:
+            mm = max(m.get('meta_mes') or [0])
+            meta_sem[_sem_acento_up(m['nome'])] = max(1, -(-mm // 4))
+        sem['meta_semanal'] = meta_sem
+        det['semanas'] = sem
+    data['cavaloaco_detalhe'] = det
+    report['cavalo_detalhe'] = {'file': f, 'ops': len(sel), 'sem_bairro': det['qualidade']['sem_bairro'], 'semanas': len(sem['rotulos']) if sem else 0}
+
+
 
 def _extras_cvpa(r, vit):
     """CVPA: o alvo do roubo, o que foi levado (objetos FURTADO/ROUBADO) e os veículos roubados/liberados — campos de texto do SiGOp."""
@@ -1040,6 +1131,7 @@ def main():
     run_extras_indicadores(data, report)
     run_operacoes_detalhe(data, report)
     run_idob_detalhe(data, report)
+    run_cavalo_detalhe(data, report)
     run_mv_ocorrencias(data, report)
     run_cvpe_ocorrencias(data, report)
     run_cvpa_ocorrencias(data, report)

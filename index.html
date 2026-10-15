@@ -2637,6 +2637,40 @@ function renderITVDPage() {
   });
 }
 
+// ---- Cavalo de Aço, onda 2: regularidade SEMANAL (informativa) e local das operações; esforço, dia × faixa e bairro vêm do detalhamento comum ----
+// A meta mensal é sempre cumprida; a regra de verdade é semanal: mínimo 1 operação por destacamento, 2 por pelotão e 4 por sede de companhia. Semana = segunda a domingo, só as encerradas.
+function cavRegularidadeHtml(det, munFiltro) {
+  const sm = det.semanas;
+  if (!sm || !sm.rotulos.length) return '';
+  const N = sm.rotulos.length, ULT = 12;
+  const linhas = Object.keys(sm.municipios).map(nome => {
+    const v = sm.municipios[nome], meta = (sm.meta_semanal || {})[nome] || 1, ok = v.filter(x => x >= meta).length, zero = v.filter(x => x === 0).length;
+    let seq = 0, atual = 0;
+    v.forEach(x => { atual = x < meta ? atual + 1 : 0; seq = Math.max(seq, atual); });
+    let aberto = 0;
+    for (let i = v.length - 1; i >= 0 && v[i] < meta; i--) aberto++;
+    return { nome, v, meta, ok, zero, seq, aberto };
+  }).sort((a, b) => (a.ok - b.ok) || a.nome.localeCompare(b.nome));
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Regularidade — semanas com a meta semanal cumprida</h3>`;
+  h += `<div class="vd-recorte">Indicador informativo (não entra na nota nem nos semáforos): a meta mensal é sempre cumprida, então aqui se vê a regra de verdade — no mínimo <b>1 operação por semana em destacamento, 2 em pelotão e 4 em sede de companhia</b>. Semana = segunda a domingo, só as encerradas (${N} até ${sm.ate}). Da cidade com menos semanas cumpridas para a com mais; clique numa cidade para filtrar. Leitura: verde = 90% ou mais, amarelo = 75% a 90%, vermelho = abaixo disso.</div>`;
+  h += `<div class="table-wrap"><table class="data-table ind-tab" id="cavReg"><thead><tr><th style="text-align:left">Município</th><th>Semanas cumpridas</th><th style="text-align:left">Últimas ${ULT} semanas</th></tr></thead><tbody>`;
+  linhas.forEach(l => {
+    const pc = l.ok / N * 100, st = pc >= 90 ? 'verde' : (pc >= 75 ? 'amarelo' : 'vermelho');
+    const txt = `${l.ok} de ${N} · ${fmtBr(pc, 0)}%`;
+    const pcHtml = st === 'verde' ? `<span class="neg">${txt}</span>` : (st === 'amarelo' ? `<span style="color:var(--caution)">! ${txt}</span>` : `<span class="pos">${txt}</span>`);
+    const strip = l.v.slice(-ULT).map((x, k) => { const rot = sm.rotulos[N - Math.min(ULT, N) + k]; return `<span class="fs ${x >= l.meta ? 'ok' : 'no'}" title="Semana de ${rot}: ${x} operação(ões) (meta ${l.meta})">${x >= l.meta ? '●' : '○'}</span>`; }).join('');
+    h += `<tr class="rank-clic${normMun(l.nome) === munFiltro ? ' sel' : ''}" data-mun="${l.nome}" title="Filtrar por ${l.nome}"><td style="text-align:left">${l.nome}<br><small>meta ${l.meta} por semana</small></td><td>${pcHtml}<br><small>${l.zero} sem nenhuma operação${l.seq > 1 ? ' · maior sequência abaixo da meta ' + l.seq : ''}</small></td><td style="text-align:left">${strip}${l.aberto ? '<br><small>abaixo da meta há ' + l.aberto + ' semana' + (l.aberto > 1 ? 's' : '') + '</small>' : ''}</td></tr>`;
+  });
+  return h + `</tbody></table></div><div class="vd-recorte">● = meta semanal cumprida · ○ = abaixo da meta. Passe o mouse (ou toque) para ver a semana e a quantidade.</div></div>`;
+}
+function cavLocalHtml(det) {
+  const l = det.local, q = det.qualidade;
+  if (!l) return '';
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Onde as operações acontecem</h3>`;
+  h += `<div class="chart-box" style="min-width:0"><h3>Local imediato da operação</h3>${barrasHtml(l.lista, false, '')}<div class="vd-recorte">${det.total} operações no ano${q && (q.localizacao_erro || q.zona_rural) ? ` · ${q.zona_rural} em zona rural · ${q.localizacao_erro} com a localização marcada "erro de processamento" no SiGOp` : ''}.</div></div></div>`;
+  return h;
+}
+
 function renderCavaloAcoPage() {
   const d = DATA.cavaloaco, cfg = OP_PISO, LM = opLimites(true), ef = DATA.cavaloaco_eficacia;
   const mesesLocais = d.meses || MESES.slice(0, d.total_mes.length);
@@ -2703,17 +2737,21 @@ function renderCavaloAcoPage() {
   html += `<div class="vd-recorte" id="cavNota">${opNotaMesParcial(d, mesesLocais, mi)}</div>`;
   html += `<div class="vd-recorte">Mês e acumulado mostram realizado / meta de operações. A situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). Fonte: ${d.total_acum[d.total_acum.length - 1]} operações em ${mesesLocais[ultimoIdx]} (RAT com natureza Y01003 e o Histórico citando "Cavalo de Aço").</div>`;
   html += `<div class="table-wrap"><table class="data-table ind-tab" id="cavTable"><thead><tr><th style="text-align:left">Município</th><th>Mês</th><th class="col-divider">Acumulado</th><th>% da meta</th><th style="text-align:left">Situação</th></tr></thead><tbody>${tabelaMeta(mi)}</tbody></table></div>`;
-  html += blocos.ano + blocos.cidade + blocos.quadro;
+  const dd = DATA.cavaloaco_detalhe;
+  html += blocos.ano + blocos.cidade + blocos.quadro + (dd ? cavRegularidadeHtml(dd, munFiltro) : '');
   if (ef) {
     html += `<div class="ind-sec" style="margin-top:34px"><h3 class="ind-tit page-title" style="font-size:16px">Eficácia e eficiência <span id="cavEfRotulo">(acumulado até ${mesesLocais[mi]})</span></h3>`;
     html += `<details class="aud-como"><summary>Como ler esta seção</summary><div>Extraído do campo <code>PRODUTIVIDADE</code> de cada RAT (indicadores lançados pela guarnição ao fechar o registro) e do campo <code>REDS_RELACIONADOS</code> (quando a fiscalização gera um REDS à parte — clonagem, drogas, arma, foragido etc.). <b>Eficácia</b> = o que a fiscalização produz (autuações, retenções, REDS gerados). <b>Eficiência</b> = quanto recurso (efetivo, tempo) foi empregado. O tempo mediano é do mês e exclui registros com mais de 480 minutos (RAT esquecido aberto).</div></details>`;
-    html += `<div class="vd-recorte"><b>Atenção:</b> esta seção usa ${fmtBr(efTotalOps, 0)} RATs com "CAVALO" no nome da operação; a meta acima usa ${d.total_acum[d.total_acum.length - 1]} (filtro pelo Histórico). Só parte dos RATs está nos dois conjuntos, por isso os totais por cidade não batem entre as duas seções.</div>`;
+    html += ef.universo === 'oficial'
+      ? `<div class="vd-recorte">Esta seção usa o <b>mesmo conjunto da meta</b>: as ${d.total_acum[d.total_acum.length - 1]} operações do RAT com natureza Y01003 e o Histórico citando "Cavalo de Aço", então os totais por cidade batem com a tabela da meta.</div>`
+      : `<div class="vd-recorte"><b>Atenção:</b> esta seção usa ${fmtBr(efTotalOps, 0)} RATs com "CAVALO" no nome da operação; a meta acima usa ${d.total_acum[d.total_acum.length - 1]} (filtro pelo Histórico). Só parte dos RATs está nos dois conjuntos, por isso os totais por cidade não batem entre as duas seções.</div>`;
     html += `<div id="cavEfKpis">${efKpis(mi)}</div>`;
     html += `<div class="table-wrap"><table class="data-table ind-tab" id="cavEfTable"><thead><tr><th style="text-align:left">Município</th><th>Operações</th><th>Motos</th><th>Veículos</th><th>REDS gerados · esforço</th></tr></thead><tbody>${efTabela(mi)}</tbody></table></div>`;
     const nat = (ef.naturezas_reds_geradas || []).slice(0, 8).map(n => [n.codigo + ' · ' + n.descricao, n.qtd]);
     if (nat.length) html += `<div class="chart-box" style="min-width:0;margin-top:16px"><h3>Naturezas dos REDS gerados pela fiscalização (ano)</h3>${barrasHtml(nat, false, 'verde')}</div>`;
     html += `</div>`;
   }
+  if (dd) html += opDetalheHtml(dd, { munFiltro, rotulo: 'Operações Cavalo de Aço', alertaBairro: true }) + cavLocalHtml(dd);
   document.getElementById('main').innerHTML = html;
 
   const marcar = () => document.querySelectorAll('#cavMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
@@ -2731,7 +2769,7 @@ function renderCavaloAcoPage() {
       document.getElementById('cavEfRotulo').textContent = `(acumulado até ${mesesLocais[mi]})`;
     }
   });
-  opLigarCidades(['cavTable', 'opQuadro', 'cavEfTable']);
+  opLigarCidades(['cavTable', 'opQuadro', 'cavEfTable', 'cavReg', 'opEsforco']);
 }
 
 function renderRolezinhoPage() {
