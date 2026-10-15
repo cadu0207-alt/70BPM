@@ -685,6 +685,130 @@ def run_extras_indicadores(data, report):
                 res['alvo'] = 'não confere'
         report['extras_' + chave] = res
 
+# ---- Operações (POG e PPAG): natureza, bairro, dia × faixa horária, esforço (duração/efetivo/viaturas) e qualidade do dado ----
+# Tudo calculado do export 'POG E PPAG' a cada rodada (antes, bairro e natureza do POG eram um retrato antigo: 336 e 446 de 4.353 operações).
+# PÚBLICO e só agregado: efetivo e viaturas são apenas CONTADOS (nomes, matrículas e prefixos nunca saem daqui), nenhum RAT/endereço.
+POG_CODIGOS = {'Y04009', 'Y07001', 'Y07002', 'Y07003', 'Y07010', 'Y10001'}
+PPAG_CODIGOS = {'y15001': 'Y15001', 'y07012': 'Y07012', 'y07014': 'Y07014'}
+DURACAO_MAX_MIN = 24 * 60  # acima de 24h é erro de preenchimento (há RAT com 62 dias): fora das médias, mas contado
+
+
+def _contar_itens(txt):
+    return len([x for x in (txt or '').split('|') if x.strip()])
+
+
+def _top_com_outros(contador, limite):
+    lista = sorted(contador.items(), key=lambda kv: (-kv[1], kv[0]))
+    if len(lista) <= limite:
+        return [[k, v] for k, v in lista]
+    resto = sum(v for _, v in lista[limite:])
+    return [[k, v] for k, v in lista[:limite]] + [['OUTROS BAIRROS', resto]]
+
+
+def _agg_operacoes(rows, com_natureza):
+    nat, bai = collections.Counter(), collections.Counter()
+    bai_mun, por_mun = {}, {}
+    matriz = [[0] * 4 for _ in range(7)]
+    sem_bairro_mun = collections.Counter()
+    susp = sem_ef = sem_dur = 0
+    for r in rows:
+        mun = (r.get('MUNICIPIO') or '').strip().upper()
+        b = (r.get('BAIRRO') or '').strip().upper()
+        if not b or b.startswith('INV'):
+            b = '(sem bairro)'
+            sem_bairro_mun[mun] += 1
+        bai[b] += 1
+        bai_mun.setdefault(mun, collections.Counter())[b] += 1
+        if com_natureza:
+            nat[(r.get('DESCR_NATUREZA_PRINCIPAL') or '').strip() or 'NAO INFORMADO'] += 1
+        pref = (r.get('DIA_DA_SEMANA_FATO') or '').strip().upper()[:3]
+        i_d = next((i for i, (pf, _) in enumerate(DIAS_SEMANA) if pf == pref), None)
+        m = re.search(r'(\d\d):', r.get('FAIXA_HORA_6') or '')
+        i_f = int(m.group(1)) // 6 if m else None
+        if i_d is not None and i_f is not None and i_f < 4:
+            matriz[i_d][i_f] += 1
+        mins, ef, vt = _num(r.get('OPR_TEMPO_TOTAL_MINUTOS')), _contar_itens(r.get('EFETIVOS')), _contar_itens(r.get('VIATURAS'))
+        e = por_mun.setdefault(mun, {'ops': 0, 'dur': [], 'ef': [], 'vt': [], 'hp': 0.0})
+        e['ops'] += 1
+        if mins <= 0:
+            sem_dur += 1
+        elif mins > DURACAO_MAX_MIN:
+            susp += 1
+        else:
+            e['dur'].append(mins)
+            if ef > 0:
+                e['hp'] += mins * ef / 60.0
+        if ef > 0:
+            e['ef'].append(ef)
+        else:
+            sem_ef += 1
+        if vt > 0:
+            e['vt'].append(vt)
+    media = lambda xs: (sum(xs) / len(xs)) if xs else None
+    esforco = []
+    for mun in sorted(por_mun):
+        e = por_mun[mun]
+        esforco.append({'nome': mun, 'ops': e['ops'], 'dur_media_min': None if not e['dur'] else round(media(e['dur']), 1),
+                        'dur_mediana_min': None if not e['dur'] else round(sorted(e['dur'])[len(e['dur']) // 2], 1),
+                        'efetivo_medio': None if not e['ef'] else round(media(e['ef']), 2),
+                        'vtr_media': None if not e['vt'] else round(media(e['vt']), 2), 'horas_policial': round(e['hp'], 1)})
+    dur_tot = [x for e in por_mun.values() for x in e['dur']]
+    ef_tot = [x for e in por_mun.values() for x in e['ef']]
+    vt_tot = [x for e in por_mun.values() for x in e['vt']]
+    total = {'ops': len(rows), 'dur_media_min': None if not dur_tot else round(media(dur_tot), 1),
+             'dur_mediana_min': None if not dur_tot else round(sorted(dur_tot)[len(dur_tot) // 2], 1),
+             'efetivo_medio': None if not ef_tot else round(media(ef_tot), 2), 'vtr_media': None if not vt_tot else round(media(vt_tot), 2),
+             'horas_policial': round(sum(e['hp'] for e in por_mun.values()), 1)}
+    res = {
+        'total': len(rows),
+        'bairro': _top_com_outros(bai, 15),
+        'bairro_municipio': {m: _top_com_outros(c, 8) for m, c in bai_mun.items()},
+        'dia_faixa': {'dias': [n for _, n in DIAS_SEMANA], 'faixas': FAIXAS_6H, 'matriz': matriz},
+        'esforco': {'municipios': esforco, 'total': total, 'duracao_suspeita': susp, 'sem_duracao': sem_dur, 'sem_efetivo': sem_ef},
+        'qualidade': {'sem_bairro': bai.get('(sem bairro)', 0), 'por_municipio': dict(sem_bairro_mun)},
+    }
+    if com_natureza:
+        res['natureza'] = [[k, v] for k, v in sorted(nat.items(), key=lambda kv: (-kv[1], kv[0]))]
+    return res
+
+
+def run_operacoes_detalhe(data, report):
+    f = latest_csv('POG E PPAG')
+    if not f:
+        report['operacoes_detalhe'] = {'skipped': True, 'reason': 'sem export em entrada/POG E PPAG'}
+        return
+    rows = read_csv(f, encoding='utf-8')
+    res = {'file': f}
+
+    def valido(r):
+        try:
+            return 1 <= int(r.get('MES_NUMERICO') or 0) <= N_MESES
+        except Exception:
+            return False
+    pog = [r for r in rows if (r.get('CODIGO_NATUREZA_PRINCIPAL') or '').strip() in POG_CODIGOS and valido(r)]
+    esperado = data['pog']['total_acum'][-1] if data.get('pog', {}).get('total_acum') else None
+    if esperado == len(pog):
+        det = _agg_operacoes(pog, True)
+        data['pog_detalhe'] = det
+        data['pog_bairros'] = det['bairro']      # chaves antigas (retrato) passam a refletir o ano todo
+        data['pog_natureza'] = det['natureza']
+        res['pog'] = {'ops': len(pog), 'sem_bairro': det['qualidade']['sem_bairro'], 'duracao_suspeita': det['esforco']['duracao_suspeita'], 'sem_efetivo': det['esforco']['sem_efetivo']}
+    else:
+        res['pog'] = f'não confere ({len(pog)} no export x {esperado} no indicador) — mantido o anterior'
+    ppag = {}
+    for chave, cod in PPAG_CODIGOS.items():
+        sub = [r for r in rows if (r.get('CODIGO_NATUREZA_PRINCIPAL') or '').strip() == cod and valido(r)]
+        esp = data['ppag'][chave]['total_acum'][-1] if data.get('ppag', {}).get(chave, {}).get('total_acum') else None
+        if esp == len(sub):
+            ppag[chave] = _agg_operacoes(sub, False)
+            res['ppag_' + chave] = {'ops': len(sub), 'sem_bairro': ppag[chave]['qualidade']['sem_bairro']}
+        else:
+            res['ppag_' + chave] = f'não confere ({len(sub)} no export x {esp} no indicador) — mantido o anterior'
+    if len(ppag) == len(PPAG_CODIGOS):
+        data['ppag_detalhe'] = ppag
+    report['operacoes_detalhe'] = res
+
+
 
 def _extras_cvpa(r, vit):
     """CVPA: o alvo do roubo, o que foi levado (objetos FURTADO/ROUBADO) e os veículos roubados/liberados — campos de texto do SiGOp."""
@@ -735,6 +859,7 @@ def main():
 
     run_local_faixa(data, report)
     run_extras_indicadores(data, report)
+    run_operacoes_detalhe(data, report)
     run_mv_ocorrencias(data, report)
     run_cvpe_ocorrencias(data, report)
     run_cvpa_ocorrencias(data, report)

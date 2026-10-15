@@ -2052,6 +2052,52 @@ function opNotaMesParcial(d, mesesLocais, i) {
   return `${mesesLocais[i]} em andamento: a meta do mês é proporcional aos dias já fechados (${r.diasDecorridos} de ${r.diasNoMes}); a cor e a situação usam essa meta, não a do mês cheio.`;
 }
 
+// ---- Operações, onda 2: esforço empregado, quando operamos (dia × faixa), bairro, natureza e qualidade do dado — tudo calculado pela rotina do export ----
+function opDur(m) {
+  if (m === null || m === undefined) return '—';
+  return m >= 120 ? Math.floor(m / 60) + 'h' + String(Math.round(m % 60)).padStart(2, '0') : Math.round(m) + ' min';
+}
+function opDetalheHtml(det, ctx) {
+  const { munFiltro, rotulo, alertaBairro } = ctx, suf = rotulo ? ' — ' + rotulo : '';
+  const ef = det.esforco, tot = ef.total, nOps = det.total;
+  const sel = (nome) => normMun(nome) === munFiltro;
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Esforço empregado${suf}</h3><div class="kpi-grid">`;
+  h += `<div class="kpi-card kpi-neutral"><div class="val">${fmtBr(tot.horas_policial, 0)} h</div><div class="lbl">Horas-policial no ano</div><div class="sub">duração × efetivo de cada operação, somadas</div></div>`;
+  h += `<div class="kpi-card kpi-neutral"><div class="val">${opDur(tot.dur_media_min)}</div><div class="lbl">Duração média por operação</div><div class="sub">mediana ${opDur(tot.dur_mediana_min)}</div></div>`;
+  h += `<div class="kpi-card kpi-neutral"><div class="val">${tot.efetivo_medio === null ? '—' : fmtBr(tot.efetivo_medio, 1)}</div><div class="lbl">Efetivo médio por operação</div><div class="sub">${tot.vtr_media === null ? '' : fmtBr(tot.vtr_media, 1) + ' viatura(s) em média'}</div></div></div>`;
+  h += `<div class="vd-recorte">Médias do ano, por operação registrada. Ficam de fora das médias de duração: ${ef.duracao_suspeita} operação(ões) com mais de 24h (erro de preenchimento) e ${ef.sem_duracao} sem duração; ${ef.sem_efetivo} sem efetivo informado. Clique numa cidade para filtrar.</div>`;
+  h += `<div class="table-wrap"><table class="data-table ind-tab" id="opEsforco"><thead><tr><th style="text-align:left">Município</th><th>Operações</th><th>Duração média</th><th>Efetivo médio</th><th>Horas-policial</th></tr></thead><tbody>`;
+  ef.municipios.forEach(m => {
+    h += `<tr class="rank-clic${sel(m.nome) ? ' sel' : ''}" data-mun="${m.nome}" title="Filtrar por ${m.nome}"><td style="text-align:left">${m.nome}</td><td>${m.ops}</td><td>${opDur(m.dur_media_min)}</td><td>${m.efetivo_medio === null ? '—' : fmtBr(m.efetivo_medio, 1)}</td><td>${fmtBr(m.horas_policial, 0)}</td></tr>`;
+  });
+  h += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">TOTAL</td><td>${tot.ops}</td><td>${opDur(tot.dur_media_min)}</td><td>${tot.efetivo_medio === null ? '—' : fmtBr(tot.efetivo_medio, 1)}</td><td>${fmtBr(tot.horas_policial, 0)}</td></tr></tbody></table></div></div>`;
+
+  const df = det.dia_faixa;
+  if (df && Array.isArray(df.matriz)) {
+    const max = Math.max(1, ...df.matriz.flat()), colTot = df.faixas.map((_, j) => df.matriz.reduce((a, l) => a + l[j], 0)), geral = colTot.reduce((a, b) => a + b, 0);
+    h += `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Quando operamos — dia da semana × faixa horária${suf}</h3>`;
+    h += `<div class="vd-recorte">Operações no ano; quanto mais forte a cor, mais operações. Serve para conferir se a escala acompanha as horas e os dias do crime.</div>`;
+    h += `<div class="table-wrap"><table class="data-table hm2" id="opDiaFaixa"><thead><tr><th style="text-align:left">Dia</th>${df.faixas.map(f => `<th>${f}</th>`).join('')}<th class="col-divider">Total</th></tr></thead><tbody>`;
+    df.dias.forEach((dia, i) => {
+      const linha = df.matriz[i], t = linha.reduce((a, b) => a + b, 0);
+      h += `<tr><td style="text-align:left">${dia}</td>${linha.map(v => `<td style="background:rgba(232,168,60,${(v / max * 0.4).toFixed(2)})"${v ? ' class="hm2-n"' : ' class="z0"'}>${v || '·'}</td>`).join('')}<td class="col-divider"><b>${t}</b></td></tr>`;
+    });
+    h += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">Total</td>${colTot.map(v => `<td>${v}</td>`).join('')}<td class="col-divider">${geral}</td></tr></tbody></table></div></div>`;
+  }
+
+  const kM = munFiltro ? Object.keys(det.bairro_municipio || {}).find(k => normMun(k) === munFiltro) : null;
+  const listaB = kM ? det.bairro_municipio[kM] : det.bairro, totB = listaB.reduce((a, x) => a + x[1], 0);
+  const sb = kM ? ((det.qualidade.por_municipio || {})[kM] || 0) : det.qualidade.sem_bairro;
+  let boxes = `<div class="chart-box"><h3>Por bairro${kM ? ' — ' + kM : ''}</h3>${barrasHtml(listaB, false, '')}<div class="vd-recorte">${totB} operações${kM ? '' : ' no ano'}${sb ? '; ' + sb + ' (' + fmtBr(sb / (totB || 1) * 100, 0) + '%) sem bairro informado' : ''}.</div></div>`;
+  if (Array.isArray(det.natureza)) boxes += `<div class="chart-box"><h3>Por natureza</h3>${barrasHtml(det.natureza, false, 'verde')}<div class="vd-recorte">${nOps} operações no ano.</div></div>`;
+  h += `<div class="ind-sec charts-row" style="gap:16px">${boxes}</div>`;
+  if (alertaBairro && sb > 0) {
+    const topo = kM ? '' : Object.entries(det.qualidade.por_municipio || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0] + ' ' + x[1]).join(', ');
+    h += `<div class="ind-sec"><div class="kpi-grid"><div class="kpi-card kpi-amber"><div class="val">${sb}</div><div class="lbl">Operações sem bairro${kM ? ' — ' + kM : ''}</div><div class="sub">de ${totB} (${fmtBr(sb / (totB || 1) * 100, 0)}%) — o RAT foi lançado sem bairro; preencher melhora o mapa e o cruzamento com o crime${topo ? ' · mais: ' + topo : ''}</div></div></div></div>`;
+  }
+  return h;
+}
+
 function pogBandColor(v) {
   if (v >= 95 && v <= 105) return { bg: 'rgba(33,201,138,0.22)', fg: '#3fe0a5' };
   if ((v >= 90 && v < 95) || (v > 105 && v <= 110)) return { bg: 'rgba(212,194,42,0.22)', fg: '#d4c22a' };
@@ -2109,7 +2155,8 @@ function renderPOGPage() {
     <th style="text-align:left">Município</th><th>Mês</th><th class="col-divider">Acumulado</th><th>Desemp. acumulado</th>
   </tr></thead><tbody>${table(mi)}</tbody></table></div>`;
   html += blocos.ano + blocos.cidade + blocos.quadro;
-  html += `<div class="ind-sec charts-row" style="gap:16px">${barras(DATA.pog_bairros, 'POG por bairros', '')}${barras(DATA.pog_natureza, 'POG por natureza', 'verde')}</div>`;
+  html += DATA.pog_detalhe ? opDetalheHtml(DATA.pog_detalhe, { munFiltro, rotulo: '', alertaBairro: true })
+    : `<div class="ind-sec charts-row" style="gap:16px">${barras(DATA.pog_bairros, 'POG por bairros', '')}${barras(DATA.pog_natureza, 'POG por natureza', 'verde')}</div>`;
   document.getElementById('main').innerHTML = html;
 
   const marcar = () => document.querySelectorAll('#pogMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
@@ -2122,7 +2169,7 @@ function renderPOGPage() {
     document.getElementById('pogTitulo').textContent = titulo(mi);
     document.getElementById('pogNota').textContent = opNotaMesParcial(d, mesesLocais, mi);
   });
-  opLigarCidades(['pogTable', 'opQuadro']);
+  opLigarCidades(['pogTable', 'opQuadro', 'opEsforco']);
 }
 
 function renderPPAGPage() {
@@ -2166,7 +2213,8 @@ function renderPPAGPage() {
   }
   function corpoSub() {
     const s = subs.find(x => x.key === subSel), b = opBlocosHtml(DATA.ppag[s.key], cfg, { mesesLocais, ultimoIdx, munFiltro, rotulo: s.label + ' · ' + s.nome });
-    return b.ano + b.cidade + b.quadro;
+    const det = (DATA.ppag_detalhe || {})[s.key];
+    return b.ano + b.cidade + b.quadro + (det ? opDetalheHtml(det, { munFiltro, rotulo: s.label + ' · ' + s.nome, alertaBairro: s.key !== 'y07014' }) : '');
   }
   const notaPer = (p) => opNotaMesParcial(dRef, mesesLocais, p === 'acum' ? ultimoIdx : parseInt(p));
 

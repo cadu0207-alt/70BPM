@@ -1610,7 +1610,7 @@ function auditar() {
         colunas: document.querySelectorAll('#pogTable thead th').length,
         ano: !!document.querySelector('#main svg.ano-svg') && /Projeção para o ano/.test(document.getElementById('main').textContent),
         quadro: document.querySelectorAll('#opQuadro tbody tr').length,
-        cobertura: /Cobre \d+ de \d+ operações do ano/.test(document.getElementById('main').textContent),
+        cobertura: !/lista está desatualizada/.test(document.getElementById('main').textContent) && !!document.getElementById('opEsforco'),
         metodologiaFechada: !!document.querySelector('details.aud-como') && !document.querySelector('details.aud-como').open,
       };
       // outro mês: meta cheia, título acompanha
@@ -1642,7 +1642,7 @@ function auditar() {
     checa(r.pog.semSelect && r.pog.pills && r.pog.metodologiaFechada && r.pog.colunas === 4, 'POG: botões de mês (mês atual marcado), sem seletor antigo, metodologia recolhida', 'POG estrutura: ' + JSON.stringify(r.pog));
     checa(r.pog.subtotais === 3 && r.pog.somaOk, 'POG: subtotal por fração (3 companhias) e a soma bate com o total do batalhão', 'POG subtotais: ' + JSON.stringify(r.pog));
     checa(r.pog.metaProp && r.pog.notaParcial, 'POG: no mês em andamento a meta é proporcional aos dias fechados (e a nota explica)', 'POG meta proporcional: ' + JSON.stringify(r.pog));
-    checa(r.pog.faixa && r.pog.ano && r.pog.quadro === 14 && r.pog.cobertura, 'POG: regra da faixa 95–105% explicada, ano com projeção, quadro município × mês e aviso de lista desatualizada', 'POG blocos: ' + JSON.stringify(r.pog));
+    checa(r.pog.faixa && r.pog.ano && r.pog.quadro === 14 && r.pog.cobertura, 'POG: regra da faixa 95–105% explicada, ano com projeção, quadro município × mês e o detalhamento automático (sem aviso de lista desatualizada)', 'POG blocos: ' + JSON.stringify(r.pog));
     checa(r.pogJan.titulo && r.pogJan.metaCheia && r.pogJan.nota, 'POG: trocar de mês muda o título e usa a meta cheia', 'POG janeiro: ' + JSON.stringify(r.pogJan));
     checa(r.pogCidade.filtro && r.pogCidade.painel, 'POG: clicar numa cidade filtra e abre o painel da cidade', 'POG cidade: ' + JSON.stringify(r.pogCidade));
     checa(r.ppag.linhas === 17 && r.ppag.subtotais === 3 && r.ppag.colunas === 4 && r.ppag.semSelect && r.ppag.pills && r.ppag.metaProp && r.ppag.tituloAcum && r.ppag.sub1, 'PPAG: matriz município × 3 indicadores com subtotal por fração, botões de período e meta proporcional', 'PPAG: ' + JSON.stringify(r.ppag));
@@ -1697,6 +1697,59 @@ function auditar() {
     checa(r.wiz.vit === 'Ana' && r.wiz.aut === '' && r.wizSalvo.vit === 'Beatriz' && r.wizSalvo.aut === 'Carlos', 'casos de Crimes Violentos/Reincidência: campos de primeiro nome na revisão e gravados ao salvar', 'assistente: ' + JSON.stringify([r.wiz, r.wizSalvo]));
     checa(errosN.length === 0, 'primeiro nome sem erro de JavaScript', 'erros: ' + errosN.slice(0, 3).join(' | '));
     await ctxN.close();
+  }
+
+  // ---------- 38) POG e PPAG, onda 2: esforço, dia × faixa, bairro, natureza e qualidade do dado calculados do export ----------
+  console.log('\n[38] POG e PPAG: detalhamento automático (esforço, quando operamos, bairro, natureza, bairro em branco)');
+  {
+    const ctxQ = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pq = await ctxQ.newPage();
+    const errosQ = []; pq.on('pageerror', (e) => errosQ.push(e.message));
+    await pq.goto(base);
+    await pq.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pq.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, soma = (l) => l.reduce((a, x) => a + x[1], 0);
+      try { localStorage.removeItem('indSub_ppag'); } catch (e) {}
+      setMunFiltro('');
+      const det = DATA.pog_detalhe, d = DATA.pog, tot = d.total_acum[d.total_acum.length - 1];
+      out.dados = { total: det.total === tot, nat: soma(det.natureza) === tot, bairro: soma(det.bairro) === tot, matriz: det.dia_faixa.matriz.flat().reduce((a, b) => a + b, 0) === tot, esforco: det.esforco.municipios.reduce((a, m) => a + m.ops, 0) === tot,
+        legado: soma(DATA.pog_bairros) === tot && soma(DATA.pog_natureza) === tot, sem: det.qualidade.sem_bairro === (det.bairro.find(x => x[0] === '(sem bairro)') || [0, 0])[1] };
+      const pp = DATA.ppag_detalhe; out.ppagDados = ['y15001', 'y07012', 'y07014'].every(k => pp[k].total === DATA.ppag[k].total_acum[DATA.ppag[k].total_acum.length - 1] && pp[k].dia_faixa.matriz.flat().reduce((a, b) => a + b, 0) === pp[k].total);
+      // nada de pessoa ou RAT no público: só números e nomes de município/bairro
+      out.publico = !/matricula|NUMERO_RAT|postGrad|\d{4}-\d{9}-\d{3}/i.test(JSON.stringify({ det, pp }));
+      goToPage('pog'); await esp(400);
+      const m = document.getElementById('main');
+      const linhasE = [...document.querySelectorAll('#opEsforco tbody tr')], totE = linhasE[linhasE.length - 1];
+      out.pog = { esforco: linhasE.length === det.esforco.municipios.length + 1 && parseInt(totE.children[1].textContent) === tot, kpis: /Horas-policial no ano/.test(m.textContent) && /Duração média por operação/.test(m.textContent) && /Efetivo médio por operação/.test(m.textContent),
+        diaFaixa: !!document.getElementById('opDiaFaixa') && document.querySelectorAll('#opDiaFaixa tbody tr').length === 8, natureza: /Por natureza/.test(m.textContent), alerta: !!m.querySelector('.kpi-amber .lbl') && /Operações sem bairro/.test(m.textContent), nota: /mais de 24h/.test(m.textContent) };
+      // cidade escolhida: bairros da cidade, não do batalhão
+      const cid = det.esforco.municipios[0].nome;
+      document.querySelector('#opEsforco tr.rank-clic').click(); await esp(400);
+      const kM = Object.keys(det.bairro_municipio).find(k => normMun(k) === normMun(cid));
+      out.cidade = { filtro: normMun(getMunFiltro()) === normMun(cid), titulo: new RegExp('Por bairro — ' + kM).test(document.getElementById('main').textContent), barras: document.querySelectorAll('#main .chart-box')[0].querySelectorAll('li').length === det.bairro_municipio[kM].length };
+      setMunFiltro('');
+      // PPAG: o indicador de zona rural não acusa "sem bairro" (rural não tem bairro); os outros acusam
+      goToPage('ppag'); await esp(400);
+      const aviso = () => /Operações sem bairro/.test(document.getElementById('ppagSubCorpo').textContent);
+      const marca = {};
+      for (const k of ['y15001', 'y07012', 'y07014']) {
+        document.querySelector('#ppagSubs button[data-p="' + k + '"]').click(); await esp(100);
+        marca[k] = { aviso: aviso(), esforco: !!document.querySelector('#ppagSubCorpo #opEsforco'), dia: !!document.querySelector('#ppagSubCorpo #opDiaFaixa'), semNatureza: !/Por natureza/.test(document.getElementById('ppagSubCorpo').textContent) };
+      }
+      out.ppag = marca;
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(Object.values(r.dados).every(Boolean) && r.ppagDados, 'dados do POG e do PPAG fecham com o total do indicador (natureza, bairro, dia × faixa, esforço)', 'dados: ' + JSON.stringify([r.dados, r.ppagDados]));
+    checa(r.publico, 'o detalhamento público só traz agregados (sem RAT, matrícula ou nome de policial)', 'apareceu dado pessoal no detalhamento');
+    checa(r.pog.esforco && r.pog.kpis && r.pog.nota, 'POG: esforço empregado (horas-policial, duração e efetivo médios) por município, com a nota do que fica fora', 'POG esforço: ' + JSON.stringify(r.pog));
+    checa(r.pog.diaFaixa && r.pog.natureza && r.pog.alerta, 'POG: dia × faixa horária, natureza e aviso de operações sem bairro', 'POG blocos: ' + JSON.stringify(r.pog));
+    checa(r.cidade.filtro && r.cidade.titulo && r.cidade.barras, 'POG: clicar numa cidade do esforço mostra os bairros dessa cidade', 'POG cidade: ' + JSON.stringify(r.cidade));
+    checa(r.ppag.y15001.aviso && r.ppag.y07012.aviso && !r.ppag.y07014.aviso && ['y15001', 'y07012', 'y07014'].every(k => r.ppag[k].esforco && r.ppag[k].dia && r.ppag[k].semNatureza), 'PPAG: cada indicador tem esforço e dia × faixa; zona rural não cobra bairro', 'PPAG: ' + JSON.stringify(r.ppag));
+    checa(r.largura, 'POG/PPAG onda 2 no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosQ.length === 0, 'POG/PPAG onda 2 sem erro de JavaScript', 'erros: ' + errosQ.slice(0, 3).join(' | '));
+    await ctxQ.close();
   }
 
   await browser.close();
