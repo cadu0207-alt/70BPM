@@ -23440,7 +23440,8 @@
     "mv_ocorrencias": {},
     "cvpe_ocorrencias": {},
     "cvpa_ocorrencias": {},
-    "idob_ocorrencias": {}
+    "idob_ocorrencias": {},
+    "cavalo_ocorrencias": {}
   },
   "reincidencia": {
     "meses": [
@@ -30379,5 +30380,66 @@
         "VIRGEM DA LAPA": 1
       }
     }
+  },
+  "cvpa_veiculo_dia_faixa": {
+    "dias": [
+      "Segunda",
+      "Terça",
+      "Quarta",
+      "Quinta",
+      "Sexta",
+      "Sábado",
+      "Domingo"
+    ],
+    "faixas": [
+      "00h–06h",
+      "06h–12h",
+      "12h–18h",
+      "18h–24h"
+    ],
+    "matriz": [
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0,
+        2
+      ],
+      [
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ]
   }
 }

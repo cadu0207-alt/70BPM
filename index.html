@@ -2129,7 +2129,7 @@ function opCruzamentoHtml(cfg) {
   const { det, crimeFaixa, crimeDia, crimeCidade, munFiltro } = cfg, df = det.dia_faixa, suf = cfg.rotulo ? ' — ' + cfg.rotulo : '';
   const crimeTot = (crimeCidade || []).reduce((a, x) => a + x.n, 0) || (crimeFaixa || []).reduce((a, b) => a + b, 0);
   let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">${cfg.titulo}${suf}</h3>`;
-  h += `<div class="vd-recorte">Compara onde e quando a operação acontece com onde e quando acontece o crime (${cfg.crimeRot}, no ano). "Operações por ${cfg.unidade.replace(/s$/, '')}" é o total de operações dividido pelo de ${cfg.unidade}; a situação compara com a média do batalhão — muito abaixo da média = pouca operação para o crime naquela faixa, dia ou cidade.${crimeTot && crimeTot < 100 ? ` São poucos casos (${crimeTot}): leia como tendência, não como certeza.` : ''}</div>`;
+  h += `<div class="vd-recorte">Compara onde e quando a operação acontece com onde e quando acontece o crime (${cfg.crimeRot}, no ano). "Operações por ${cfg.unidade.replace(/s$/, '')}" é o total de operações dividido pelo de ${cfg.unidade}; a situação compara com a média do batalhão — muito abaixo da média = pouca operação para o crime naquela faixa, dia ou cidade.${crimeTot && crimeTot < 100 ? ` São poucos casos (${crimeTot}): leia como tendência, não como certeza.` : ''}${cfg.obs ? ' ' + cfg.obs : ''}</div>`;
   if (crimeFaixa && df) {
     const ops = df.faixas.map((_, j) => df.matriz.reduce((a, l) => a + l[j], 0));
     h += `<div class="vd-recorte"><b>Por faixa horária</b> (batalhão inteiro)</div>` + opCruzaTabelaHtml('opCruzaFaixa', 'Faixa', df.faixas.map((f, j) => ({ rot: f, ops: ops[j], crimes: crimeFaixa[j] })), cfg.unidade, munFiltro);
@@ -2671,6 +2671,46 @@ function cavLocalHtml(det) {
   return h;
 }
 
+// ---- Cavalo de Aço, onda 3: operações x roubo de veículo e de carga (Plano Motocicletas e Roubo de Carga, Memorando 012) ----
+// PÚBLICO: faixa, dia e cidade (poucos casos: leitura como tendência). RESTRITO (PPVD aprovado): cada roubo com o Cavalo de Aço ao redor dele.
+function cavCruzamentoPublico(dd, munFiltro) {
+  const m = DATA.cvpa_veiculo_dia_faixa, am = DATA.cvpa_alvo_municipio;
+  if (!m || !am || !dd) return '';
+  const fx = [0, 1, 2, 3].map(j => m.matriz.reduce((a, l) => a + l[j], 0)), dia = m.matriz.map(l => l.reduce((a, b) => a + b, 0));
+  const cid = Object.keys(am).map(nome => ({ nome, n: am[nome].filter(x => x[0] === 'CARGAS' || x[0] === 'VEICULO OU EMBARCACAO').reduce((a, x) => a + x[1], 0) }));
+  return opCruzamentoHtml({ titulo: 'Cavalo de Aço × roubo de veículo e de carga', det: dd, crimeRot: 'vítimas de roubo (CVPa) cujo alvo foi veículo ou carga', unidade: 'vítimas', crimeFaixa: fx, crimeDia: dia, crimeCidade: cid, munFiltro, rotulo: '',
+    obs: 'Atenção: na maioria desses roubos o horário aparece como 00:00 no REDS, que pode ser horário não informado — por isso a faixa da madrugada pode estar inflada.' });
+}
+function cavOcorrenciasHtml(dd, munFiltro) {
+  const nomeF = munFiltro ? ((DATA.cavaloaco.municipios.find(m => normMun(m.nome) === munFiltro) || {}).nome || '') : '';
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Roubos de veículo e de carga e o Cavalo de Aço ao redor${nomeF ? ' — ' + nomeF : ''}</h3>`;
+  if (!ppvdDadosRestritosLiberados()) return h + ppvdAvisoRestrito() + `</div>`;
+  const oc = (DATA.crimes_violentos || {}).cavalo_ocorrencias || {};
+  let lista = [];
+  Object.keys(oc).forEach(cid => (oc[cid] || []).forEach(o => lista.push({ cid, o })));
+  if (munFiltro) lista = lista.filter(x => normMun(x.cid) === munFiltro);
+  if (!lista.length) return h + `<div class="pending-box">Nenhum roubo de veículo ou de carga${nomeF ? ' em ' + nomeF : ''} no ano.</div></div>`;
+  const dk = (s) => (s || '').split('/').reverse().join('');
+  lista.sort((a, b) => dk(b.o.d).localeCompare(dk(a.o.d)));
+  const vit = lista.reduce((a, x) => a + (x.o.v || 1), 0);
+  h += `<div class="vd-recorte">${lista.length} ocorrência(s) com ${vit} vítima(s) de roubo cujo alvo foi veículo ou carga (ou com motocicleta roubada) no ano, da mais recente para a mais antiga. A coluna "Cavalo de Aço ao redor" mostra quantas operações houve na cidade no dia do fato e nos 7 dias antes, a última antes do fato e as do bairro (30 dias antes e no ano). Não prova falha nem nexo: mostra se havia fiscalização por perto. Horário 00:00 pode ser horário não informado.</div>`;
+  h += `<div style="overflow-x:auto"><table class="data-table vd-casos" id="cavOcorrencias"><thead><tr><th>Data / REDS</th><th>Município</th><th>Alvo / Veículos</th><th>Vítimas</th><th>Bairro</th><th>Cavalo de Aço ao redor</th><th>Marcadores</th></tr></thead><tbody>`;
+  lista.forEach(({ cid, o }) => {
+    const bairro = o.ops_bairro_ano === null || o.ops_bairro_ano === undefined ? 'bairro inválido no REDS — sem como cruzar' : `${o.ops_bairro_30d} nos 30 dias antes · ${o.ops_bairro_ano} no ano`;
+    const ao_redor = `Dia do fato: <b>${o.ops_dia}</b><br>7 dias antes: <b>${o.ops_7d}</b><br>Última antes: ${o.ultima ? msgEsc(o.ultima) + ' (há ' + o.dias_ultima + ' dia' + (o.dias_ultima === 1 ? '' : 's') + ')' : 'nenhuma no ano'}<br>Bairro: ${bairro}`;
+    const marc = [
+      !o.ops_dia && !o.ops_7d ? pgMk('Sem Cavalo de Aço na semana anterior', 'Nenhuma operação de Cavalo de Aço na cidade no dia do fato nem nos 7 dias antes', 'risco') : '',
+      o.ops_bairro_ano === 0 ? pgMk('Bairro sem Cavalo de Aço no ano', 'Nenhuma operação de Cavalo de Aço registrada nesse bairro em 2026', 'risco') : '',
+      o.ops_dia ? pgMk('Cavalo de Aço no dia', 'Houve operação de Cavalo de Aço na cidade no dia do fato') : '',
+      o.moto ? pgMk('Motocicleta', 'Há motocicleta roubada no registro') : '',
+      o.h === '00:00' ? pgMk('Hora 00:00', 'O horário 00:00 pode ser horário não informado no REDS') : '',
+    ].join('') || '—';
+    const veic = (o.veic || []).map(msgEsc).join('<br>');
+    h += `<tr><td data-l="Data / REDS">${msgEsc(o.d)}${o.h ? ' ' + msgEsc(o.h) : ''}<br><small>${msgEsc(o.r)}</small></td><td data-l="Município">${msgEsc(cid)}</td><td data-l="Alvo / Veículos">${msgEsc(o.alvo)}${veic ? '<br><small>' + veic + '</small>' : ''}</td><td data-l="Vítimas">${o.v || 1}</td><td data-l="Bairro">${msgEsc(o.b) || '—'}</td><td data-l="Cavalo de Aço ao redor">${ao_redor}</td><td data-l="Marcadores">${marc}</td></tr>`;
+  });
+  return h + `</tbody></table></div></div>`;
+}
+
 function renderCavaloAcoPage() {
   const d = DATA.cavaloaco, cfg = OP_PISO, LM = opLimites(true), ef = DATA.cavaloaco_eficacia;
   const mesesLocais = d.meses || MESES.slice(0, d.total_mes.length);
@@ -2751,7 +2791,7 @@ function renderCavaloAcoPage() {
     if (nat.length) html += `<div class="chart-box" style="min-width:0;margin-top:16px"><h3>Naturezas dos REDS gerados pela fiscalização (ano)</h3>${barrasHtml(nat, false, 'verde')}</div>`;
     html += `</div>`;
   }
-  if (dd) html += opDetalheHtml(dd, { munFiltro, rotulo: 'Operações Cavalo de Aço', alertaBairro: true }) + cavLocalHtml(dd);
+  if (dd) html += opDetalheHtml(dd, { munFiltro, rotulo: 'Operações Cavalo de Aço', alertaBairro: true }) + cavLocalHtml(dd) + cavCruzamentoPublico(dd, munFiltro) + cavOcorrenciasHtml(dd, munFiltro);
   document.getElementById('main').innerHTML = html;
 
   const marcar = () => document.querySelectorAll('#cavMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
@@ -2769,7 +2809,7 @@ function renderCavaloAcoPage() {
       document.getElementById('cavEfRotulo').textContent = `(acumulado até ${mesesLocais[mi]})`;
     }
   });
-  opLigarCidades(['cavTable', 'opQuadro', 'cavEfTable', 'cavReg', 'opEsforco']);
+  opLigarCidades(['cavTable', 'opQuadro', 'cavEfTable', 'cavReg', 'opEsforco', 'opCruzaCidade']);
 }
 
 function renderRolezinhoPage() {
@@ -5621,7 +5661,7 @@ const PPVD_RESTRITO_VAZIO = () => ({
   violencia_domestica: { ocorrencias: {}, enderecos_reincidentes: {} },
   analise_preditiva: { ocorrencias_graves: {}, enderecos_reincidentes: {} },
   reincidencia: { enderecos: {} },
-  crimes_violentos: { ocorrencias: {}, mv_ocorrencias: {}, cvpe_ocorrencias: {}, cvpa_ocorrencias: {}, idob_ocorrencias: {} },
+  crimes_violentos: { ocorrencias: {}, mv_ocorrencias: {}, cvpe_ocorrencias: {}, cvpa_ocorrencias: {}, idob_ocorrencias: {}, cavalo_ocorrencias: {} },
 });
 function ppvdDadosRestritosLiberados() { return ppvdRestritoCarregado; }
 function ppvdAvisoRestrito() {
@@ -5644,7 +5684,7 @@ function ppvdLimparDadosRestritos() {
   window.ppvdOcorrenciaLookup = {}; window.ppvdCVLookup = {}; window.ppvdReincLookup = {};
   ppvdRestritoCarregado = false;
 }
-const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv', 'cvpe', 'cvpa', 'notificacoes', 'pog', 'idob'];
+const PPVD_PAGINAS_RESTRITAS = ['violencia_domestica', 'auditoria', 'analise_preditiva', 'crimes_violentos', 'reincidencia', 'mensagens', 'imv', 'cvpe', 'cvpa', 'notificacoes', 'pog', 'idob', 'cavaloaco'];
 
 async function ppvdInit() {
   if (!ppvdSupa) return;

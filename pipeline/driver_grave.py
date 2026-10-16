@@ -652,6 +652,9 @@ DIAS_SEMANA = [('SEG', 'Segunda'), ('TER', 'Terça'), ('QUA', 'Quarta'), ('QUI',
 FAIXAS_6H = ['00h–06h', '06h–12h', '12h–18h', '18h–24h']
 
 
+ALVOS_VEICULO_CARGA = ('CARGAS', 'VEICULO OU EMBARCACAO')  # alvo do roubo (CVPa) ligado ao Plano Motocicletas/Roubo de Carga (Memorando 012)
+
+
 def run_extras_indicadores(data, report):
     for chave in ('mv', 'cvpe', 'cvpa'):
         pasta, col_total, _saidas = LOCAL_FAIXA[chave]
@@ -667,6 +670,7 @@ def run_extras_indicadores(data, report):
         matriz = [[0] * 4 for _ in range(7)]
         rodov, alvo = collections.Counter(), collections.Counter()
         bairro_inv, alvo_mun = set(), {}
+        veic_m = [[0] * 4 for _ in range(7)]  # CVPa: roubo de veículo e de carga (alvo), dia x faixa
         for r in validas:
             tot = _num(r.get(col_total))
             reds_b = (r.get('NUMERO_REDS') or '').strip(); bai = (r.get('BAIRRO') or '').strip().upper()
@@ -686,6 +690,8 @@ def run_extras_indicadores(data, report):
                 rot2 = re.sub(r'^BENS/VALORES( DE)? ', '', rot.split(' (')[0])  # o SiGOp escreve a mesma categoria com e sem "BENS/VALORES DE"
                 alvo[rot2] += tot
                 alvo_mun.setdefault((r.get('MUNICIPIO') or '').strip().upper(), collections.Counter())[rot2] += tot
+                if rot2 in ALVOS_VEICULO_CARGA and i_d is not None and i_f is not None and i_f < 4:
+                    veic_m[i_d][i_f] += tot
         res = {'file': f, 'soma_indicador': soma, 'em_rodovia': sum(rodov.values())}
         if sum(sum(l) for l in matriz) == soma:
             data[chave + '_dia_faixa'] = {'dias': [n for _, n in DIAS_SEMANA], 'faixas': FAIXAS_6H, 'matriz': matriz}
@@ -701,6 +707,10 @@ def run_extras_indicadores(data, report):
                 data['cvpa_alvo'] = [[k, v] for k, v in ordenado]
                 data['cvpa_alvo_municipio'] = {m: [[k, v] for k, v in sorted(c.items(), key=lambda kv: (-kv[1], kv[0]))] for m, c in alvo_mun.items()}
                 res['alvo'] = 'ok'
+                esp_v = sum(v for k, v in ordenado if k in ALVOS_VEICULO_CARGA)
+                if sum(sum(l) for l in veic_m) == esp_v:
+                    data['cvpa_veiculo_dia_faixa'] = {'dias': [n for _, n in DIAS_SEMANA], 'faixas': FAIXAS_6H, 'matriz': veic_m}
+                    res['veiculo_dia_faixa'] = 'ok'
             else:
                 res['alvo'] = 'não confere'
         report['extras_' + chave] = res
@@ -1079,6 +1089,70 @@ def run_cavalo_detalhe(data, report):
     report['cavalo_detalhe'] = {'file': f, 'ops': len(sel), 'sem_bairro': det['qualidade']['sem_bairro'], 'semanas': len(sem['rotulos']) if sem else 0}
 
 
+# ---- Cavalo de Aço onda 3: roubos de veículo e de carga (CVPa) com o Cavalo de Aço ao redor (RESTRITO: REDS, data, bairro) ----
+# `crimes_violentos.cavalo_ocorrencias` ({município: [ocorrências]}, só PPVD aprovado): para cada roubo cujo alvo é veículo ou carga (ou que tem
+# motocicleta roubada), quantas operações de Cavalo de Aço houve na cidade no dia, nos 7 dias antes, a última antes e as do bairro.
+# Só contagem/data de operação; nunca nome de policial.
+def run_cavalo_cruzamento(data, report):
+    f = latest_csv('Cavalo de aço')
+    if not f or 'cavaloaco' not in data:
+        report['cavalo_cruzamento'] = {'skipped': True, 'reason': 'sem export em entrada/Cavalo de aço'}
+        return
+    try:
+        ops_rows = read_csv(f, encoding='utf-8')
+    except UnicodeDecodeError:
+        report['cavalo_cruzamento'] = {'skipped': True, 'reason': 'arquivo não é UTF-8'}
+        return
+    if not ops_rows or 'PRODUTIVIDADE' not in ops_rows[0]:
+        report['cavalo_cruzamento'] = {'skipped': True, 'reason': 'arquivo sem as colunas do RAT'}
+        return
+
+    def dia(t):
+        try:
+            return datetime.datetime.strptime((t or '').strip(), '%d/%m/%Y').date()
+        except ValueError:
+            return None
+    por_cid, por_bairro = collections.defaultdict(list), collections.defaultdict(list)
+    for r in ops_rows:
+        if 'Y01003' not in (r.get('CODIGO_NATUREZA_PRINCIPAL') or ''):
+            continue
+        d = dia(r.get('DATA_FATO'))
+        if not d:
+            continue
+        cid = (r.get('MUNICIPIO') or '').strip().upper()
+        por_cid[cid].append(d)
+        b = _sem_acento_up(r.get('BAIRRO'))
+        if b and not b.startswith('INV'):
+            por_bairro[(cid, b)].append(d)
+    saida = {}
+    for cid, lst in (data.get('crimes_violentos', {}).get('cvpa_ocorrencias') or {}).items():
+        cidn = _sem_acento_up(cid)
+        for o in lst:
+            alvo = _sem_acento_up(o.get('alvo'))
+            veic = ' '.join(o.get('veic') or [])
+            moto = 'MOTOCICLETA' in veic.upper() and 'ROUBADO' in veic.upper()
+            if alvo not in ALVOS_VEICULO_CARGA and not moto:
+                continue
+            d = dia(o.get('d'))
+            if not d:
+                continue
+            ds = por_cid.get(cidn, [])
+            antes = [x for x in ds if x < d]
+            b = _sem_acento_up(o.get('b'))
+            db = por_bairro.get((cidn, b), []) if b and not b.startswith('INV') else None
+            saida.setdefault(cidn, []).append({
+                'r': o.get('r'), 'd': o.get('d'), 'h': o.get('h'), 'b': o.get('b'), 'alvo': o.get('alvo'), 'veic': o.get('veic') or [], 'moto': moto, 'v': o.get('v') or 1,
+                'ops_dia': sum(1 for x in ds if x == d), 'ops_7d': sum(1 for x in ds if 0 < (d - x).days <= 7),
+                'ultima': max(antes).strftime('%d/%m/%Y') if antes else None, 'dias_ultima': (d - max(antes)).days if antes else None,
+                'ops_bairro_30d': None if db is None else sum(1 for x in db if 0 < (d - x).days <= 30),
+                'ops_bairro_ano': None if db is None else len(db), 'ops_cidade_ano': len(ds),
+            })
+    for lst in saida.values():
+        lst.sort(key=lambda x: (x['d'] or '').split('/')[::-1])
+    data.setdefault('crimes_violentos', {})['cavalo_ocorrencias'] = saida
+    report['cavalo_cruzamento'] = {'file': f, 'ocorrencias': sum(len(v) for v in saida.values())}
+
+
 
 def _extras_cvpa(r, vit):
     """CVPA: o alvo do roubo, o que foi levado (objetos FURTADO/ROUBADO) e os veículos roubados/liberados — campos de texto do SiGOp."""
@@ -1135,6 +1209,7 @@ def main():
     run_mv_ocorrencias(data, report)
     run_cvpe_ocorrencias(data, report)
     run_cvpa_ocorrencias(data, report)
+    run_cavalo_cruzamento(data, report)  # usa a lista de ocorrências do CVPa já montada
     if f_bo:
         run_idob_cruzamento(data, rows_bo, report)  # precisa das listas de ocorrências (natureza/causa) já montadas
 

@@ -2071,6 +2071,55 @@ function auditar() {
     await ctxD.close();
   }
 
+  // ---------- 45) Cavalo de Aço, onda 3: operações x roubo de veículo e de carga (público) e os roubos com o Cavalo de Aço ao redor (restrito) ----------
+  console.log('\n[45] Cavalo de Aço: operações × roubo de veículo e de carga');
+  {
+    const ctxE = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pe = await ctxE.newPage();
+    const errosE = []; pe.on('pageerror', (e) => errosE.push(e.message));
+    await pe.goto(base);
+    await pe.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pe.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, det = DATA.cavaloaco_detalhe, mv = DATA.cvpa_veiculo_dia_faixa;
+      const vc = DATA.cvpa_alvo.filter(x => x[0] === 'CARGAS' || x[0] === 'VEICULO OU EMBARCACAO').reduce((a, x) => a + x[1], 0);
+      out.dados = { matriz: mv.matriz.flat().reduce((a, b) => a + b, 0) === vc, cidades: Object.values(DATA.cvpa_alvo_municipio).reduce((a, l) => a + l.filter(x => x[0] === 'CARGAS' || x[0] === 'VEICULO OU EMBARCACAO').reduce((b, x) => b + x[1], 0), 0) === vc, publicoSemRestrito: Object.keys((DATA.crimes_violentos || {}).cavalo_ocorrencias || {}).length === 0 };
+      setMunFiltro('');
+      goToPage('cavaloaco'); await esp(400);
+      const m = document.getElementById('main'), fx = [...document.querySelectorAll('#opCruzaFaixa tbody tr')];
+      out.publico = { titulo: /Cavalo de Aço × roubo de veículo e de carga/.test(m.textContent), faixa: fx.length === 5 && parseInt(fx[4].children[2].textContent) === vc && parseInt(fx[4].children[1].textContent) === det.total, dia: document.querySelectorAll('#opCruzaDia tbody tr').length === 8, cidade: document.querySelectorAll('#opCruzaCidade tbody tr').length === det.esforco.municipios.length + 1,
+        poucos: /São poucos casos/.test(m.textContent), horario: /00:00 no REDS/.test(m.textContent) };
+      out.anonimo = { aviso: /Detalhe restrito/.test(m.textContent), semTabela: !document.getElementById('cavOcorrencias'), semReds: !/\d{4}-\d{9}-\d{3}/.test(m.textContent) };
+      ppvdRestritoCarregado = true;
+      const cid = det.esforco.municipios[0].nome, outra = det.esforco.municipios[1].nome;
+      DATA.crimes_violentos = { ...(DATA.crimes_violentos || {}), cavalo_ocorrencias: {
+        [cid]: [{ r: '2026-000000333-001', d: '03/02/2026', h: '21:05', b: 'SERRA AZUL', alvo: 'Veiculo Ou Embarcacao', veic: ['Motocicleta (roubado)'], moto: true, v: 1, ops_dia: 0, ops_7d: 0, ultima: '20/01/2026', dias_ultima: 14, ops_bairro_30d: 0, ops_bairro_ano: 0, ops_cidade_ano: 9 }],
+        [outra]: [{ r: '2026-000000444-001', d: '10/05/2026', h: '00:00', b: 'INVÁLIDO', alvo: 'Cargas', veic: ['Caminhao (roubado)'], moto: false, v: 2, ops_dia: 1, ops_7d: 4, ultima: '09/05/2026', dias_ultima: 1, ops_bairro_30d: null, ops_bairro_ano: null, ops_cidade_ano: 40 }] } };
+      goToPage('cavaloaco'); await esp(400);
+      const lin = [...document.querySelectorAll('#cavOcorrencias tbody tr')], t = document.getElementById('main').textContent;
+      out.restrito = { linhas: lin.length === 2, ordem: /10\/05\/2026/.test(lin[0].textContent) && /03\/02\/2026/.test(lin[1].textContent), soma: /2 ocorrência\(s\) com 3 vítima\(s\)/.test(t),
+        redor: /Dia do fato: 0/.test(lin[1].textContent) && /7 dias antes: 0/.test(lin[1].textContent) && /Última antes: 20\/01\/2026 \(há 14 dias\)/.test(lin[1].textContent) && /0 nos 30 dias antes · 0 no ano/.test(lin[1].textContent),
+        marcadores: /Sem Cavalo de Aço na semana anterior/.test(lin[1].textContent) && /Bairro sem Cavalo de Aço no ano/.test(lin[1].textContent) && /Motocicleta/.test(lin[1].textContent),
+        comCavalo: /Cavalo de Aço no dia/.test(lin[0].textContent) && !/Sem Cavalo de Aço na semana anterior/.test(lin[0].textContent) && /Hora 00:00/.test(lin[0].textContent), invalido: /bairro inválido no REDS/.test(lin[0].textContent) };
+      setMunFiltro(cid); goToPage('cavaloaco'); await esp(400);
+      out.filtro = document.querySelectorAll('#cavOcorrencias tbody tr').length === 1;
+      setMunFiltro('');
+      ppvdLimparDadosRestritos();
+      out.limpo = Object.keys(DATA.crimes_violentos.cavalo_ocorrencias || {}).length === 0;
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.dados.matriz && r.dados.cidades && r.dados.publicoSemRestrito, 'dia × faixa e cidade dos roubos de veículo e de carga fecham com o CVPa e o arquivo público não traz a lista restrita', 'dados: ' + JSON.stringify(r.dados));
+    checa(r.publico.titulo && r.publico.faixa && r.publico.dia && r.publico.cidade && r.publico.poucos && r.publico.horario, 'Cavalo de Aço × roubo de veículo e de carga por faixa, dia e cidade, com os avisos de poucos casos e do horário 00:00', 'público: ' + JSON.stringify(r.publico));
+    checa(r.anonimo.aviso && r.anonimo.semTabela && r.anonimo.semReds, 'visitante sem login: roubos de veículo e de carga só mostram o aviso de detalhe restrito (sem REDS)', 'anônimo: ' + JSON.stringify(r.anonimo));
+    checa(r.restrito.linhas && r.restrito.ordem && r.restrito.soma && r.restrito.redor, 'PPVD aprovado: lista dos roubos (mais recente primeiro) com o Cavalo de Aço ao redor (dia, 7 dias antes, última, bairro)', 'restrito: ' + JSON.stringify(r.restrito));
+    checa(r.restrito.marcadores && r.restrito.comCavalo && r.restrito.invalido, 'PPVD aprovado: marcadores certos (sem Cavalo na semana anterior, bairro sem Cavalo, motocicleta, Cavalo no dia, hora 00:00)', 'marcadores: ' + JSON.stringify(r.restrito));
+    checa(r.filtro && r.limpo, 'cidade filtra a lista e o logout esvazia os roubos restritos do Cavalo de Aço', 'filtro/logout: ' + JSON.stringify([r.filtro, r.limpo]));
+    checa(r.largura, 'Cavalo de Aço onda 3 no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosE.length === 0, 'Cavalo de Aço onda 3 sem erro de JavaScript', 'erros: ' + errosE.slice(0, 3).join(' | '));
+    await ctxE.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
