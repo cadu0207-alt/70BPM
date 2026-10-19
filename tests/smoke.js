@@ -2120,6 +2120,52 @@ function auditar() {
     await ctxE.close();
   }
 
+  // ---------- 46) PPAG: meta FIXA (nem a menos, nem a mais) ----------
+  console.log('\n[46] PPAG: meta fixa — verde só na meta exata, amarelo até 10%, resto vermelho');
+  {
+    const ctxF = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pf = await ctxF.newPage();
+    const errosF = []; pf.on('pageerror', (e) => errosF.push(e.message));
+    await pf.goto(base);
+    await pf.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pf.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {};
+      out.regra = [[8, 8], [15, 15], [14, 15], [16, 15], [17, 15], [13, 15], [0, 0], [1, 0], [9, 10], [11, 10], [12, 10], [8, 10], [1, 1], [2, 1], [0, 1]].map(([a, b]) => ({ verde: 'G', amarelo: 'Y', vermelho: 'R' })[statusPpag(a, b)]).join('');
+      goToPage('ppag'); await esp(400);
+      const cores = { verde: 'rgba(33,201,138', amarelo: 'rgba(212,194,42', vermelho: 'rgba(230,72,79' };
+      const cels = [...document.querySelectorAll('#ppagTable tbody td')].filter(td => /\d+ \/ \d+/.test(td.textContent));
+      let erradas = 0, maisVerde = 0, n = 0;
+      cels.forEach(td => {
+        const m = /(\d+) \/ (\d+)/.exec((td.querySelector('span') || td).textContent), real = parseInt(m[1]), lim = parseInt(m[2]);
+        n++;
+        if (!(td.getAttribute('style') || '').includes(cores[statusPpag(real, lim)])) erradas++;
+        if (real > lim && (td.getAttribute('style') || '').includes(cores.verde)) maisVerde++;
+      });
+      out.matriz = { n, erradas, maisVerde };
+      const t = document.getElementById('main').textContent;
+      out.texto = /não pode a menos nem a mais/.test(t) && /até 10% acima ou abaixo/.test(t) && !/entre 80% e 100%/.test(t);
+      out.situacao = [...document.querySelectorAll('#ppagTable tbody small')].every(x => /^(na meta|faltam \d+|\d+ a mais)$/.test(x.textContent.trim()));
+      // detalhe do indicador usa a mesma regra
+      document.querySelector('#ppagSubs button[data-p="y07012"]').click(); await esp(100);
+      const c = document.getElementById('ppagSubCorpo').textContent;
+      out.detalhe = /na meta exata/.test(c);
+      // Home: a mesma função de cor nas colunas do PPAG
+      const d = DATA.ppag.y07012, m1 = d.municipios[0], mi = Math.min(MES_ATUAL_IDX, d.total_acum.length - 1);
+      const f = fatorMesEmAndamento(d, mi), lim = metaPisoEfetiva(m1, '_acum', mi, f);
+      out.home = statusPpagEf(m1, d, '_acum', mi) === statusPpag(m1.realizado_acum[mi], lim) && celulaPisoEf(m1, d, '_acum', mi, statusPpag).includes(cores[statusPpag(m1.realizado_acum[mi], lim)]);
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.regra === 'GGYYRRGRYYRRGRR', 'statusPpag: meta exata = verde; até 10% acima ou abaixo = amarelo; o resto = vermelho (meta zero: só zero é verde)', 'regra: ' + r.regra);
+    checa(r.matriz.n > 20 && r.matriz.erradas === 0 && r.matriz.maisVerde === 0, `PPAG: toda célula da matriz segue a regra e nenhuma célula acima da meta é verde (${r.matriz.n} células)`, 'matriz: ' + JSON.stringify(r.matriz));
+    checa(r.texto && r.situacao, 'PPAG: texto da regra (meta fixa) e situações "na meta / faltam N / N a mais" na tela', 'texto/situação: ' + JSON.stringify([r.texto, r.situacao]));
+    checa(r.detalhe && r.home, 'PPAG: o detalhe do indicador e a Home usam a mesma regra de cor', 'detalhe/Home: ' + JSON.stringify([r.detalhe, r.home]));
+    checa(r.largura, 'PPAG no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosF.length === 0, 'PPAG meta fixa sem erro de JavaScript', 'erros: ' + errosF.slice(0, 3).join(' | '));
+    await ctxF.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));
