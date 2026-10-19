@@ -361,8 +361,10 @@ def main():
     report['pog'] = {'file': f, 'n_rows': len(rat_rows), 'changes': ch, 'drops': dr}
 
     ppag_report = {}
-    for code, key in [('Y15001','y15001'), ('Y07012','y07012'), ('Y07014','y07014')]:
-        new_d = agg_rat_natureza(rat_rows, {code})
+    # 2026-10-19 (Eduardo): Zona Rural = Y07014 + Y15010 contados SEMPRE juntos, na mesma meta (Y15010 era o código usado até ~março e ainda
+    # aparece em poucos RATs depois; eram a mesma operação e o Y15010 tinha ficado de fora da contagem)
+    for codes, key in [({'Y15001'}, 'y15001'), ({'Y07012'}, 'y07012'), ({'Y07014', 'Y15010'}, 'y07014')]:
+        new_d = agg_rat_natureza(rat_rows, codes)
         new_list, ch, dr = merge_cell(data['ppag'][key]['municipios'], new_d)
         data['ppag'][key]['municipios'] = new_list
         recompute_totals(data['ppag'][key])

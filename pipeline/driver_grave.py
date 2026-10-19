@@ -719,7 +719,7 @@ def run_extras_indicadores(data, report):
 # Tudo calculado do export 'POG E PPAG' a cada rodada (antes, bairro e natureza do POG eram um retrato antigo: 336 e 446 de 4.353 operações).
 # PÚBLICO e só agregado: efetivo e viaturas são apenas CONTADOS (nomes, matrículas e prefixos nunca saem daqui), nenhum RAT/endereço.
 POG_CODIGOS = {'Y04009', 'Y07001', 'Y07002', 'Y07003', 'Y07010', 'Y10001'}
-PPAG_CODIGOS = {'y15001': 'Y15001', 'y07012': 'Y07012', 'y07014': 'Y07014'}
+PPAG_CODIGOS = {'y15001': ('Y15001',), 'y07012': ('Y07012',), 'y07014': ('Y07014', 'Y15010')}  # Zona Rural = Y07014 + Y15010 juntos (Eduardo, 2026-10-19)
 DURACAO_MAX_MIN = 24 * 60  # acima de 24h é erro de preenchimento (há RAT com 62 dias): fora das médias, mas contado
 
 
@@ -830,7 +830,7 @@ def run_operacoes_detalhe(data, report):
         res['pog'] = f'não confere ({len(pog)} no export x {esperado} no indicador) — mantido o anterior'
     ppag = {}
     for chave, cod in PPAG_CODIGOS.items():
-        sub = [r for r in rows if (r.get('CODIGO_NATUREZA_PRINCIPAL') or '').strip() == cod and valido(r)]
+        sub = [r for r in rows if (r.get('CODIGO_NATUREZA_PRINCIPAL') or '').strip() in cod and valido(r)]
         esp = data['ppag'][chave]['total_acum'][-1] if data.get('ppag', {}).get(chave, {}).get('total_acum') else None
         if esp == len(sub):
             ppag[chave] = _agg_operacoes(sub, False)

@@ -7161,8 +7161,8 @@
           "realizado_mes": [
             0,
             0,
-            0,
-            2,
+            1,
+            3,
             0,
             0,
             1,
@@ -7189,16 +7189,16 @@
           "realizado_acum": [
             0,
             0,
-            0,
-            2,
-            2,
-            2,
-            3,
+            1,
+            4,
+            4,
+            4,
             5,
-            6,
             7,
-            7,
-            7
+            8,
+            9,
+            9,
+            9
           ],
           "meta_acum": [
             0,
@@ -7218,12 +7218,12 @@
         {
           "nome": "ARACUAI",
           "realizado_mes": [
-            0,
-            0,
-            0,
-            3,
             4,
+            4,
+            11,
             3,
+            5,
+            5,
             4,
             6,
             6,
@@ -7246,18 +7246,18 @@
             6
           ],
           "realizado_acum": [
-            0,
-            0,
-            0,
-            3,
-            7,
-            10,
-            14,
-            20,
-            26,
-            28,
-            28,
-            28
+            4,
+            8,
+            19,
+            22,
+            27,
+            32,
+            36,
+            42,
+            48,
+            50,
+            50,
+            50
           ],
           "meta_acum": [
             4,
@@ -7277,9 +7277,9 @@
         {
           "nome": "CACHOEIRA DE PAJEU",
           "realizado_mes": [
+            2,
             0,
-            0,
-            1,
+            3,
             2,
             0,
             1,
@@ -7305,18 +7305,18 @@
             1
           ],
           "realizado_acum": [
-            0,
-            0,
-            1,
-            3,
-            3,
-            4,
+            2,
+            2,
             5,
-            6,
-            6,
-            6,
-            6,
-            6
+            7,
+            7,
+            8,
+            9,
+            10,
+            10,
+            10,
+            10,
+            10
           ],
           "meta_acum": [
             2,
@@ -7336,10 +7336,10 @@
         {
           "nome": "COMERCINHO",
           "realizado_mes": [
-            0,
-            0,
-            0,
-            0,
+            2,
+            2,
+            3,
+            1,
             2,
             3,
             2,
@@ -7364,18 +7364,18 @@
             2
           ],
           "realizado_acum": [
-            0,
-            0,
-            0,
-            0,
             2,
-            5,
+            4,
             7,
-            9,
-            11,
+            8,
+            10,
             13,
-            13,
-            13
+            15,
+            17,
+            19,
+            21,
+            21,
+            21
           ],
           "meta_acum": [
             2,
@@ -7395,12 +7395,12 @@
         {
           "nome": "CORONEL MURTA",
           "realizado_mes": [
-            0,
-            0,
+            4,
+            3,
             1,
             1,
             2,
-            1,
+            2,
             0,
             2,
             2,
@@ -7423,18 +7423,18 @@
             0
           ],
           "realizado_acum": [
-            0,
-            0,
-            1,
-            2,
             4,
-            5,
-            5,
             7,
+            8,
             9,
             11,
-            11,
-            11
+            13,
+            13,
+            15,
+            17,
+            19,
+            19,
+            19
           ],
           "meta_acum": [
             4,
@@ -7455,8 +7455,8 @@
           "nome": "DIVISA ALEGRE",
           "realizado_mes": [
             0,
-            0,
             1,
+            9,
             1,
             1,
             1,
@@ -7483,17 +7483,17 @@
           ],
           "realizado_acum": [
             0,
-            0,
             1,
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            8,
-            8
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            17,
+            17
           ],
           "meta_acum": [
             3,
@@ -7513,14 +7513,14 @@
         {
           "nome": "ITAOBIM",
           "realizado_mes": [
-            0,
-            0,
-            2,
-            2,
             1,
+            1,
+            14,
+            6,
+            3,
+            5,
             4,
-            4,
-            4,
+            5,
             5,
             3,
             0,
@@ -7541,18 +7541,18 @@
             4
           ],
           "realizado_acum": [
-            0,
-            0,
+            1,
             2,
-            4,
-            5,
-            9,
-            13,
-            17,
+            16,
             22,
             25,
-            25,
-            25
+            30,
+            34,
+            39,
+            44,
+            47,
+            47,
+            47
           ],
           "meta_acum": [
             3,
@@ -7572,9 +7572,9 @@
         {
           "nome": "ITINGA",
           "realizado_mes": [
+            1,
             0,
-            0,
-            0,
+            1,
             1,
             1,
             1,
@@ -7600,9 +7600,7 @@
             1
           ],
           "realizado_acum": [
-            0,
-            0,
-            0,
+            1,
             1,
             2,
             3,
@@ -7610,8 +7608,10 @@
             5,
             6,
             7,
-            7,
-            7
+            8,
+            9,
+            9,
+            9
           ],
           "meta_acum": [
             2,
@@ -7631,9 +7631,9 @@
         {
           "nome": "MEDINA",
           "realizado_mes": [
-            0,
-            0,
-            0,
+            2,
+            2,
+            7,
             1,
             3,
             3,
@@ -7659,18 +7659,18 @@
             3
           ],
           "realizado_acum": [
-            0,
-            0,
-            0,
-            1,
+            2,
             4,
-            7,
-            10,
-            13,
-            19,
-            19,
-            19,
-            19
+            11,
+            12,
+            15,
+            18,
+            21,
+            24,
+            30,
+            30,
+            30,
+            30
           ],
           "meta_acum": [
             3,
@@ -7690,9 +7690,9 @@
         {
           "nome": "PADRE PARAISO",
           "realizado_mes": [
-            0,
-            0,
-            0,
+            2,
+            3,
+            7,
             1,
             2,
             0,
@@ -7718,18 +7718,18 @@
             2
           ],
           "realizado_acum": [
-            0,
-            0,
-            0,
-            1,
-            3,
-            3,
+            2,
             5,
-            7,
-            9,
-            10,
-            10,
-            10
+            12,
+            13,
+            15,
+            15,
+            17,
+            19,
+            21,
+            22,
+            22,
+            22
           ],
           "meta_acum": [
             3,
@@ -7749,11 +7749,11 @@
         {
           "nome": "PEDRA AZUL",
           "realizado_mes": [
+            7,
+            3,
             0,
             0,
-            0,
-            0,
-            2,
+            7,
             2,
             4,
             5,
@@ -7777,18 +7777,18 @@
             4
           ],
           "realizado_acum": [
-            0,
-            0,
-            0,
-            0,
-            2,
-            4,
-            8,
-            13,
-            18,
-            18,
-            18,
-            18
+            7,
+            10,
+            10,
+            10,
+            17,
+            19,
+            23,
+            28,
+            33,
+            33,
+            33,
+            33
           ],
           "meta_acum": [
             7,
@@ -7808,9 +7808,9 @@
         {
           "nome": "PONTO DOS VOLANTES",
           "realizado_mes": [
-            2,
-            2,
-            0,
+            3,
+            6,
+            6,
             1,
             2,
             1,
@@ -7836,18 +7836,18 @@
             1
           ],
           "realizado_acum": [
-            2,
-            4,
-            4,
-            5,
-            7,
-            8,
+            3,
             9,
-            10,
-            12,
-            13,
-            13,
-            13
+            15,
+            16,
+            18,
+            19,
+            20,
+            21,
+            23,
+            24,
+            24,
+            24
           ],
           "meta_acum": [
             1,
@@ -7867,8 +7867,8 @@
         {
           "nome": "VIRGEM DA LAPA",
           "realizado_mes": [
-            0,
-            0,
+            1,
+            1,
             0,
             1,
             1,
@@ -7895,18 +7895,18 @@
             1
           ],
           "realizado_acum": [
-            0,
-            0,
-            0,
             1,
+            2,
             2,
             3,
             4,
             5,
             6,
             7,
-            7,
-            7
+            8,
+            9,
+            9,
+            9
           ],
           "meta_acum": [
             1,
@@ -7925,14 +7925,14 @@
         }
       ],
       "total_mes": [
-        2,
-        2,
-        5,
-        16,
-        21,
-        21,
+        29,
+        26,
+        63,
+        22,
+        29,
         25,
-        31,
+        25,
+        32,
         34,
         15,
         0,
@@ -7953,18 +7953,18 @@
         27
       ],
       "total_acum": [
-        2,
-        4,
-        9,
-        25,
-        46,
-        67,
-        92,
-        123,
-        157,
-        172,
-        172,
-        172
+        29,
+        55,
+        118,
+        140,
+        169,
+        194,
+        219,
+        251,
+        285,
+        300,
+        300,
+        300
       ],
       "total_meta_acum": [
         35,
@@ -26952,15 +26952,15 @@
       }
     },
     "y07014": {
-      "total": 172,
+      "total": 300,
       "bairro": [
         [
           "(sem bairro)",
-          162
+          287
         ],
         [
           "CENTRO",
-          5
+          7
         ],
         [
           "POVOADO JISSARA",
@@ -26968,6 +26968,10 @@
         ],
         [
           "DISTRITO FREI CARDOSO",
+          1
+        ],
+        [
+          "LOCALIDADE CATERIONGONGO",
           1
         ],
         [
@@ -26980,90 +26984,32 @@
         ]
       ],
       "bairro_municipio": {
-        "MEDINA": [
-          [
-            "(sem bairro)",
-            19
-          ]
-        ],
-        "COMERCINHO": [
-          [
-            "(sem bairro)",
-            13
-          ]
-        ],
         "PADRE PARAISO": [
           [
             "(sem bairro)",
-            9
+            21
           ],
           [
             "VALMIRA FARIAS",
             1
           ]
         ],
-        "PONTO DOS VOLANTES": [
+        "MEDINA": [
           [
             "(sem bairro)",
-            13
+            30
           ]
         ],
-        "CACHOEIRA DE PAJEU": [
+        "COMERCINHO": [
           [
             "(sem bairro)",
-            6
-          ]
-        ],
-        "DIVISA ALEGRE": [
-          [
-            "(sem bairro)",
-            8
-          ]
-        ],
-        "VIRGEM DA LAPA": [
-          [
-            "(sem bairro)",
-            7
-          ]
-        ],
-        "CORONEL MURTA": [
-          [
-            "(sem bairro)",
-            10
-          ],
-          [
-            "DISTRITO FREI CARDOSO",
-            1
-          ]
-        ],
-        "ARACUAI": [
-          [
-            "(sem bairro)",
-            28
-          ]
-        ],
-        "ITINGA": [
-          [
-            "(sem bairro)",
-            7
-          ]
-        ],
-        "ITAOBIM": [
-          [
-            "(sem bairro)",
-            25
-          ]
-        ],
-        "AGUAS VERMELHAS": [
-          [
-            "(sem bairro)",
-            7
+            21
           ]
         ],
         "PEDRA AZUL": [
           [
             "(sem bairro)",
-            10
+            25
           ],
           [
             "CENTRO",
@@ -27076,6 +27022,72 @@
           [
             "VILA PEDRO SEM",
             1
+          ]
+        ],
+        "ARACUAI": [
+          [
+            "(sem bairro)",
+            48
+          ],
+          [
+            "CENTRO",
+            2
+          ]
+        ],
+        "CORONEL MURTA": [
+          [
+            "(sem bairro)",
+            18
+          ],
+          [
+            "DISTRITO FREI CARDOSO",
+            1
+          ]
+        ],
+        "VIRGEM DA LAPA": [
+          [
+            "(sem bairro)",
+            9
+          ]
+        ],
+        "PONTO DOS VOLANTES": [
+          [
+            "(sem bairro)",
+            24
+          ]
+        ],
+        "DIVISA ALEGRE": [
+          [
+            "(sem bairro)",
+            17
+          ]
+        ],
+        "CACHOEIRA DE PAJEU": [
+          [
+            "(sem bairro)",
+            9
+          ],
+          [
+            "LOCALIDADE CATERIONGONGO",
+            1
+          ]
+        ],
+        "ITAOBIM": [
+          [
+            "(sem bairro)",
+            47
+          ]
+        ],
+        "ITINGA": [
+          [
+            "(sem bairro)",
+            9
+          ]
+        ],
+        "AGUAS VERMELHAS": [
+          [
+            "(sem bairro)",
+            9
           ]
         ]
       },
@@ -27098,45 +27110,45 @@
         "matriz": [
           [
             0,
-            7,
-            5,
-            1
+            16,
+            12,
+            3
           ],
           [
-            0,
-            8,
-            11,
+            1,
+            21,
+            20,
             5
           ],
           [
-            0,
+            2,
+            28,
+            31,
+            7
+          ],
+          [
+            1,
             19,
-            23,
+            26,
+            5
+          ],
+          [
+            2,
+            16,
+            15,
             6
           ],
           [
-            0,
-            8,
-            19,
-            4
-          ],
-          [
-            0,
-            5,
+            1,
+            10,
             11,
-            3
+            7
           ],
           [
             0,
-            4,
-            8,
-            3
-          ],
-          [
-            0,
-            9,
-            7,
-            6
+            13,
+            12,
+            10
           ]
         ]
       },
@@ -27144,150 +27156,150 @@
         "municipios": [
           {
             "nome": "AGUAS VERMELHAS",
-            "ops": 7,
-            "dur_media_min": 52.4,
-            "dur_mediana_min": 30,
-            "efetivo_medio": 2.57,
+            "ops": 9,
+            "dur_media_min": 54.1,
+            "dur_mediana_min": 40,
+            "efetivo_medio": 2.56,
             "vtr_media": 1.0,
-            "horas_policial": 14.9
+            "horas_policial": 19.9
           },
           {
             "nome": "ARACUAI",
-            "ops": 28,
-            "dur_media_min": 49.2,
-            "dur_mediana_min": 32,
-            "efetivo_medio": 2.38,
-            "vtr_media": 1.23,
-            "horas_policial": 53.1
+            "ops": 50,
+            "dur_media_min": 45.1,
+            "dur_mediana_min": 31,
+            "efetivo_medio": 2.32,
+            "vtr_media": 1.13,
+            "horas_policial": 79.8
           },
           {
             "nome": "CACHOEIRA DE PAJEU",
-            "ops": 6,
-            "dur_media_min": 78.3,
+            "ops": 10,
+            "dur_media_min": 80.0,
             "dur_mediana_min": 90,
-            "efetivo_medio": 2.33,
+            "efetivo_medio": 2.3,
             "vtr_media": 1.0,
-            "horas_policial": 18.2
+            "horas_policial": 30.7
           },
           {
             "nome": "COMERCINHO",
-            "ops": 13,
+            "ops": 21,
             "dur_media_min": 52.5,
             "dur_mediana_min": 60,
-            "efetivo_medio": 2.08,
+            "efetivo_medio": 2.1,
             "vtr_media": 1.0,
-            "horas_policial": 22.0
+            "horas_policial": 37.0
           },
           {
             "nome": "CORONEL MURTA",
-            "ops": 11,
-            "dur_media_min": 54.5,
-            "dur_mediana_min": 60,
-            "efetivo_medio": 2.45,
+            "ops": 19,
+            "dur_media_min": 50.1,
+            "dur_mediana_min": 47,
+            "efetivo_medio": 2.26,
             "vtr_media": 1.0,
-            "horas_policial": 24.7
+            "horas_policial": 36.4
           },
           {
             "nome": "DIVISA ALEGRE",
-            "ops": 8,
-            "dur_media_min": 71.2,
+            "ops": 17,
+            "dur_media_min": 73.2,
             "dur_mediana_min": 60,
             "efetivo_medio": 2.12,
             "vtr_media": 1.0,
-            "horas_policial": 20.0
+            "horas_policial": 44.0
           },
           {
             "nome": "ITAOBIM",
-            "ops": 25,
-            "dur_media_min": 76.4,
+            "ops": 47,
+            "dur_media_min": 70.6,
             "dur_mediana_min": 60,
-            "efetivo_medio": 2.46,
-            "vtr_media": 1.17,
-            "horas_policial": 95.7
+            "efetivo_medio": 2.24,
+            "vtr_media": 1.09,
+            "horas_policial": 141.5
           },
           {
             "nome": "ITINGA",
-            "ops": 7,
-            "dur_media_min": 66.3,
+            "ops": 9,
+            "dur_media_min": 66.1,
             "dur_mediana_min": 60,
-            "efetivo_medio": 2.86,
+            "efetivo_medio": 2.67,
             "vtr_media": 1.0,
-            "horas_policial": 23.6
+            "horas_policial": 28.0
           },
           {
             "nome": "MEDINA",
-            "ops": 19,
-            "dur_media_min": 54.7,
+            "ops": 30,
+            "dur_media_min": 56.0,
             "dur_mediana_min": 60,
-            "efetivo_medio": 2.0,
-            "vtr_media": 1.0,
-            "horas_policial": 34.7
+            "efetivo_medio": 2.1,
+            "vtr_media": 1.03,
+            "horas_policial": 57.7
           },
           {
             "nome": "PADRE PARAISO",
-            "ops": 10,
-            "dur_media_min": 78.4,
+            "ops": 22,
+            "dur_media_min": 101.5,
             "dur_mediana_min": 60,
-            "efetivo_medio": 2.2,
+            "efetivo_medio": 2.41,
             "vtr_media": 1.0,
-            "horas_policial": 29.2
+            "horas_policial": 87.5
           },
           {
             "nome": "PEDRA AZUL",
-            "ops": 18,
-            "dur_media_min": 54.6,
+            "ops": 33,
+            "dur_media_min": 57.5,
             "dur_mediana_min": 60,
-            "efetivo_medio": 2.28,
+            "efetivo_medio": 2.18,
             "vtr_media": 1.0,
-            "horas_policial": 37.5
+            "horas_policial": 69.0
           },
           {
             "nome": "PONTO DOS VOLANTES",
-            "ops": 13,
-            "dur_media_min": 61.3,
+            "ops": 24,
+            "dur_media_min": 58.5,
             "dur_mediana_min": 60,
-            "efetivo_medio": 2.38,
+            "efetivo_medio": 2.29,
             "vtr_media": 1.0,
-            "horas_policial": 28.7
+            "horas_policial": 50.1
           },
           {
             "nome": "VIRGEM DA LAPA",
-            "ops": 7,
-            "dur_media_min": 45.7,
-            "dur_mediana_min": 50,
-            "efetivo_medio": 2.14,
+            "ops": 9,
+            "dur_media_min": 48.9,
+            "dur_mediana_min": 60,
+            "efetivo_medio": 2.22,
             "vtr_media": 1.0,
-            "horas_policial": 11.2
+            "horas_policial": 16.2
           }
         ],
         "total": {
-          "ops": 172,
-          "dur_media_min": 60.3,
+          "ops": 300,
+          "dur_media_min": 61.6,
           "dur_mediana_min": 60,
-          "efetivo_medio": 2.31,
-          "vtr_media": 1.06,
-          "horas_policial": 413.4
+          "efetivo_medio": 2.26,
+          "vtr_media": 1.04,
+          "horas_policial": 697.7
         },
-        "duracao_suspeita": 2,
-        "sem_duracao": 0,
-        "sem_efetivo": 3
+        "duracao_suspeita": 3,
+        "sem_duracao": 2,
+        "sem_efetivo": 6
       },
       "qualidade": {
-        "sem_bairro": 162,
+        "sem_bairro": 287,
         "por_municipio": {
-          "MEDINA": 19,
-          "COMERCINHO": 13,
-          "PADRE PARAISO": 9,
-          "PONTO DOS VOLANTES": 13,
-          "CACHOEIRA DE PAJEU": 6,
-          "DIVISA ALEGRE": 8,
-          "VIRGEM DA LAPA": 7,
-          "CORONEL MURTA": 10,
-          "ARACUAI": 28,
-          "ITINGA": 7,
-          "ITAOBIM": 25,
-          "AGUAS VERMELHAS": 7,
-          "PEDRA AZUL": 10
+          "PADRE PARAISO": 21,
+          "MEDINA": 30,
+          "COMERCINHO": 21,
+          "PEDRA AZUL": 25,
+          "ARACUAI": 48,
+          "CORONEL MURTA": 18,
+          "VIRGEM DA LAPA": 9,
+          "PONTO DOS VOLANTES": 24,
+          "DIVISA ALEGRE": 17,
+          "CACHOEIRA DE PAJEU": 9,
+          "ITAOBIM": 47,
+          "ITINGA": 9,
+          "AGUAS VERMELHAS": 9
         }
       }
     }
