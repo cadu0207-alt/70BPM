@@ -1465,7 +1465,7 @@ function auditar() {
       await esp(300); out.cliqueNoAviso = currentPageKey;
       // --- visitante sem login ---
       goToPage('notificacoes'); await esp(300);
-      out.anonimo = /Entre com sua conta PPVD/.test(document.getElementById('main').innerText) && !document.getElementById('notifEstadoCard');
+      out.anonimo = /Entre pelo botão "Login"/.test(document.getElementById('main').innerText) && !document.getElementById('notifEstadoCard');
       // --- usuário aprovado, com navegador/Supabase de mentira ---
       let perm = 'default', sub = null; const chamadas = [], upserts = [];
       const fakeSub = { endpoint: 'https://push.exemplo/abc123', toJSON() { return { endpoint: this.endpoint, keys: { p256dh: 'P256', auth: 'AUTH' } }; }, async unsubscribe() { sub = null; return true; } };

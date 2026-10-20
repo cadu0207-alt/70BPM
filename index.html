@@ -658,7 +658,7 @@
       <button type="button" class="nav-group-label" aria-expanded="true"><span class="ic" aria-hidden="true">🏠</span><span class="nt">Visão geral</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
       <div class="nav-group-itens">
         <button class="nav-btn com-ic active" data-page="home"><span class="ic" aria-hidden="true">🏠</span><span class="nt">Home</span><span class="bd" data-bd="home" hidden></span></button>
-        <button class="nav-btn com-ic" data-page="auditoria" title="Uso interno — exige login PPVD"><span class="ic" aria-hidden="true">🛡</span><span class="nt">Painel de Auditoria</span><span class="bd" data-bd="auditoria" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="auditoria" title="Uso interno — exige login"><span class="ic" aria-hidden="true">🛡</span><span class="nt">Painel de Auditoria</span><span class="bd" data-bd="auditoria" hidden></span></button>
       </div>
     </div>
     <div class="nav-group aberto" data-grupo="analise">
@@ -704,8 +704,8 @@
     <div class="nav-group" data-grupo="guias">
       <button type="button" class="nav-group-label" aria-expanded="false"><span class="ic" aria-hidden="true">📚</span><span class="nt">Guias e contato</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
       <div class="nav-group-itens">
-        <button class="nav-btn com-ic" data-page="mensagens" title="Dúvidas, sugestões e solicitações ao administrador — exige login PPVD"><span class="ic" aria-hidden="true">✉</span><span class="nt">Mensagens ao Admin</span><span class="bd msg msg-badge" hidden></span></button>
-        <button class="nav-btn com-ic" data-page="notificacoes" title="Avisos no celular quando a rotina publica dados ou há ocorrência nova — exige login PPVD"><span class="ic" aria-hidden="true">🔔</span><span class="nt">Avisos no celular</span></button>
+        <button class="nav-btn com-ic" data-page="mensagens" title="Dúvidas, sugestões e solicitações ao administrador — exige login"><span class="ic" aria-hidden="true">✉</span><span class="nt">Mensagens ao Admin</span><span class="bd msg msg-badge" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="notificacoes" title="Avisos no celular quando a rotina publica dados ou há ocorrência nova — exige login"><span class="ic" aria-hidden="true">🔔</span><span class="nt">Avisos no celular</span></button>
         <button class="nav-btn com-ic" data-page="guia_comandantes"><span class="ic" aria-hidden="true">📘</span><span class="nt">Guia de Comandantes</span><span class="bd" data-bd="guia_comandantes" hidden></span></button>
         <button class="nav-btn com-ic" data-page="apresentacao_gdo"><span class="ic" aria-hidden="true">🖥</span><span class="nt">Apresentação GDO</span><span class="bd" data-bd="apresentacao_gdo" hidden></span></button>
         <button class="nav-btn com-ic" data-page="ementario"><span class="ic" aria-hidden="true">📖</span><span class="nt">Ementário 70º BPM</span><span class="bd" data-bd="ementario" hidden></span></button>
@@ -4655,7 +4655,7 @@ function auditoriaColetarMetasDiarias(nome, idxAtual) {
 
 async function renderAuditoriaPage() {
   let html = `<div class="page-title">Painel de Auditoria</div>`;
-  html += `<div class="def-box"><b>Uso interno — exige login PPVD aprovado</b><br>
+  html += `<div class="def-box"><b>Uso interno — exige login aprovado</b><br>
     Reúne, cidade por cidade, o que está "em vermelho" a partir de Setembro/2026: casos de Violência Doméstica fora do prazo de 72h e sem solução final, ocorrências de MV/CVPE/CVPa do mês corrente, e o ritmo diário das metas de Operações (meta/teto do mês ajustado aos dias já corridos). Clique em cada tópico pra abrir os detalhes.</div>`;
 
   if (!ppvdSupa) {
@@ -4664,17 +4664,17 @@ async function renderAuditoriaPage() {
     return;
   }
   if (!ppvdUser) {
-    html += `<div class="def-box" style="border-color:var(--alert)">Entre com sua conta PPVD (botão "Entrar (PPVD)" no topo da página) pra ver o painel de auditoria.</div>`;
+    html += `<div class="def-box" style="border-color:var(--alert)">Entre pelo botão "Login" no topo da página pra ver o painel de auditoria.</div>`;
     document.getElementById('main').innerHTML = html;
     return;
   }
   if (!ppvdPerfil) {
-    html += `<div class="def-box" style="border-color:var(--amber)">Complete seu cadastro PPVD (formulário no topo) pra liberar o acesso à auditoria.</div>`;
+    html += `<div class="def-box" style="border-color:var(--amber)">Complete seu cadastro (formulário no topo) pra liberar o acesso à auditoria.</div>`;
     document.getElementById('main').innerHTML = html;
     return;
   }
   if (!ppvdPerfil.aprovado) {
-    html += `<div class="def-box" style="border-color:var(--amber)">Seu cadastro PPVD ainda não foi aprovado pelo administrador. Assim que for aprovado, a auditoria fica disponível.</div>`;
+    html += `<div class="def-box" style="border-color:var(--amber)">Seu cadastro ainda não foi aprovado pelo administrador. Assim que for aprovado, a auditoria fica disponível.</div>`;
     document.getElementById('main').innerHTML = html;
     return;
   }
@@ -5496,7 +5496,7 @@ function ppvdDiasDesde(dmy) {
 
 async function ppvdAbrirCasoModalidade(modalidade, chave, dadosBase, dadosOrigem) {
   if (!ppvdSupa) { alert('Integração PPVD indisponível.'); return; }
-  if (!ppvdUser) { alert('Faça login (botão "Entrar (PPVD)" no topo) pra abrir um caso.'); return; }
+  if (!ppvdUser) { alert('Faça login (botão "Login" no topo) pra abrir um caso.'); return; }
   if (!ppvdPerfil) { alert('Complete seu cadastro antes (aparece no topo da tela).'); return; }
   if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador PPVD.'); return; }
 
@@ -5690,9 +5690,9 @@ const PPVD_RESTRITO_VAZIO = () => ({
 });
 function ppvdDadosRestritosLiberados() { return ppvdRestritoCarregado; }
 function ppvdAvisoRestrito() {
-  const motivo = !ppvdUser ? 'Entre com sua conta pelo botão "Entrar (PPVD)" no topo da página.'
-    : (!ppvdPerfil ? 'Complete seu cadastro PPVD (formulário no topo).' : 'Seu cadastro PPVD ainda não foi aprovado pelo administrador.');
-  return `<div class="def-box" style="border-color:var(--amber)"><b>🔒 Detalhe restrito</b><br>O detalhe por ocorrência (nº do REDS, data, bairro e endereço) é restrito a usuários PPVD aprovados — os totais acima continuam públicos. ${motivo}</div>`;
+  const motivo = !ppvdUser ? 'Entre com sua conta pelo botão "Login" no topo da página.'
+    : (!ppvdPerfil ? 'Complete seu cadastro (formulário no topo).' : 'Seu cadastro ainda não foi aprovado pelo administrador.');
+  return `<div class="def-box" style="border-color:var(--amber)"><b>🔒 Detalhe restrito</b><br>O detalhe por ocorrência (nº do REDS, data, bairro e endereço) é restrito a usuários aprovados — os totais acima continuam públicos. ${motivo}</div>`;
 }
 async function ppvdCarregarDadosRestritos() {
   if (ppvdRestritoCarregado) return true;
@@ -5800,9 +5800,9 @@ function ppvdRenderAuthWidget() {
   const poe = (html) => { if (el.dataset.html === html) return; el.innerHTML = html; el.dataset.html = html; };
   if (!ppvdSupa) { el.innerHTML = ''; return; }
   if (!ppvdUser) {
-    poe(`<button class="ppvd-btn" onclick="ppvdSignIn()">Entrar (PPVD)</button>`);
+    poe(`<button class="ppvd-btn" onclick="ppvdSignIn()">Login</button>`);
   } else if (!ppvdPerfil) {
-    poe(`<span style="color:var(--amber)">Complete seu cadastro PPVD ↓</span>`);
+    poe(`<span style="color:var(--amber)">Complete seu cadastro ↓</span>`);
   } else if (!ppvdPerfil.aprovado) {
     poe(`<span style="color:var(--muted)">${ppvdPerfil.nome} &middot; aguardando aprovação</span> <button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`);
   } else {
@@ -5849,7 +5849,7 @@ async function ppvdSubmitPerfil(ev) {
 }
 
 function ppvdRenderCadastroForm() {
-  let html = `<div class="page-title">Complete seu cadastro PPVD</div>`;
+  let html = `<div class="page-title">Complete seu cadastro</div>`;
   html += `<div class="def-box">Pra acessar os casos de acompanhamento da Patrulha de Violência Doméstica, complete seu cadastro. Um administrador (P3) precisa aprovar seu acesso antes de você conseguir ver ou editar casos.</div>`;
   html += `<div class="ppvd-card">`;
   html += `<div class="ppvd-field"><label>Nome completo</label><input id="ppvdNome"></div>`;
@@ -5999,7 +5999,7 @@ function ppvdOrientacao(g, u, t) {
 
 async function ppvdAbrirCaso(redsNumero) {
   if (!ppvdSupa) { alert('Integração PPVD indisponível.'); return; }
-  if (!ppvdUser) { alert('Faça login (botão "Entrar (PPVD)" no topo) pra abrir um caso.'); return; }
+  if (!ppvdUser) { alert('Faça login (botão "Login" no topo) pra abrir um caso.'); return; }
   if (!ppvdPerfil) { alert('Complete seu cadastro antes (aparece no topo da tela).'); return; }
   if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador PPVD.'); return; }
 
@@ -6314,7 +6314,7 @@ function msgCartao(m, souAdmin) {
 async function renderMensagensPage() {
   let html = `<div class="page-title">Mensagens</div>`;
   if (!ppvdSupa || !ppvdUser) {
-    html += `<div class="def-box">Entre com sua conta PPVD (botão "Entrar (PPVD)" no topo) pra enviar e ver mensagens.</div>`;
+    html += `<div class="def-box">Entre pelo botão "Login" no topo pra enviar e ver mensagens.</div>`;
     document.getElementById('main').innerHTML = html; return;
   }
   if (!ppvdPerfil || !ppvdPerfil.aprovado) {
@@ -6616,7 +6616,7 @@ async function ppvdOpenMilitares() {
   const militares = souAdmin ? todos : (todos || []).filter(m => normMun(m.municipio) === normMun(minhaCidade));
   let html = `<div class="page-title">Militares Responsáveis (PPVD)</div>`;
   html += `<button class="ppvd-btn" onclick="goToPage('violencia_domestica')">← Voltar</button>`;
-  html += `<div class="def-box">Cadastro das policiais femininas que atuam na rua e ficam responsáveis por ocorrências de Violência Doméstica. O nome cadastrado aqui aparece pré-preenchido na hora de despachar — o comandante do destacamento/pelotão sempre pode trocar por outro nome/WhatsApp no momento do despacho. ${souAdmin ? 'Como admin, você vê e cadastra pra qualquer cidade.' : `Você cadastra e gerencia as militares da sua cidade (${minhaCidade || 'defina sua cidade no cadastro PPVD'}).`}</div>`;
+  html += `<div class="def-box">Cadastro das policiais femininas que atuam na rua e ficam responsáveis por ocorrências de Violência Doméstica. O nome cadastrado aqui aparece pré-preenchido na hora de despachar — o comandante do destacamento/pelotão sempre pode trocar por outro nome/WhatsApp no momento do despacho. ${souAdmin ? 'Como admin, você vê e cadastra pra qualquer cidade.' : `Você cadastra e gerencia as militares da sua cidade (${minhaCidade || 'defina sua cidade no cadastro'}).`}</div>`;
   html += `<div class="ppvd-card"><b>Cadastrar nova</b><br><br>`;
   html += `<div class="ppvd-field"><label>Nome</label><input id="milNome"></div>`;
   html += `<div class="ppvd-field"><label>WhatsApp (com DDD, só números)</label><input id="milWhats" placeholder="Ex: 33999999999"></div>`;
@@ -7263,7 +7263,7 @@ function renderNotificacoesPage() {
   let html = `<div class="page-title">Avisos no celular</div>`;
   html += `<div class="def-box">Receba no celular, <b>mesmo com o painel fechado</b>, um aviso quando a rotina publicar dados novos e quando houver ocorrência nova de morte violenta, crime violento ou violência doméstica no município que você escolher. <b>O aviso não traz número de REDS nem endereço</b> — só o tipo, o município e a quantidade; para ver o detalhe, toque no aviso e entre com sua conta.</div>`;
   if (!ppvdSupa || !ppvdUser) {
-    html += `<div class="def-box">Entre com sua conta PPVD (botão "Entrar (PPVD)" no topo) para ativar os avisos.</div>`;
+    html += `<div class="def-box">Entre pelo botão "Login" no topo para ativar os avisos.</div>`;
     document.getElementById('main').innerHTML = html; return;
   }
   if (!notifLiberado()) {
