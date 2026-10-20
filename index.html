@@ -868,8 +868,8 @@ const DEFS = {
   esforco_furto: '<span class="formula">DES% = Qtde de Prisões (autores de Furto) &divide; Qtde de REDS de Furto &times; 100</span><span class="polarity">Polaridade: quanto maior, melhor.</span><br>Fonte: <b>universo GERAL de furto</b> (natureza C01155, consumado+tentado, rural + urbano), export REDS/SiGOp, jan-ago/2026. Prisões extraídas do campo QTDE_PRISAO de cada ocorrência dessa mesma natureza.<br><b>Diferença importante em relação ao indicador Furto em Zona Rural</b> (que usa só a flag <code>IFZR</code>, subconjunto rural): checado por Eduardo em 2026-08-10 — a maior parte das prisões de autores de furto (65 de 75 no ano) acontece em furtos FORA da zona rural, então restringir esse indicador só ao universo rural subcontava o esforço real. Por isso o Esforço-Furto usa o universo geral de C01155, e o Furto em Zona Rural continua usando só IFZR — são denominadores propositalmente diferentes.',
   saque_seguro: '<b>Critérios da Operação Saque Seguro</b><br>Natureza: A21.007. Preencher no histórico "OPERAÇÃO SAQUE SEGURO". Será executada em dias úteis, entre os dias 25 do mês que se encerra e 10 do mês que inicia. As atividades ocorrerão entre 10:00 e 15:00 horas. Duração mínima de 15 minutos. Cadastrar no mínimo um CPF.<br>A21.007 é o mesmo código de VCP e Padrinho da Escola — diferenciado apenas pelo histórico; Eduardo traz o export já filtrado (RAT "VISITA PREVENTIVA A21007", jan-jul/2026, 801 registros, confirmado como exclusivo de Saque Seguro).<br><b>Meta mensal por tipo de unidade</b> (confirmado por Eduardo em 2026-08-04): Companhia = 16/mês (Araçuaí, Itaobim, Pedra Azul) &middot; Pelotão = 8/mês (Medina, Itinga, Divisa Alegre) &middot; Destacamento = 4/mês (demais 7 municípios). Meta acumulada = meta mensal &times; nº de meses.<span class="polarity">Polaridade: quanto maior, melhor.</span>',
   violencia_domestica: '<b>Metodologia (atualizada em 2026-08-20)</b><br>Universo = todo REDS (jan-ago/2026, 70º BPM) marcado pelo próprio SiGOp com a natureza <code>U33004</code> — "Atend. Denúncia Infrações Contra Mulher (Violência Doméstica)" — em qualquer posição do registro (natureza principal ou secundária 1/2/3). É a marcação oficial que o policial lança no REDS quando reconhece o caso como violência doméstica (Lei Maria da Penha), não um proxy.<br><span class="neg">⚠ Correção de metodologia: até 2026-08-19 esse universo era estimado por Causa Presumida (Atrito Familiar/Passional) nas naturezas precursoras — um proxy impreciso identificado por Eduardo em 2026-08-20 (causa "Passional", por exemplo, não implica necessariamente vínculo doméstico/familiar). Comparado à marcação real <code>U33004</code>: 190 REDS que o proxy antigo incluía não têm a marcação (falsos positivos) e 130 REDS marcados como VD pelo SiGOp não eram capturados pelo proxy (falsos negativos) — universo mudou de 565 para 710 ocorrências no período.</span><br><b>Taxa por 100 mil habitantes</b> usa a população de cada município (mesma base de população oficial já usada nos rankings importados do Power BI) — permite comparar municípios de tamanhos muito diferentes sem o viés de Araçuaí (maior população) sempre aparecer no topo em número absoluto.<br><b>Endereços com reincidência</b> = 2+ ocorrências de contexto VD (nesse universo real) no mesmo bairro+logradouro+número.<br><b>Homicídios/Feminicídios vs. Tentativas</b>: dentro do universo <code>U33004</code>, separados pelo campo oficial do SiGOp <code>TENTADO_CONSUMADO_PRINCIPAL</code>/<code>IMV_TOTAL</code>. Dos 2 feminicídios oficiais do IMV, ambos têm a marcação <code>U33004</code> — os 3 homicídios que o proxy antigo também rotulava como VD (Águas Vermelhas consumado + Itaobim/Pedra Azul tentados) não têm essa marcação e por isso saíram do universo de VD (continuam contando normalmente na Análise Preditiva).<br><b>Gravidade (critica/alta/média) das ocorrências</b>: critério simplificado — critica = homicídio/feminicídio/tentativa, ou endereço com reincidência, ou REDS com arma de fogo envolvida; alta = Descumprimento de Medida Protetiva ou Lesão Corporal; média = demais naturezas (Ameaça, Vias de Fato, Perseguição, Dano, Injúria, Violência Psicológica etc.). Critério ajustável — avisar se não refletir a prioridade real de campo.',
-  crimes_violentos: '<b>Metodologia</b><br>Universo = todo REDS (jan-ago/2026, 70º BPM) com <code>IMV_TOTAL=1</code> OU <code>ICVPE_TOTAL=1</code> OU <code>ICVPA_TOTAL=1</code> — ou seja, a união de Mortes Violentas, CVPe e CVPa (roubo, extorsão, lesão grave/gravíssima, tortura, sequestro, latrocínio, homicídio/feminicídio consumado ou tentado etc.), consumado ou tentado, exatamente como descrito na modalidade 4 do Memorando 0013/P3.3/2026. Usa os flags já calculados pelo próprio SiGOp, não filtro manual de natureza.<br><b>Gravidade</b>: critica = arma de fogo envolvida (QTDE_ARMAS_FOGO&gt;0) ou IMV_TOTAL=1 (morte violenta); alta = ICVPA (roubo/latrocínio/extorsão) ou ICVPE; média = demais. Tentativa de homicídio/feminicídio sem arma de fogo entra como Gravidade alta no critério simplificado — o critério de GUT do caso individual (Militar Responsável, ao abrir o caso) é mais granular e considera arma de fogo, autor identificado/preso e histórico de reincidência da vítima.<br><b>Ainda não conectado ao sistema de casos PPVD</b> (wizard GUT, upload de BOS) — essa página, por enquanto, é só visualização do universo elegível para visita obrigatória, conforme Memorando 0013.',
-  reincidencia: '<b>Metodologia</b><br>Endereço (município+bairro+logradouro+número) com 2 ou mais chamados dentro de uma janela de 60 dias corridos entre ocorrências consecutivas, considerando REDS de: Violência Doméstica (<code>U33004</code>), Ameaça/Lesão Corporal/Vias de Fato/Descumprimento de Medida Protetiva/Furto (códigos B01147, B01129, B08021, G02024, C01155) ou qualquer crime violento (<code>IMV_TOTAL</code>/<code>ICVPE_TOTAL</code>/<code>ICVPA_TOTAL</code>=1) — mesmo critério descrito na modalidade 5 do Memorando 0013/P3.3/2026, independente de serem pessoas diferentes envolvidas.<br><b>Intervalo mínimo (dias)</b> é o menor intervalo entre duas ocorrências consecutivas nesse endereço — quanto menor, mais urgente. <b>Naturezas</b> lista os tipos distintos de chamado no endereço (mistura de naturezas é sinal de vulnerabilidade do local, não só de uma desavença pontual).<br><b>Ainda não conectado ao sistema de casos PPVD</b> (wizard GUT, upload de BOS) — essa página, por enquanto, é só visualização do universo elegível para visita obrigatória, conforme Memorando 0013.',
+  crimes_violentos: '<b>Metodologia</b><br>Universo = todo REDS (jan-ago/2026, 70º BPM) com <code>IMV_TOTAL=1</code> OU <code>ICVPE_TOTAL=1</code> OU <code>ICVPA_TOTAL=1</code> — ou seja, a união de Mortes Violentas, CVPe e CVPa (roubo, extorsão, lesão grave/gravíssima, tortura, sequestro, latrocínio, homicídio/feminicídio consumado ou tentado etc.), consumado ou tentado, exatamente como descrito na modalidade 4 do Memorando 0013/P3.3/2026. Usa os flags já calculados pelo próprio SiGOp, não filtro manual de natureza.<br><b>Gravidade</b>: critica = arma de fogo envolvida (QTDE_ARMAS_FOGO&gt;0) ou IMV_TOTAL=1 (morte violenta); alta = ICVPA (roubo/latrocínio/extorsão) ou ICVPE; média = demais. Tentativa de homicídio/feminicídio sem arma de fogo entra como Gravidade alta no critério simplificado — o critério de GUT do caso individual (Militar Responsável, ao abrir o caso) é mais granular e considera arma de fogo, autor identificado/preso e histórico de reincidência da vítima.<br><b>Ainda não conectado ao sistema de casos RPPM</b> (wizard GUT, upload de BOS) — essa página, por enquanto, é só visualização do universo elegível para visita obrigatória, conforme Memorando 0013.',
+  reincidencia: '<b>Metodologia</b><br>Endereço (município+bairro+logradouro+número) com 2 ou mais chamados dentro de uma janela de 60 dias corridos entre ocorrências consecutivas, considerando REDS de: Violência Doméstica (<code>U33004</code>), Ameaça/Lesão Corporal/Vias de Fato/Descumprimento de Medida Protetiva/Furto (códigos B01147, B01129, B08021, G02024, C01155) ou qualquer crime violento (<code>IMV_TOTAL</code>/<code>ICVPE_TOTAL</code>/<code>ICVPA_TOTAL</code>=1) — mesmo critério descrito na modalidade 5 do Memorando 0013/P3.3/2026, independente de serem pessoas diferentes envolvidas.<br><b>Intervalo mínimo (dias)</b> é o menor intervalo entre duas ocorrências consecutivas nesse endereço — quanto menor, mais urgente. <b>Naturezas</b> lista os tipos distintos de chamado no endereço (mistura de naturezas é sinal de vulnerabilidade do local, não só de uma desavença pontual).<br><b>Ainda não conectado ao sistema de casos RPPM</b> (wizard GUT, upload de BOS) — essa página, por enquanto, é só visualização do universo elegível para visita obrigatória, conforme Memorando 0013.',
   analise_preditiva: '<b>Metodologia</b><br>Recorte de ocorrências de maior gravidade dentro do REDS geral do 70º BPM (jan-ago/2026): naturezas precursoras (Ameaça, Lesão Corporal, Vias de Fato/Agressão, Descumprimento de Medida Protetiva), Homicídio, Feminicídio e prisões associadas.<br><b>Homicídios/Feminicídios vs. Tentativas</b>: separados a partir do campo oficial do SiGOp <code>TENTADO_CONSUMADO_PRINCIPAL</code> e do flag <code>IMV_TOTAL</code> (mesmo critério do indicador oficial IMV) — só entra em "Homicídios/Feminicídios" quem morreu e é contabilizado pelo SiGOp como Morte Violenta da unidade; tentativa (vítima sobreviveu) conta à parte. Ajuste feito em 2026-08-20 após divergência identificada por Eduardo entre este KPI e o IMV oficial.<br><span class="neg">⚠ 1 REDS de natureza Homicídio (consumado) não é contabilizado pelo IMV_TOTAL do SiGOp e por isso não entra no KPI — causa presumida "Sofrimento Mental" (indício de óbito não classificado como homicídio pela PM apesar da natureza registrada), não uma retirada de outro batalhão como se suspeitava inicialmente.</span>',
   padesc: '<b>Programa Padrinho da Escola</b><br><b>Filtro de busca no Sistema REDS (confirmado por Eduardo em 2026-08-07)</b>: Natureza = A21.007 <b>E</b> Histórico = "PADRINHOS DA ESCOLA" <b>E</b> Unidade Responsável pelo Registro = 70 BPM.<br>A21.007 é o mesmo código de VCP e Saque Seguro — diferenciado apenas pelo histórico do registro.<br>Meta mensal cai pela metade em julho (recesso escolar) e retoma em setembro; em <b>agosto a meta é proporcional aos dias letivos</b>, pois o programa reinicia em 17/08 (15 dos 31 dias do mês, confirmado por Eduardo em 2026-08-07).<span class="polarity">Polaridade: quanto maior, melhor.</span>',
 };
@@ -1087,7 +1087,7 @@ function ligarBarraHome() {
   if (main._homeScroll) main.removeEventListener('scroll', main._homeScroll);
   main._homeScroll = marcar; main.addEventListener('scroll', marcar, { passive: true });
 }
-// cartão de Violência Doméstica (só para PPVD aprovado): situação dos casos desde Setembro pelo semáforo vermelho/amarelo/azul/verde
+// cartão de Violência Doméstica (só para RPPM aprovado): situação dos casos desde Setembro pelo semáforo vermelho/amarelo/azul/verde
 async function homeVdCarregar() {
   const alvo = document.getElementById('homeVD'); if (!alvo) return;
   const atalho = document.querySelector('#homeBarra .atalho[data-alvo="homeVD"]');
@@ -1104,7 +1104,7 @@ async function homeVdCarregar() {
   const total = lista.length || 1, pc = (n) => (n / total * 100).toFixed(1);
   const topo = Object.entries(porCidade).sort((x, y) => y[1] - x[1]).slice(0, 5);
   const mesIni = (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1];
-  alvo.innerHTML = `<div class="hd"><b>Violência Doméstica</b><span>${lista.length} ocorrência(s) de contexto VD desde ${mesIni} · situação dos casos no PPVD</span></div>
+  alvo.innerHTML = `<div class="hd"><b>Violência Doméstica</b><span>${lista.length} ocorrência(s) de contexto VD desde ${mesIni} · situação dos casos no RPPM</span></div>
     <div class="vd-barra" aria-hidden="true"><i style="width:${pc(c.v)}%;background:var(--alert)"></i><i style="width:${pc(c.a)}%;background:var(--caution)"></i><i style="width:${pc(c.z)}%;background:#5b9bd5"></i><i style="width:${pc(c.g)}%;background:var(--signal)"></i></div>
     <div class="vd-contadores">
       <div class="vd-cont v"><div class="n">${c.v}</div><div class="t">✕ Novos ou em atraso</div><div class="s">${c.semCaso} sem caso aberto · ${c.atrasados} com visita sem resposta há mais de 72h</div></div>
@@ -1802,7 +1802,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     return `<div class="ind-sec charts-row" style="gap:16px">${bloco(DATA[localKey], rotulos[0], false, '')}${bloco(DATA[faixaKey], rotulos[1], key !== 'furto', 'verde')}</div>`;
   }
 
-  // ---- ocorrências de MV (RESTRITO: só PPVD aprovado; REDS e endereço vêm do Supabase, nunca do arquivo público) ----
+  // ---- ocorrências de MV (RESTRITO: só RPPM aprovado; REDS e endereço vêm do Supabase, nunca do arquivo público) ----
   function mvOcorrenciasHtml() {
     const nomeFiltro = munFiltro ? ((d.municipios.find(x => normMun(x.nome) === munFiltro) || {}).nome || getMunFiltro()) : '';
     let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Ocorrências de MV${nomeFiltro ? ' — ' + nomeFiltro : ''}</h3>`;
@@ -1830,7 +1830,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     return h + `</tbody></table></div></div>`;
   }
 
-  // ---- ocorrências de CVPE / CVPa (RESTRITO) com a situação do caso de visita à vítima no PPVD (mesmo semáforo de Crimes Violentos) ----
+  // ---- ocorrências de CVPE / CVPa (RESTRITO) com a situação do caso de visita à vítima no RPPM (mesmo semáforo de Crimes Violentos) ----
   function crimeOcorrenciasCorpo(pf, casos) {
     const oc = (DATA.crimes_violentos || {})[pf + '_ocorrencias'] || {};
     const nomeCrime = pf === 'cvpe' ? 'CVPE' : 'CVPa', ehPa = pf === 'cvpa';
@@ -1848,7 +1848,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     const principais = info.filter(x => !x.velho), historico = info.filter(x => x.velho);
     principais.sort((a, b) => (ordemSem[a.sem] - ordemSem[b.sem]) || ((b.o.pm ? 1 : 0) - (a.o.pm ? 1 : 0)) || dk(b.o.d).localeCompare(dk(a.o.d)));
     const nCol = ehPa ? 10 : 9;
-    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>Data / REDS</th><th>Município</th><th>Natureza / Causa</th>${ehPa ? '<th>Alvo / Levado</th>' : ''}<th>Local / Meio</th><th>Endereço</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
+    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>Data / REDS</th><th>Município</th><th>Natureza / Causa</th>${ehPa ? '<th>Alvo / Levado</th>' : ''}<th>Local / Meio</th><th>Endereço</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso RPPM</th></tr></thead><tbody>`;
     const linha = (x) => {
       const { cid, o, caso, velho: v, vdCtx, nVd, reinc, sem } = x, end = pgEndereco(o);
       window.ppvdCVLookup = window.ppvdCVLookup || {};
@@ -1864,13 +1864,13 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
       return `<tr class="vd-row-${sem}" data-tags="${tags}" data-busca="${msgEsc(((o.r || '') + ' ' + end + ' ' + (o.n || '') + ' ' + (o.c || '') + ' ' + (o.alvo || '') + ' ' + (o.obj || []).join(' ')).toLowerCase())}"><td data-l="Situação">${situacao}</td><td data-l="Data / REDS">${msgEsc(o.d)}${o.h ? ' ' + msgEsc(o.h) : ''}<br><small>${msgEsc(o.r)}</small></td><td data-l="Município">${msgEsc(cid)}</td><td data-l="Natureza / Causa">${msgEsc(acentuaNat(o.n))}${o.c ? '<br><small>' + msgEsc(o.c) + '</small>' : ''}</td>${colAlvo}<td data-l="Local / Meio">${msgEsc(o.loc) || '—'}${o.meio ? '<br><small>' + msgEsc(o.meio) + '</small>' : ''}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Marcadores">${marc}</td><td data-l="Responsável">${resp}</td><td class="acao">${acao}</td></tr>`;
     };
     const cont = (f) => principais.filter(x => x.sem === f || (f === 'pm' && x.o.pm) || (f === 'preso' && x.o.p) || (f === 'vdctx' && x.vdCtx) || (f === 'vdend' && x.nVd > 0) || (f === 'reinc' && x.reinc) || (f === 'arma' && x.o.a) || (f === 'carga' && /CARGA/i.test(x.o.alvo || '')) || (f === 'veiculo' && /VEICULO/i.test(x.o.alvo || ''))).length;
-    let h = `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no PPVD: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao PPVD, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}. A situação é a do caso de visita à vítima (Crimes Violentos): vermelho = sem caso ou novo, amarelo = em acompanhamento, verde = encerrado.</div>`;
+    let h = `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no RPPM: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao RPPM, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}. A situação é a do caso de visita à vítima (Crimes Violentos): vermelho = sem caso ou novo, amarelo = em acompanhamento, verde = encerrado.</div>`;
     const chips = [['todos', 'Todas', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')]];
     if (!ehPa) chips.push(['pm', 'Policial vítima', cont('pm')]); else chips.push(['carga', 'Roubo de carga', cont('carga')], ['veiculo', 'Roubo de veículo', cont('veiculo')]);
     chips.push(['preso', 'Autor preso', cont('preso')], ['vdctx', 'Contexto VD', cont('vdctx')], ['vdend', 'VD no endereço', cont('vdend')], ['reinc', 'Endereço reincidente', cont('reinc')], ['arma', 'Com arma', cont('arma')]);
     h += pgFiltrosHtml(pf + 'Filtros', chips, 'Buscar REDS, rua, natureza, causa ou o que foi levado');
     h += `<div style="overflow-x:auto" id="${pf}TabelaBox">${cabecalho}${principais.length ? principais.map(linha).join('') : `<tr><td colspan="${nCol}" style="text-align:center;color:var(--muted)">Nenhuma ocorrência no período.</td></tr>`}</tbody></table></div>`;
-    if (historico.length) h += `<details class="vd-historico" id="${pf}Historico"><summary>Histórico anterior ao PPVD — ${historico.length} ocorrência(s) finalizadas (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
+    if (historico.length) h += `<details class="vd-historico" id="${pf}Historico"><summary>Histórico anterior ao RPPM — ${historico.length} ocorrência(s) finalizadas (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
     window._crimeHist = window._crimeHist || {};
     window._crimeHist[pf] = { cabecalho, linhas: historico.map(linha).join('') };
     return h;
@@ -2191,7 +2191,7 @@ function opCruzamentoDe(chave, det, munFiltro) {
   }
   return '';
 }
-// RESTRITO (PPVD aprovado): bairros com crime violento x operações no mesmo bairro. Os bairros de crime vêm das listas restritas (Supabase); as operações por bairro são públicas.
+// RESTRITO (RPPM aprovado): bairros com crime violento x operações no mesmo bairro. Os bairros de crime vêm das listas restritas (Supabase); as operações por bairro são públicas.
 function opBairroCrimeHtml(det, munFiltro) {
   const nomeF = munFiltro ? ((det.esforco.municipios.find(m => normMun(m.nome) === munFiltro) || {}).nome || '') : '';
   let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Bairros com crime violento × operações${nomeF ? ' — ' + nomeF : ''}</h3>`;
@@ -2445,7 +2445,7 @@ function idobLocalHtml(det) {
 }
 
 // ---- IDOB, onda 3: operações Boemia x vítimas em bar/boate ----
-// PÚBLICO: faixa, dia e cidade (poucas vítimas: leitura como tendência). RESTRITO (PPVD aprovado): cada ocorrência em bar que derrubou o índice, com a Boemia ao redor dela.
+// PÚBLICO: faixa, dia e cidade (poucas vítimas: leitura como tendência). RESTRITO (RPPM aprovado): cada ocorrência em bar que derrubou o índice, com a Boemia ao redor dela.
 function idobCruzamentoPublico(dd, munFiltro) {
   const dfv = DATA.idob_dia_faixa, d = DATA.idob;
   if (!dfv || !dd) return '';
@@ -2697,7 +2697,7 @@ function cavLocalHtml(det) {
 }
 
 // ---- Cavalo de Aço, onda 3: operações x roubo de veículo e de carga (Plano Motocicletas e Roubo de Carga, Memorando 012) ----
-// PÚBLICO: faixa, dia e cidade (poucos casos: leitura como tendência). RESTRITO (PPVD aprovado): cada roubo com o Cavalo de Aço ao redor dele.
+// PÚBLICO: faixa, dia e cidade (poucos casos: leitura como tendência). RESTRITO (RPPM aprovado): cada roubo com o Cavalo de Aço ao redor dele.
 function cavCruzamentoPublico(dd, munFiltro) {
   const m = DATA.cvpa_veiculo_dia_faixa, am = DATA.cvpa_alvo_municipio;
   if (!m || !am || !dd) return '';
@@ -3186,7 +3186,7 @@ function enderecosReincidentesVdHtml(d, nome, mesesLocais) {
   return h + `Endereço com 2+ chamados de violência doméstica no período é tratado como gatilho automático de risco — recomenda-se visita de acompanhamento e atenção redobrada da fração responsável.</div>`;
 }
 
-// Situação dos casos de VD por cidade (ocorrências desde Setembro cruzadas com os casos do PPVD pelo semáforo
+// Situação dos casos de VD por cidade (ocorrências desde Setembro cruzadas com os casos do RPPM pelo semáforo
 // vermelho/amarelo/azul/verde). Usada no ranking desta página e no cartão da Home.
 async function vdSituacaoCasos() {
   const vd = DATA.violencia_domestica, lista = [];
@@ -3244,7 +3244,7 @@ function renderViolenciaDomesticaPage() {
   const ranking = municipiosData.slice().sort((a, b) => b.taxa_100k - a.taxa_100k);
   const comSituacao = ppvdDadosRestritosLiberados();
   const munFiltroAtual = normMun(getMunFiltro());
-  html += `<div class="vd-recorte">Clique numa cidade para ver os casos dela abaixo.${comSituacao ? ' As colunas de situação contam as ocorrências desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' pelo semáforo dos casos no PPVD.' : ''}</div>`;
+  html += `<div class="vd-recorte">Clique numa cidade para ver os casos dela abaixo.${comSituacao ? ' As colunas de situação contam as ocorrências desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' pelo semáforo dos casos no RPPM.' : ''}</div>`;
   html += `<div class="table-wrap"><table class="data-table" id="vdRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th><th>Endereços Reincid.</th>${comSituacao ? '<th title="Novos ou em atraso">✕ Novos/atraso</th><th title="Atendimento iniciado">! Iniciado</th><th title="Em acompanhamento">◆ Acomp.</th><th title="Estabilizados">✓ Estab.</th>' : ''}</tr></thead><tbody>`;
   const sitVazia = comSituacao ? '<td class="sit-cel z" data-s="v">·</td><td class="sit-cel z" data-s="a">·</td><td class="sit-cel z" data-s="z">·</td><td class="sit-cel z" data-s="g">·</td>' : '';
   ranking.forEach((m, i) => {
@@ -3309,10 +3309,10 @@ function renderViolenciaDomesticaPage() {
       <span><span class="ppvd-badge ppvd-badge-alta">Amarelo</span> atendimento iniciado</span>
       <span><span class="ppvd-badge ppvd-badge-azul">Azul</span> em acompanhamento (retornos, dentro do prazo)</span>
       <span><span class="ppvd-badge ppvd-badge-verde">Verde</span> estabilizado</span></div>`;
-    // Recorte padrão (acumulado): casos do PPVD + ocorrências recentes. As ocorrências SEM caso anteriores a Setembro
-    // ficam num histórico recolhido (o PPVD só existe desde Ago/Set).
+    // Recorte padrão (acumulado): casos do RPPM + ocorrências recentes. As ocorrências SEM caso anteriores a Setembro
+    // ficam num histórico recolhido (o RPPM só existe desde Ago/Set).
     const casoDe = (o) => (o.r ? (casosMap[o.r] || null) : null);
-    const antes = (o) => o.m < HOME_VD_MES_INICIO; // anterior ao PPVD: finalizado (verde), visitas sem registro no sistema
+    const antes = (o) => o.m < HOME_VD_MES_INICIO; // anterior ao RPPM: finalizado (verde), visitas sem registro no sistema
     const velhoSemCaso = (o) => antes(o) && !casoDe(o);
     const semDe = (o) => { if (velhoSemCaso(o)) return 'verde'; const c = casoDe(o); return c ? ppvdSemaforoVD(c) : 'sem'; };
     const principais = periodo === 'acum' ? lista.filter(o => !velhoSemCaso(o)) : lista;
@@ -3355,13 +3355,13 @@ function renderViolenciaDomesticaPage() {
     };
     const cont = { todos: principais.length, vermelho: 0, amarelo: 0, azul: 0, verde: 0, sem: 0 };
     principais.forEach(o => { const x = semDe(o); cont[x === 'vermelho' ? 'vermelho' : x]++; });
-    if (periodo === 'acum') h += `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos ainda abertos no PPVD: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao PPVD, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}.</div>`;
+    if (periodo === 'acum') h += `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos ainda abertos no RPPM: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao RPPM, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}.</div>`;
     const chipF = (f, rot) => `<button type="button" data-f="${f}" class="${f === 'todos' ? 'on' : ''}">${rot} <b>${cont[f]}</b></button>`;
     h += `<div class="vd-filtros" id="vdFiltros">${chipF('todos', 'Todos')}${chipF('vermelho', '✕ Novos/atraso')}${chipF('amarelo', '! Iniciado')}${chipF('azul', '◆ Acompanhamento')}${chipF('verde', '✓ Estabilizado')}${chipF('sem', 'Sem caso')}<input type="search" id="vdBusca" placeholder="Buscar REDS, rua ou natureza" aria-label="Buscar na tabela"></div>`;
     h += `<div style="overflow-x:auto" id="vdTabelaBox">${cabecalho}`;
     h += principais.length ? principais.map(linhaCaso).join('') : `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Nenhuma ocorrência de contexto VD no período selecionado.</td></tr>`;
     h += `</tbody></table></div>`;
-    if (historico.length) h += `<details class="vd-historico" id="vdHistorico"><summary>Histórico anterior ao PPVD — ${historico.length} ocorrência(s) finalizadas (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
+    if (historico.length) h += `<details class="vd-historico" id="vdHistorico"><summary>Histórico anterior ao RPPM — ${historico.length} ocorrência(s) finalizadas (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
     document.getElementById('vdMuniPanel').innerHTML = h;
     const aplicarFiltro = () => {
       const f = (document.querySelector('#vdFiltros button.on') || {}).dataset ? document.querySelector('#vdFiltros button.on').dataset.f : 'todos';
@@ -3393,11 +3393,11 @@ function renderViolenciaDomesticaPage() {
   });
 }
 
-// ===== Situação dos casos de Crimes Violentos e de Reincidência de Endereço (PPVD) =====
+// ===== Situação dos casos de Crimes Violentos e de Reincidência de Endereço (RPPM) =====
 // Esses casos têm um fluxo curto (wizard GUT): novo -> em_acompanhamento -> encerrado/recusa. Cores (pedido de Eduardo, 2026-10-13):
 // vermelho = sem caso ou novo, amarelo = em acompanhamento, verde = encerrado (inclui recusa). Como na VD, o que é anterior a
 // Setembro/2026 e NÃO tem caso conta como finalizado (as visitas daquele período foram feitas sem registro no sistema); caso
-// antigo que já existe no PPVD mantém a situação real.
+// antigo que já existe no RPPM mantém a situação real.
 const PPVD_DESDE_MS = new Date(2026, 8, 1).getTime();
 function ppvdSemaforoOutros(caso) {
   if (!caso) return 'vermelho';
@@ -3470,7 +3470,7 @@ function renderCrimesViolentosPage() {
   html += `</div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ranking por Município (taxa por 100 mil habitantes)</div>`;
-  html += `<div class="vd-recorte">Clique numa cidade para ver as ocorrências dela abaixo.${comSituacao ? ' As colunas de situação contam as ocorrências desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' e os casos antigos já abertos no PPVD.' : ''}</div>`;
+  html += `<div class="vd-recorte">Clique numa cidade para ver as ocorrências dela abaixo.${comSituacao ? ' As colunas de situação contam as ocorrências desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' e os casos antigos já abertos no RPPM.' : ''}</div>`;
   const ranking = municipiosData.slice().sort((a, b) => b.taxa_100k - a.taxa_100k);
   const munFiltroAtual = normMun(getMunFiltro());
   html += `<div class="table-wrap"><table class="data-table" id="cvRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Ocorrências (${d.periodo_dados})</th><th>Taxa/100k hab.</th>${comSituacao ? '<th title="Sem caso ou novo">✕ Sem caso/novo</th><th title="Em acompanhamento">! Acomp.</th><th title="Encerrados">✓ Encerr.</th>' : ''}</tr></thead><tbody>`;
@@ -3531,7 +3531,7 @@ function renderCrimesViolentosPage() {
     const dk = s => (s || '').split('/').reverse().join('');
     principais.sort((a, b) => (ordemSem[semDe(a)] - ordemSem[semDe(b)]) || (ordemGrav[a.g] - ordemGrav[b.g]) || dk(b.d).localeCompare(dk(a.d)));
 
-    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>REDS / Data</th><th>Natureza / Gravidade</th><th>Endereço</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
+    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>REDS / Data</th><th>Natureza / Gravidade</th><th>Endereço</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso RPPM</th></tr></thead><tbody>`;
     const linha = (o) => {
       const end = pgEndereco(o);
       const nVd = vdNoEndereco(nome, o, o.r);
@@ -3550,12 +3550,12 @@ function renderCrimesViolentosPage() {
       return `<tr class="vd-row-${sem}" data-tags="${tags}" data-busca="${msgEsc(((o.r || '') + ' ' + end + ' ' + (o.n || '') + ' ' + (o.c || '')).toLowerCase())}"><td data-l="Situação">${situacao}</td><td data-l="REDS / Data">${msgEsc(o.r || '—')}<br><small>${o.d}</small></td><td data-l="Natureza / Gravidade">${msgEsc(o.n)}<br>${gravBadge(o.g)}${o.c ? '<br><small>' + msgEsc(o.c) + '</small>' : ''}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Marcadores">${marc}</td><td data-l="Responsável">${resp}</td><td class="acao">${acao}</td></tr>`;
     };
     const cont = (f) => principais.filter(o => semDe(o) === f || o.g === f || (f === 'arma' && o.a) || (f === 'prisao' && o.p) || (f === 'vd' && vdNoEndereco(nome, o, o.r) > 0)).length;
-    if (periodo === 'acum') h += `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no PPVD: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao PPVD, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}.</div>`;
+    if (periodo === 'acum') h += `<div class="vd-recorte">Contando a partir de ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no RPPM: ${principais.length} ocorrência(s)${historico.length ? ` · ${historico.length} anterior(es) ao RPPM, sem caso, ficam finalizadas (verde) no histórico abaixo` : ''}.</div>`;
     h += pgFiltrosHtml('cvFiltros', [['todos', 'Todas', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')], ['critica', 'Crítica', cont('critica')], ['arma', 'Com arma', cont('arma')], ['vd', 'VD no endereço', cont('vd')]], 'Buscar REDS, rua, natureza ou causa');
     h += `<div style="overflow-x:auto" id="cvTabelaBox">${cabecalho}`;
     h += principais.length ? principais.map(linha).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--muted)">Nenhum crime violento no período selecionado.</td></tr>`;
     h += `</tbody></table></div>`;
-    if (historico.length) h += `<details class="vd-historico" id="cvHistorico"><summary>Histórico anterior ao PPVD — ${historico.length} ocorrência(s) finalizadas (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
+    if (historico.length) h += `<details class="vd-historico" id="cvHistorico"><summary>Histórico anterior ao RPPM — ${historico.length} ocorrência(s) finalizadas (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
     alvo.innerHTML = h;
     pgLigarFiltros('cvFiltros', 'cvTabelaBox');
     const det = document.getElementById('cvHistorico');
@@ -3585,7 +3585,7 @@ function renderReincidenciaPage() {
   html += `</div>`;
 
   html += `<div class="page-title" style="margin-top:34px;font-size:16px">Ranking por Município (Nº de Endereços Reincidentes)</div>`;
-  html += `<div class="vd-recorte">Clique numa cidade para ver os endereços dela abaixo.${comSituacao ? ' As colunas de situação contam os endereços com chamado desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' e os casos antigos já abertos no PPVD.' : ''}</div>`;
+  html += `<div class="vd-recorte">Clique numa cidade para ver os endereços dela abaixo.${comSituacao ? ' As colunas de situação contam os endereços com chamado desde ' + (DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1] + ' e os casos antigos já abertos no RPPM.' : ''}</div>`;
   const ranking = municipiosData.slice().sort((a, b) => b.enderecos_reincidentes - a.enderecos_reincidentes);
   const munFiltroAtual = normMun(getMunFiltro());
   html += `<div class="table-wrap"><table class="data-table" id="reRanking"><thead><tr><th>Ranking</th><th style="text-align:left">Município</th><th>Pop.</th><th>Endereços Reincidentes</th>${comSituacao ? '<th title="Sem caso ou novo">✕ Sem caso/novo</th><th title="Em acompanhamento">! Acomp.</th><th title="Encerrados">✓ Encerr.</th>' : ''}</tr></thead><tbody>`;
@@ -3631,7 +3631,7 @@ function renderReincidenciaPage() {
     const ordemSem = { vermelho: 0, amarelo: 1, verde: 2 };
     principais.sort((a, b) => (ordemSem[semDe(a)] - ordemSem[semDe(b)]) || (diasDe(a) - diasDe(b)));
 
-    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>Endereço</th><th>Chamados</th><th>Último chamado</th><th>Naturezas</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso PPVD</th></tr></thead><tbody>`;
+    const cabecalho = `<table class="data-table vd-casos"><thead><tr><th>Situação</th><th>Endereço</th><th>Chamados</th><th>Último chamado</th><th>Naturezas</th><th>Marcadores</th><th>Responsável</th><th class="acao">Caso RPPM</th></tr></thead><tbody>`;
     const linha = (e) => {
       const end = pgEndereco(e);
       const caso = casoDe(e), velho = velhoSemCaso(e), sem = semDe(e), urgente = urgenteDe(e);
@@ -3653,12 +3653,12 @@ function renderReincidenciaPage() {
       return `<tr class="vd-row-${sem}" data-tags="${tags}" data-busca="${msgEsc((end + ' ' + (e.naturezas || []).join(' ')).toLowerCase())}"><td data-l="Situação">${situacao}</td><td data-l="Endereço" class="larga">${msgEsc(end) || '—'}</td><td data-l="Chamados">${e.q}<br><small>intervalo mín. ${e.intervalo_min_dias != null ? e.intervalo_min_dias + ' dia(s)' : '—'}</small></td><td data-l="Último chamado">${ultimo}</td><td data-l="Naturezas" class="larga">${msgEsc((e.naturezas || []).join(', ')) || '—'}</td><td data-l="Marcadores">${marc}</td><td data-l="Responsável">${resp}</td><td class="acao">${acao}</td></tr>`;
     };
     const cont = (f) => principais.filter(e => semDe(e) === f || (f === 'urgente' && urgenteDe(e)) || (f === 'arma' && e.arma_fogo) || (f === 'tres' && e.q >= 3) || (f === 'multi' && (e.naturezas || []).length >= 2) || (f === 'vd' && vdNoEndereco(nome, e) > 0)).length;
-    h += `<div class="vd-recorte">Contando endereços com chamado desde ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no PPVD: ${principais.length}${historico.length ? ` · ${historico.length} com último chamado antes do PPVD, sem caso, ficam finalizados (verde) no histórico abaixo` : ''}.</div>`;
+    h += `<div class="vd-recorte">Contando endereços com chamado desde ${(DATA.mv.meses || MESES)[HOME_VD_MES_INICIO - 1]} e os casos antigos já abertos no RPPM: ${principais.length}${historico.length ? ` · ${historico.length} com último chamado antes do RPPM, sem caso, ficam finalizados (verde) no histórico abaixo` : ''}.</div>`;
     h += pgFiltrosHtml('reFiltros', [['todos', 'Todos', principais.length], ['vermelho', '✕ Sem caso/novo', cont('vermelho')], ['amarelo', '! Em acompanhamento', cont('amarelo')], ['verde', '✓ Encerrados', cont('verde')], ['urgente', 'Urgentes (≤10 dias)', cont('urgente')], ['arma', 'Arma de fogo', cont('arma')], ['tres', '3+ chamados', cont('tres')], ['multi', 'Várias naturezas', cont('multi')], ['vd', 'Com violência doméstica', cont('vd')]], 'Buscar rua, bairro ou natureza');
     h += `<div style="overflow-x:auto" id="reTabelaBox">${cabecalho}`;
     h += principais.length ? principais.map(linha).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--muted)">Nenhum endereço reincidente neste município.</td></tr>`;
     h += `</tbody></table></div>`;
-    if (historico.length) h += `<details class="vd-historico" id="reHistorico"><summary>Histórico anterior ao PPVD — ${historico.length} endereço(s) finalizados (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
+    if (historico.length) h += `<details class="vd-historico" id="reHistorico"><summary>Histórico anterior ao RPPM — ${historico.length} endereço(s) finalizados (visitas feitas sem o registro no sistema)</summary><div class="vd-historico-corpo" style="overflow-x:auto"></div></details>`;
     alvo.innerHTML = h;
     pgLigarFiltros('reFiltros', 'reTabelaBox');
     const det = document.getElementById('reHistorico');
@@ -4659,7 +4659,7 @@ async function renderAuditoriaPage() {
     Reúne, cidade por cidade, o que está "em vermelho" a partir de Setembro/2026: casos de Violência Doméstica fora do prazo de 72h e sem solução final, ocorrências de MV/CVPE/CVPa do mês corrente, e o ritmo diário das metas de Operações (meta/teto do mês ajustado aos dias já corridos). Clique em cada tópico pra abrir os detalhes.</div>`;
 
   if (!ppvdSupa) {
-    html += `<div class="def-box" style="border-color:var(--alert)">Auditoria de Violência Doméstica exige conexão com o Supabase (PPVD), indisponível neste carregamento.</div>`;
+    html += `<div class="def-box" style="border-color:var(--alert)">Auditoria de Violência Doméstica exige conexão com o Supabase (RPPM), indisponível neste carregamento.</div>`;
     document.getElementById('main').innerHTML = html;
     return;
   }
@@ -5340,7 +5340,7 @@ function initMunFiltroGlobal() {
 }
 initMunFiltroGlobal();
 
-// ============ PPVD (Patrulha de Prevenção à Violência Doméstica) ============
+// ============ RPPM (Radiopatrulha de Proteção à Mulher) ============
 const PPVD_SUPABASE_URL = 'https://qzhhuxzdilwdsulttdhq.supabase.co';
 const PPVD_SUPABASE_ANON_KEY = 'sb_publishable_rfrKp8UGRPMhOWI2-2jpbg_IS5ToAOK';
 let ppvdSupa = (window.supabase && window.supabase.createClient) ? window.supabase.createClient(PPVD_SUPABASE_URL, PPVD_SUPABASE_ANON_KEY) : null;
@@ -5495,10 +5495,10 @@ function ppvdDiasDesde(dmy) {
 }
 
 async function ppvdAbrirCasoModalidade(modalidade, chave, dadosBase, dadosOrigem) {
-  if (!ppvdSupa) { alert('Integração PPVD indisponível.'); return; }
+  if (!ppvdSupa) { alert('Integração RPPM indisponível.'); return; }
   if (!ppvdUser) { alert('Faça login (botão "Login" no topo) pra abrir um caso.'); return; }
   if (!ppvdPerfil) { alert('Complete seu cadastro antes (aparece no topo da tela).'); return; }
-  if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador PPVD.'); return; }
+  if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador RPPM.'); return; }
 
   document.getElementById('main').innerHTML = `<div class="page-title">Carregando caso…</div>`;
 
@@ -5679,7 +5679,7 @@ function ppvdIniciais(nome) {
 
 // ---------- Dados RESTRITOS (nº do REDS, data, bairro, rua e número da casa) ----------
 // Antes iam no data.json público (repo público + GitHub Pages). Desde 2026-10-09 ficam só na
-// tabela `dados_restritos` do Supabase, que só PPVD aprovado lê (RLS eh_aprovado()). O data.json
+// tabela `dados_restritos` do Supabase, que só RPPM aprovado lê (RLS eh_aprovado()). O data.json
 // público traz esses blocos vazios; aqui eles são preenchidos depois do login e esvaziados no logout.
 let ppvdRestritoCarregado = false;
 const PPVD_RESTRITO_VAZIO = () => ({
@@ -5807,7 +5807,7 @@ function ppvdRenderAuthWidget() {
     poe(`<span style="color:var(--muted)">${ppvdPerfil.nome} &middot; aguardando aprovação</span> <button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`);
   } else {
     poe(`<span style="color:var(--text)">${ppvdPerfil.nome} (${ppvdPerfil.cargo})</span> ` +
-      (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações PPVD</button> ` : '') +
+      (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações RPPM</button> ` : '') +
       `<button class="ppvd-btn" onclick="ppvdOpenMilitares()">Militares Responsáveis</button> ` +
       `<button class="ppvd-btn" onclick="goToPage('mensagens')">✉ Mensagens<span id="msgBadge"></span></button> ` +
       `<button class="ppvd-btn" onclick="goToPage('notificacoes')">🔔 Avisos</button> ` +
@@ -5850,7 +5850,7 @@ async function ppvdSubmitPerfil(ev) {
 
 function ppvdRenderCadastroForm() {
   let html = `<div class="page-title">Complete seu cadastro</div>`;
-  html += `<div class="def-box">Pra acessar os casos de acompanhamento da Patrulha de Violência Doméstica, complete seu cadastro. Um administrador (P3) precisa aprovar seu acesso antes de você conseguir ver ou editar casos.</div>`;
+  html += `<div class="def-box">Pra acessar os casos de acompanhamento da Radiopatrulha de Proteção à Mulher (RPPM), complete seu cadastro. Um administrador (P3) precisa aprovar seu acesso antes de você conseguir ver ou editar casos.</div>`;
   html += `<div class="ppvd-card">`;
   html += `<div class="ppvd-field"><label>Nome completo</label><input id="ppvdNome"></div>`;
   html += `<div class="ppvd-field"><label>Cargo</label><select id="ppvdCargo"><option value="">Selecione...</option>${PPVD_CARGOS.map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>`;
@@ -5862,7 +5862,7 @@ function ppvdRenderCadastroForm() {
 
 function ppvdRenderAguardando() {
   let html = `<div class="page-title">Cadastro enviado ✓</div>`;
-  html += `<div class="def-box">Seu cadastro (<b>${ppvdPerfil ? ppvdPerfil.nome : ''}</b> — ${ppvdPerfil ? ppvdPerfil.cargo : ''}, ${ppvdPerfil ? ppvdPerfil.cidade : ''}) foi salvo. Um administrador (P3) precisa aprovar seu acesso antes de você conseguir ver ou editar casos PPVD — o resto do painel continua disponível normalmente enquanto isso.</div>`;
+  html += `<div class="def-box">Seu cadastro (<b>${ppvdPerfil ? ppvdPerfil.nome : ''}</b> — ${ppvdPerfil ? ppvdPerfil.cargo : ''}, ${ppvdPerfil ? ppvdPerfil.cidade : ''}) foi salvo. Um administrador (P3) precisa aprovar seu acesso antes de você conseguir ver ou editar casos RPPM — o resto do painel continua disponível normalmente enquanto isso.</div>`;
   document.getElementById('main').innerHTML = html;
 }
 
@@ -5875,10 +5875,10 @@ function ppvdRenderAguardando() {
 // Atraso: visita despachada (1ª ou retorno) sem resposta há mais de 72h (prazo máximo da mensagem de
 // despacho) volta a vermelho; `_pendenteDesde` vem de ppvdBuscarCasosVD.
 const PPVD_PRAZO_RETORNO_HORAS = 72;
-// O PPVD só passou a valer em Setembro/2026: ocorrência anterior SEM caso conta como finalizada (verde), com a ressalva de
-// que as visitas daquele período foram feitas sem registro no sistema. Caso anterior que já existe no PPVD e segue aberto
+// O RPPM só passou a valer em Setembro/2026: ocorrência anterior SEM caso conta como finalizada (verde), com a ressalva de
+// que as visitas daquele período foram feitas sem registro no sistema. Caso anterior que já existe no RPPM e segue aberto
 // continua aberto, com a situação real, para cada responsável resolver (decisão de Eduardo em 2026-10-13).
-const PPVD_OBS_ANTERIOR = 'anterior ao PPVD — visitas feitas sem o registro no sistema';
+const PPVD_OBS_ANTERIOR = 'anterior ao RPPM — visitas feitas sem o registro no sistema';
 function ppvdEmAcompanhamentoVD(caso) {
   return !!caso && caso.status !== 'estabilizada' && ((caso.qtd_retornos || 0) >= 1 || caso.status === 'retorno' || caso.status === 'em_acompanhamento');
 }
@@ -5998,10 +5998,10 @@ function ppvdOrientacao(g, u, t) {
 }
 
 async function ppvdAbrirCaso(redsNumero) {
-  if (!ppvdSupa) { alert('Integração PPVD indisponível.'); return; }
+  if (!ppvdSupa) { alert('Integração RPPM indisponível.'); return; }
   if (!ppvdUser) { alert('Faça login (botão "Login" no topo) pra abrir um caso.'); return; }
   if (!ppvdPerfil) { alert('Complete seu cadastro antes (aparece no topo da tela).'); return; }
-  if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador PPVD.'); return; }
+  if (!ppvdPerfil.aprovado) { alert('Seu acesso ainda não foi aprovado pelo administrador RPPM.'); return; }
 
   const dadosBase = (window.ppvdOcorrenciaLookup || {})[redsNumero] || {};
   estadoUI.voltarPara = currentPageKey; // Voltar devolve a lista como estava (período, rolagem)
@@ -6093,7 +6093,7 @@ async function ppvdRenderCaso(caso) {
   const prox = ehVD ? ppvdProximaAcaoVD(caso, visitas) : null;
   const gutOk = !!(caso.gravidade && caso.urgencia && caso.tendencia);
 
-  let html = `<div class="page-title">Caso PPVD — ${caso.municipio || ''}</div>`;
+  let html = `<div class="page-title">Caso RPPM — ${caso.municipio || ''}</div>`;
   html += `<button class="ppvd-btn" onclick="goToPage('${ppvdModalidadeVoltarPage(caso.modalidade)}')">← Voltar</button>`;
 
   if (ehVD) {
@@ -6575,7 +6575,7 @@ async function ppvdOpenAprovacoes() {
   if (!ppvdPerfil || !ppvdPerfil.is_admin) return;
   const { data: pendentes, error } = await ppvdSupa.from('perfis').select('*').eq('aprovado', false);
   const { data: aprovados } = await ppvdSupa.from('perfis').select('*').eq('aprovado', true);
-  let html = `<div class="page-title">Aprovações PPVD</div>`;
+  let html = `<div class="page-title">Aprovações RPPM</div>`;
   html += `<button class="ppvd-btn" onclick="goToPage('violencia_domestica')">← Voltar</button>`;
   html += `<div class="page-title" style="margin-top:24px;font-size:16px">Pendentes de aprovação</div>`;
   if (error) html += `<div class="def-box">Erro: ${error.message}</div>`;
@@ -6614,7 +6614,7 @@ async function ppvdOpenMilitares() {
   const minhaCidade = (ppvdPerfil.cidade || '').trim();
   const { data: todos, error } = await ppvdSupa.from('militares_responsaveis').select('*').order('municipio');
   const militares = souAdmin ? todos : (todos || []).filter(m => normMun(m.municipio) === normMun(minhaCidade));
-  let html = `<div class="page-title">Militares Responsáveis (PPVD)</div>`;
+  let html = `<div class="page-title">Militares Responsáveis (RPPM)</div>`;
   html += `<button class="ppvd-btn" onclick="goToPage('violencia_domestica')">← Voltar</button>`;
   html += `<div class="def-box">Cadastro das policiais femininas que atuam na rua e ficam responsáveis por ocorrências de Violência Doméstica. O nome cadastrado aqui aparece pré-preenchido na hora de despachar — o comandante do destacamento/pelotão sempre pode trocar por outro nome/WhatsApp no momento do despacho. ${souAdmin ? 'Como admin, você vê e cadastra pra qualquer cidade.' : `Você cadastra e gerencia as militares da sua cidade (${minhaCidade || 'defina sua cidade no cadastro'}).`}</div>`;
   html += `<div class="ppvd-card"><b>Cadastrar nova</b><br><br>`;
@@ -6677,7 +6677,7 @@ async function ppvdRenderVisitaPublica(token) {
   if (error || !info) { document.getElementById('main').innerHTML = `<div class="def-box">Link inválido ou expirado. Fale com quem despachou a visita.</div>`; return; }
   if (info.ja_respondida) { document.getElementById('main').innerHTML = `<div class="def-box">Essa visita já foi registrada. Obrigado.</div>`; return; }
 
-  let html = `<div class="page-title">Registro de Visita — PPVD</div>`;
+  let html = `<div class="page-title">Registro de Visita — RPPM</div>`;
   html += `<div class="ppvd-card">`;
   html += `<b>REDS:</b> ${info.reds_numero || '—'} &nbsp; <b>Data do fato:</b> ${info.reds_data || '—'} &nbsp; <b>Natureza:</b> ${info.natureza || '—'}<br>`;
   html += `<b>Município/Bairro:</b> ${info.municipio || ''} — ${info.bairro || ''}<br>`;

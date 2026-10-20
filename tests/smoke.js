@@ -496,7 +496,7 @@ function auditar() {
     checa(s1 > 300, `atalho "Quadro por cidade" rola a página (${s1}px)`, 'o atalho não rolou a página');
     const pdf = await p3.evaluate(() => { let chamou = false; const o = window.print; window.print = () => { chamou = true; }; document.getElementById('homePdf').click(); window.print = o; return chamou; });
     checa(pdf, 'botão Imprimir / PDF chama a impressão', 'o botão de PDF não chamou window.print');
-    // cartão de VD com um cliente de mentira (PPVD aprovado, 5 casos nos 4 estados)
+    // cartão de VD com um cliente de mentira (RPPM aprovado, 5 casos nos 4 estados)
     const vd = await p3.evaluate(async () => {
       ppvdSupa = {}; ppvdUser = { id: 'u1' }; ppvdPerfil = { aprovado: true, is_admin: false, nome: 'T', cargo: 'C', cidade: 'Araçuaí' }; ppvdRestritoCarregado = true;
       const agora = Date.now(), h = (x) => new Date(agora - x * 3600000).toISOString();
@@ -704,8 +704,8 @@ function auditar() {
     });
     checa(r.grids === 1 && r.kpis === 5, 'os 5 KPIs ficam num grid só (sem cartão sobrando)', `grids=${r.grids}, kpis=${r.kpis}`);
     checa(r.metodoFechado, 'metodologia começa recolhida', 'a metodologia está aberta no topo');
-    checa(r.linhas.join() === 'V2,V4,V3', `tabela: Setembro em diante + caso antigo que existe no PPVD (${r.linhas.join(', ')}); só V1 (antes de Setembro, sem caso) vai pro histórico`, 'linhas da tabela: ' + r.linhas.join(', '));
-    checa(r.historicoLinhas === 1 && r.historicoVerde === 1 && r.historicoObs === 1, 'histórico anterior ao PPVD: ocorrência sem caso finalizada (verde) com a observação de visitas sem registro no sistema', `histórico: ${JSON.stringify({ l: r.historicoLinhas, v: r.historicoVerde, o: r.historicoObs })}`);
+    checa(r.linhas.join() === 'V2,V4,V3', `tabela: Setembro em diante + caso antigo que existe no RPPM (${r.linhas.join(', ')}); só V1 (antes de Setembro, sem caso) vai pro histórico`, 'linhas da tabela: ' + r.linhas.join(', '));
+    checa(r.historicoLinhas === 1 && r.historicoVerde === 1 && r.historicoObs === 1, 'histórico anterior ao RPPM: ocorrência sem caso finalizada (verde) com a observação de visitas sem registro no sistema', `histórico: ${JSON.stringify({ l: r.historicoLinhas, v: r.historicoVerde, o: r.historicoObs })}`);
     checa(r.enderecosAntesDaTabela, 'endereços com reincidência aparecem antes da tabela', 'endereços reincidentes continuam depois da tabela');
     checa(r.temEmAbertoHa && r.atraso, '"aberto há" na coluna Situação, com destaque de atraso (>72h)', 'sem o "aberto há" / atraso');
     checa(/Sd Antigo/.test(r.sugerido || '') && /sugerido/.test(r.sugerido || ''), 'responsável sugerido identificado e, entre duplicados, o mais antigo', 'responsável sugerido: ' + r.sugerido);
@@ -806,7 +806,7 @@ function auditar() {
     checa(/Aguardando Sd Fulano/.test(r.pendente.titulo) && /atrasada/.test(r.pendente.det) && /caso-prox v/.test(r.pendente.cor) && r.pendente.ok === 2, 'visita pendente há 80h: em atraso (prazo de 72h), com o nome do militar', 'pendente: ' + JSON.stringify(r.pendente));
     checa(/Decida/.test(r.decisao.titulo) && /caso-prox z/.test(r.decisao.cor) && /Decisão do comandante/.test(r.decisao.atual) && r.decisao.ordem.startsWith('casoAcaoDespachar') && r.decisao.ordem.includes('casoAcaoDecisao'), 'decisão do comandante: azul (há retorno), ação antes dos dados', 'decisão: ' + JSON.stringify(r.decisao));
     checa(/estabilizado/i.test(r.estab.titulo) && r.estab.ok === 5 && /caso-prox g/.test(r.estab.cor), 'caso estabilizado: tudo concluído e em verde', 'estabilizado: ' + JSON.stringify(r.estab));
-    checa(/Despache/.test(r.velho.titulo) && r.velho.ok === 1 && r.velhoComAcao, 'caso anterior a Setembro que segue aberto no PPVD: continua aberto, com a ação pendente pra resolver', 'caso antigo: ' + JSON.stringify(r.velho));
+    checa(/Despache/.test(r.velho.titulo) && r.velho.ok === 1 && r.velhoComAcao, 'caso anterior a Setembro que segue aberto no RPPM: continua aberto, com a ação pendente pra resolver', 'caso antigo: ' + JSON.stringify(r.velho));
     checa(r.novo.botoesSalvar === 1, 'um botão só salva classificação e identificação', `botões de salvar: ${r.novo.botoesSalvar}`);
     checa(r.parcial.alertas === 1 && r.parcial.gravou === 0, 'classificação pela metade é recusada com aviso', 'parcial: ' + JSON.stringify(r.parcial));
     checa(r.completo.n === 1 && /gravidade/.test(r.completo.campos) && /vitima_nome/.test(r.completo.campos) && r.completo.vit === 'M.A.S.', 'salvar grava GUT e identificação numa chamada só', 'salvamento: ' + JSON.stringify(r.completo));
@@ -875,7 +875,7 @@ function auditar() {
     await ctxY.close();
   }
 
-  // ---------- 23) Crimes Violentos e Reincidência: situação dos casos do PPVD ----------
+  // ---------- 23) Crimes Violentos e Reincidência: situação dos casos do RPPM ----------
   console.log('\n[23] Crimes Violentos / Reincidência: semáforo dos casos (vermelho, amarelo, verde)');
   {
     const ctxZ = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
@@ -925,8 +925,8 @@ function auditar() {
     });
     checa(r.cv.ordem === 'vermelho,amarelo,verde,vermelho' || r.cv.ordem === 'vermelho,vermelho,amarelo,verde', `Crimes Violentos: mais urgente primeiro (${r.cv.ordem})`, 'ordem CV: ' + JSON.stringify(r.cv));
     checa(/Sd Fulano/.test(r.cv.resp) && /Ver Caso/.test(r.cv.acoes) && /Abrir Caso/.test(r.cv.acoes), 'caso existente mostra responsável e "Ver Caso"; sem caso mostra "Abrir Caso"', 'CV resp/ação: ' + JSON.stringify(r.cv));
-    checa(/Histórico anterior ao PPVD — 1 ocorrência/.test(r.cv.historico || '') && /Finalizado/.test(r.cv.histLinha || '') && /sem o registro no sistema/.test(r.cv.histLinha || ''), 'ocorrência anterior a setembro sem caso vai pro histórico como finalizada, com a observação', 'histórico CV: ' + JSON.stringify(r.cv));
-    checa(r.cv.reds.split(',').includes('CV9'), 'caso antigo (abril) que ainda está aberto no PPVD continua na lista principal', 'REDS na tabela: ' + r.cv.reds);
+    checa(/Histórico anterior ao RPPM — 1 ocorrência/.test(r.cv.historico || '') && /Finalizado/.test(r.cv.histLinha || '') && /sem o registro no sistema/.test(r.cv.histLinha || ''), 'ocorrência anterior a setembro sem caso vai pro histórico como finalizada, com a observação', 'histórico CV: ' + JSON.stringify(r.cv));
+    checa(r.cv.reds.split(',').includes('CV9'), 'caso antigo (abril) que ainda está aberto no RPPM continua na lista principal', 'REDS na tabela: ' + r.cv.reds);
     checa(r.cv.rankingTotal === '2/1/2' && r.cv.verdes === 1, `ranking com a situação dos casos (✕/!/✓ = ${r.cv.rankingTotal}) e filtro "Encerrados"`, 'ranking CV: ' + JSON.stringify(r.cv));
     checa(/vermelho,amarelo,verde|amarelo/.test(r.re.ordem) && /Cb Beltrano/.test(r.re.resp) && r.re.historico && r.re.rankingTotal === '1/1/1', 'Reincidência: caso em acompanhamento com responsável, endereço antigo no histórico e ranking com a situação', 'Reincidência: ' + JSON.stringify(r.re));
     checa(/Crimes Violentos — ✕ 2 sem caso\/novo · ! 1 em acompanhamento · ✓ 2 encerrados/.test(r.home) && /Reincidência de Endereço — ✕ 1/.test(r.home), 'Home resume Crimes Violentos e Reincidência', 'Home: ' + r.home);
@@ -1306,7 +1306,7 @@ function auditar() {
     checa(r.logado.ordem === 'P0,P5,P9,P1,P2' && r.logado.sems === 'vermelho,vermelho,vermelho,amarelo,verde', `lista por urgência: vermelhos (policial vítima primeiro), amarelo, verde (${r.logado.ordem} / ${r.logado.sems})`, 'ordem: ' + JSON.stringify(r.logado));
     checa(/Policial vítima/.test(r.logado.marc.P0) && /3 vítimas/.test(r.logado.marc.P1) && /Contexto VD/.test(r.logado.marc.P1) && /Autor preso/.test(r.logado.marc.P2), 'marcadores: policial vítima, várias vítimas, contexto VD e autor preso', 'marcadores: ' + JSON.stringify(r.logado.marc));
     checa(/Abrir Caso/.test(r.logado.acoes) && /Ver Caso/.test(r.logado.acoes) && r.logado.resp === 'sim', 'sem caso mostra "Abrir Caso"; com caso mostra "Ver Caso" e o responsável', 'ações: ' + r.logado.acoes);
-    checa(/Histórico anterior ao PPVD — 1 ocorrência/.test(r.logado.historico) && /Finalizado/.test(r.hist) && /sem o registro no sistema/.test(r.hist), 'ocorrência antiga sem caso vai pro histórico como finalizada; a antiga com caso aberto (P9) continua na lista', 'histórico: ' + r.logado.historico + ' / ' + r.hist);
+    checa(/Histórico anterior ao RPPM — 1 ocorrência/.test(r.logado.historico) && /Finalizado/.test(r.hist) && /sem o registro no sistema/.test(r.hist), 'ocorrência antiga sem caso vai pro histórico como finalizada; a antiga com caso aberto (P9) continua na lista', 'histórico: ' + r.logado.historico + ' / ' + r.hist);
     checa(r.pm === 1 && r.cidade.linhas === 1 && r.logado.lookup && r.limpo, 'filtro "Policial vítima", filtro de cidade, dados para abrir o caso e esvaziamento no logout', 'resto: ' + JSON.stringify([r.pm, r.cidade, r.logado.lookup, r.limpo]));
     checa(errosP.length === 0, 'CVPE (ocorrências) sem erro de JavaScript', 'erros: ' + errosP.slice(0, 3).join(' | '));
     await ctxP.close();
@@ -1404,7 +1404,7 @@ function auditar() {
     checa(r.logado.colunas === 10 && r.logado.ordem === 'Q0,Q1,Q2' && r.logado.sems === 'vermelho,amarelo,verde', `lista por urgência com a coluna Alvo / Levado (${r.logado.ordem} / ${r.logado.sems})`, 'lista: ' + JSON.stringify(r.logado));
     checa(/Cargas/.test(r.logado.alvo.Q0) && /Caminhao \(roubado\)/.test(r.logado.alvo.Q0) && /Telefone Celular/.test(r.logado.alvo.Q1) && /Motocicleta/.test(r.logado.alvo.Q2), 'alvo do roubo, objetos levados e veículos roubados aparecem na linha', 'alvo: ' + JSON.stringify(r.logado.alvo));
     checa(/Roubo de carga 1/.test(r.logado.chips) && r.carga === 1 && r.busca === 1, 'filtros de carga/veículo com contagem e busca pelo que foi levado', 'filtros: ' + JSON.stringify([r.logado.chips, r.carga, r.busca]));
-    checa(/Histórico anterior ao PPVD — 1 ocorrência/.test(r.logado.historico) && /Abrir Caso/.test(r.logado.acoes) && /Ver Caso/.test(r.logado.acoes) && r.limpo, 'histórico anterior ao PPVD, Abrir/Ver Caso e esvaziamento no logout', 'resto: ' + JSON.stringify([r.logado.historico, r.logado.acoes, r.limpo]));
+    checa(/Histórico anterior ao RPPM — 1 ocorrência/.test(r.logado.historico) && /Abrir Caso/.test(r.logado.acoes) && /Ver Caso/.test(r.logado.acoes) && r.limpo, 'histórico anterior ao RPPM, Abrir/Ver Caso e esvaziamento no logout', 'resto: ' + JSON.stringify([r.logado.historico, r.logado.acoes, r.limpo]));
     checa(errosR.length === 0, 'CVPa (ocorrências) sem erro de JavaScript', 'erros: ' + errosR.slice(0, 3).join(' | '));
     await ctxR.close();
   }
@@ -1797,7 +1797,7 @@ function auditar() {
     checa(r.faixa.linhas && r.faixa.ops && r.faixa.crimes && r.faixa.totais && r.faixa.situacao, 'POG × crimes por faixa horária: operações e vítimas conferem com os dados (MV + CVPE + CVPa) e cada faixa tem situação', 'faixa: ' + JSON.stringify(r.faixa));
     checa(r.dia && r.cidade.linhas && r.cidade.ordenada, 'POG × crimes por dia da semana e por cidade (ordenado da que tem menos operação por vítima)', 'dia/cidade: ' + JSON.stringify([r.dia, r.cidade]));
     checa(r.anonimo.aviso && r.anonimo.semTabela, 'visitante sem login: bairros com crime só mostram o aviso de detalhe restrito', 'anônimo: ' + JSON.stringify(r.anonimo));
-    checa(r.bairro.linhas && r.bairro.semOp && r.bairro.comOp && r.bairro.invalido && r.bairro.semRuas, 'PPVD aprovado: bairros com crime × operações (sem operação primeiro, bairro inválido avisado, sem rua nem REDS)', 'bairro: ' + JSON.stringify(r.bairro));
+    checa(r.bairro.linhas && r.bairro.semOp && r.bairro.comOp && r.bairro.invalido && r.bairro.semRuas, 'RPPM aprovado: bairros com crime × operações (sem operação primeiro, bairro inválido avisado, sem rua nem REDS)', 'bairro: ' + JSON.stringify(r.bairro));
     checa(!r.ppag.y15001.rural && !r.ppag.y15001.vd && !r.ppag.y15001.faixa && r.ppag.y07014.rural && r.ppag.y07014.faixa && !r.ppag.y07014.dia && r.ppag.y07014.cidade > 0 && r.ppag.y07012.vd && !r.ppag.y07012.faixa && r.ppag.y07012.cidade > 0, 'PPAG: Y07014 × furto rural (faixa e cidade), Y07012 × violência doméstica (cidade) e Y15001 sem cruzamento', 'ppag: ' + JSON.stringify(r.ppag));
     checa(r.largura, 'cruzamentos no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
     checa(errosR.length === 0, 'cruzamentos sem erro de JavaScript', 'erros: ' + errosR.slice(0, 3).join(' | '));
@@ -1967,8 +1967,8 @@ function auditar() {
     checa(r.dados.matriz && r.dados.publicoSemRestrito, 'dia × faixa das vítimas em bar fecha com o IDOB e o arquivo público não traz a lista restrita', 'dados: ' + JSON.stringify(r.dados));
     checa(r.publico.titulo && r.publico.faixa && r.publico.dia && r.publico.cidade && r.publico.poucos, 'IDOB: operações × vítimas em bar por faixa, dia e cidade, com o aviso de poucos casos', 'público: ' + JSON.stringify(r.publico));
     checa(r.anonimo.aviso && r.anonimo.semTabela && r.anonimo.semReds, 'visitante sem login: ocorrências em bar só mostram o aviso de detalhe restrito (sem REDS)', 'anônimo: ' + JSON.stringify(r.anonimo));
-    checa(r.restrito.linhas && r.restrito.ordem && r.restrito.vitimas && r.restrito.soma, 'PPVD aprovado: lista das ocorrências em bar (mais recente primeiro) com as vítimas por tipo', 'restrito: ' + JSON.stringify(r.restrito));
-    checa(r.restrito.redor && r.restrito.marcadores && r.restrito.comBoemia && r.restrito.invalido, 'PPVD aprovado: "Boemia ao redor" (dia, 7 dias antes, última, bairro) e marcadores certos para cada ocorrência', 'ao redor: ' + JSON.stringify(r.restrito));
+    checa(r.restrito.linhas && r.restrito.ordem && r.restrito.vitimas && r.restrito.soma, 'RPPM aprovado: lista das ocorrências em bar (mais recente primeiro) com as vítimas por tipo', 'restrito: ' + JSON.stringify(r.restrito));
+    checa(r.restrito.redor && r.restrito.marcadores && r.restrito.comBoemia && r.restrito.invalido, 'RPPM aprovado: "Boemia ao redor" (dia, 7 dias antes, última, bairro) e marcadores certos para cada ocorrência', 'ao redor: ' + JSON.stringify(r.restrito));
     checa(r.filtro && r.limpo, 'cidade filtra a lista e o logout esvazia as ocorrências restritas do IDOB', 'filtro/logout: ' + JSON.stringify([r.filtro, r.limpo]));
     checa(r.largura, 'IDOB onda 3 no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
     checa(errosK.length === 0, 'IDOB onda 3 sem erro de JavaScript', 'erros: ' + errosK.slice(0, 3).join(' | '));
@@ -2112,8 +2112,8 @@ function auditar() {
     checa(r.dados.matriz && r.dados.cidades && r.dados.publicoSemRestrito, 'dia × faixa e cidade dos roubos de veículo e de carga fecham com o CVPa e o arquivo público não traz a lista restrita', 'dados: ' + JSON.stringify(r.dados));
     checa(r.publico.titulo && r.publico.faixa && r.publico.dia && r.publico.cidade && r.publico.poucos && r.publico.horario, 'Cavalo de Aço × roubo de veículo e de carga por faixa, dia e cidade, com os avisos de poucos casos e do horário 00:00', 'público: ' + JSON.stringify(r.publico));
     checa(r.anonimo.aviso && r.anonimo.semTabela && r.anonimo.semReds, 'visitante sem login: roubos de veículo e de carga só mostram o aviso de detalhe restrito (sem REDS)', 'anônimo: ' + JSON.stringify(r.anonimo));
-    checa(r.restrito.linhas && r.restrito.ordem && r.restrito.soma && r.restrito.redor, 'PPVD aprovado: lista dos roubos (mais recente primeiro) com o Cavalo de Aço ao redor (dia, 7 dias antes, última, bairro)', 'restrito: ' + JSON.stringify(r.restrito));
-    checa(r.restrito.marcadores && r.restrito.comCavalo && r.restrito.invalido, 'PPVD aprovado: marcadores certos (sem Cavalo na semana anterior, bairro sem Cavalo, motocicleta, Cavalo no dia, hora 00:00)', 'marcadores: ' + JSON.stringify(r.restrito));
+    checa(r.restrito.linhas && r.restrito.ordem && r.restrito.soma && r.restrito.redor, 'RPPM aprovado: lista dos roubos (mais recente primeiro) com o Cavalo de Aço ao redor (dia, 7 dias antes, última, bairro)', 'restrito: ' + JSON.stringify(r.restrito));
+    checa(r.restrito.marcadores && r.restrito.comCavalo && r.restrito.invalido, 'RPPM aprovado: marcadores certos (sem Cavalo na semana anterior, bairro sem Cavalo, motocicleta, Cavalo no dia, hora 00:00)', 'marcadores: ' + JSON.stringify(r.restrito));
     checa(r.filtro && r.limpo, 'cidade filtra a lista e o logout esvazia os roubos restritos do Cavalo de Aço', 'filtro/logout: ' + JSON.stringify([r.filtro, r.limpo]));
     checa(r.largura, 'Cavalo de Aço onda 3 no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
     checa(errosE.length === 0, 'Cavalo de Aço onda 3 sem erro de JavaScript', 'erros: ' + errosE.slice(0, 3).join(' | '));
