@@ -1153,6 +1153,143 @@ def run_cavalo_cruzamento(data, report):
     report['cavalo_cruzamento'] = {'file': f, 'ocorrencias': sum(len(v) for v in saida.values())}
 
 
+# ---- Comunicação organizacional: números para divulgar (dias sem ocorrência, presos, motos do Rolezinho, recordes do ano) ----
+# PÚBLICO e só agregado: dias desde a última ocorrência por indicador e cidade, totais por mês e recordes. Nenhum REDS, data de ocorrência,
+# endereço ou nome entra aqui (a data da última ocorrência fica só no bloco restrito de onde o número vem).
+def _chave_terr(nome):
+    return _sem_acento_up(nome)
+
+
+def _dias_sem(datas, ref, inicio_ano):
+    """dias desde a última ocorrência, maior sequência do ano e se a atual é a maior. Sem ocorrência no ano: conta desde 1º de janeiro."""
+    ds = sorted(set(datas))
+    if not ds:
+        d = (ref - inicio_ano).days + 1
+        return {'dias': d, 'nenhum_no_ano': True, 'maior': d, 'em_andamento': True}
+    pontos = [inicio_ano] + ds + [ref]
+    lacunas = [(pontos[i + 1] - pontos[i]).days for i in range(len(pontos) - 1)]
+    atual = (ref - ds[-1]).days
+    maior = max(lacunas)
+    return {'dias': atual, 'nenhum_no_ano': False, 'maior': maior, 'em_andamento': atual >= maior}
+
+
+def run_comunicacao(data, rows_bo, report):
+    hoje = datetime.date.today()
+    inicio = datetime.date(hoje.year, 1, 1)
+    terr = [_chave_terr(m['nome']) for m in data['mv']['municipios']]
+    saida = {'referencia': hoje.isoformat()}
+
+    def dia(t):
+        try:
+            return datetime.datetime.strptime((t or '').strip()[:10], '%d/%m/%Y').date()
+        except ValueError:
+            return None
+
+    # 1) dias sem morte violenta / roubo (CVPa) / CVPE, por cidade e para o Batalhão (a partir das listas restritas já montadas)
+    ds = {}
+    for chave in ('mv', 'cvpa', 'cvpe'):
+        lista = (data.get('crimes_violentos', {}).get(chave + '_ocorrencias') or {})
+        por = {t: [] for t in terr}
+        for cid, lst in lista.items():
+            t = _chave_terr(cid)
+            for o in lst:
+                d = dia(o.get('d'))
+                if d and t in por:
+                    por[t].append(d)
+        ds[chave] = {t: _dias_sem(v, hoje, inicio) for t, v in por.items()}
+        ds[chave]['BATALHAO'] = _dias_sem([d for v in por.values() for d in v], hoje, inicio)
+    saida['dias_sem'] = ds
+
+    # 2) presos (QTDE_PRISAO dos REDS) por cidade e mês
+    pres = {t: [0] * N_MESES for t in terr}
+    pres_oc = {t: [0] * N_MESES for t in terr}
+    for r in rows_bo:
+        t = _chave_terr(r.get('MUNICIPIO'))
+        try:
+            mi = int(r.get('MES_NUMERICO') or 0) - 1
+        except ValueError:
+            continue
+        q = int(_num(r.get('QTDE_PRISAO')))
+        if t in pres and 0 <= mi < N_MESES and q > 0:
+            pres[t][mi] += q
+            pres_oc[t][mi] += 1
+    pres['BATALHAO'] = [sum(pres[t][i] for t in terr) for i in range(N_MESES)]
+    pres_oc['BATALHAO'] = [sum(pres_oc[t][i] for t in terr) for i in range(N_MESES)]
+    saida['presos'] = pres
+    saida['presos_ocorrencias'] = pres_oc
+
+    # 3) Rolezinho: motos apreendidas/removidas/fiscalizadas/autuadas (produtividade do RAT das operações do Rolezinho)
+    rol = None
+    f_rol, f_rat = latest_csv('Rolezinho'), latest_csv('TODOS OS RAT')
+    if f_rol and f_rat:
+        import re as _re
+        rows_rol = read_csv(f_rol, encoding='latin-1')
+        rats = {r.get('NUMERO_RAT'): r for r in read_csv(f_rat, encoding='latin-1')}
+        chaves = {'apreendidas': lambda du: 'MOTOCICLETA' in du and 'APREENDID' in du and 'FISCALIZ' not in du,
+                  'removidas': lambda du: 'MOTOCICLETA' in du and 'REMOVID' in du,
+                  'fiscalizadas': lambda du: 'MOTOCICLETAS FISCALIZADAS' in du,
+                  'autuadas': lambda du: 'MOTOCICLETAS AUTUADAS' in du}
+        rol = {k: {t: [0] * N_MESES for t in terr} for k in chaves}
+        n_ok = 0
+        for r in rows_rol:
+            rat = rats.get((r.get('Número do REDS') or '').strip())
+            d = dia(r.get('Data/Hora do Fato'))
+            t = _chave_terr(r.get('Município do Fato'))
+            if not rat or not d or t not in rol['apreendidas']:
+                continue
+            n_ok += 1
+            for m in _re.finditer(r'idIndicador:(\d+)/descricao:([^/]*)/quantidade:(\d+)/', rat.get('PRODUTIVIDADE') or ''):
+                du, qtd = m.group(2).upper(), int(m.group(3))
+                for k, fn in chaves.items():
+                    if fn(du):
+                        rol[k][t][d.month - 1] += qtd
+                        break
+        for k in rol:
+            rol[k]['BATALHAO'] = [sum(rol[k][t][i] for t in terr) for i in range(N_MESES)]
+        saida['rolezinho_motos'] = rol
+        saida['rolezinho_ops_cruzadas'] = {'rolezinho': len(rows_rol), 'com_rat': n_ok}
+
+    # 4) recordes do ano (Batalhão)
+    rec = []
+    meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
+    def melhor_mes(serie, ate):
+        v = serie[:ate + 1]
+        i = max(range(len(v)), key=lambda k: v[k])
+        return i, v[i]
+    ult = min(hoje.month - 1, N_MESES - 1)
+    if data.get('pog', {}).get('total_mes'):
+        i, v = melhor_mes(data['pog']['total_mes'], ult)
+        rec.append({'id': 'ops_mes', 'titulo': 'Mês com mais operações', 'valor': v, 'unidade': 'operações de POG', 'detalhe': meses[i].capitalize() + (' (em andamento)' if i == ult else '')})
+    ef = data.get('cavaloaco_eficacia', {}).get('totais', {})
+    if ef.get('motos_fisc'):
+        i, v = melhor_mes(ef['motos_fisc'], ult)
+        rec.append({'id': 'motos_mes', 'titulo': 'Mês com mais motos fiscalizadas', 'valor': v, 'unidade': 'motos (Cavalo de Aço)', 'detalhe': meses[i].capitalize() + (' (em andamento)' if i == ult else '')})
+    i, v = melhor_mes(pres['BATALHAO'], ult)
+    if v:
+        rec.append({'id': 'presos_mes', 'titulo': 'Mês com mais presos', 'valor': v, 'unidade': 'presos', 'detalhe': meses[i].capitalize() + (' (em andamento)' if i == ult else '')})
+    if data.get('armas', {}).get('total_mes'):
+        i, v = melhor_mes(data['armas']['total_mes'], ult)
+        if v:
+            rec.append({'id': 'armas_mes', 'titulo': 'Mês com mais armas de fogo apreendidas', 'valor': v, 'unidade': 'armas', 'detalhe': meses[i].capitalize() + (' (em andamento)' if i == ult else '')})
+    f_pog = latest_csv('POG E PPAG')
+    if f_pog:
+        c = collections.Counter()
+        for r in read_csv(f_pog, encoding='utf-8'):
+            if (r.get('CODIGO_NATUREZA_PRINCIPAL') or '').strip() in POG_CODIGOS:
+                d = dia(r.get('DATA_FATO'))
+                if d:
+                    c[d] += 1
+        if c:
+            d, v = max(c.items(), key=lambda kv: (kv[1], kv[0]))
+            rec.append({'id': 'ops_dia', 'titulo': 'Dia com mais operações', 'valor': v, 'unidade': 'operações de POG em um só dia', 'detalhe': d.strftime('%d/%m')})
+    mv_b = ds['mv']['BATALHAO']
+    rec.append({'id': 'mv_sequencia', 'titulo': 'Maior sequência sem morte violenta no Batalhão', 'valor': mv_b['maior'], 'unidade': 'dias', 'detalhe': 'em andamento' if mv_b['em_andamento'] else 'no ano'})
+    saida['recordes'] = rec
+    data['comunicacao'] = saida
+    report['comunicacao'] = {'dias_sem_mv_batalhao': mv_b['dias'], 'recordes': len(rec), 'presos_ano': sum(pres['BATALHAO']), 'rolezinho': rol is not None}
+
+
 
 def _extras_cvpa(r, vit):
     """CVPA: o alvo do roubo, o que foi levado (objetos FURTADO/ROUBADO) e os veículos roubados/liberados — campos de texto do SiGOp."""
@@ -1211,6 +1348,7 @@ def main():
     run_cvpa_ocorrencias(data, report)
     run_cavalo_cruzamento(data, report)  # usa a lista de ocorrências do CVPa já montada
     if f_bo:
+        run_comunicacao(data, rows_bo, report)
         run_idob_cruzamento(data, rows_bo, report)  # precisa das listas de ocorrências (natureza/causa) já montadas
 
     # Carimba atualizado_em em todo bloco tocado (e não pulado) nesta rodada — mesmo

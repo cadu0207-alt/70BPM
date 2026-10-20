@@ -2166,6 +2166,63 @@ function auditar() {
     await ctxF.close();
   }
 
+  // ---------- 47) Comunicação organizacional: números para divulgar, em arte com as cores e a logo da PMMG ----------
+  console.log('\n[47] Comunicação organizacional');
+  {
+    const ctxM = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pm = await ctxM.newPage();
+    const errosM = []; pm.on('pageerror', (e) => errosM.push(e.message));
+    await pm.goto(base);
+    await pm.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pm.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, C = DATA.comunicacao, terrs = Object.keys(C.dias_sem.mv);
+      try { localStorage.removeItem('comEstado'); } catch (e) {}
+      out.dados = { terr: terrs.length === 14 && terrs.includes('BATALHAO'), tres: ['mv', 'cvpa', 'cvpe'].every(k => Object.keys(C.dias_sem[k]).length === 14 && Object.values(C.dias_sem[k]).every(v => Number.isInteger(v.dias) && v.dias >= 0 && v.maior >= v.dias)),
+        presos: Object.keys(C.presos).length === 14 && Object.values(C.presos).every(a => a.length === 12) && C.presos.BATALHAO.every((v, i) => v === terrs.filter(t => t !== 'BATALHAO').reduce((a, t) => a + C.presos[t][i], 0)),
+        rolezinho: ['apreendidas', 'removidas', 'fiscalizadas', 'autuadas'].every(k => C.rolezinho_motos[k].BATALHAO.length === 12), recordes: C.recordes.length >= 5 && C.recordes.every(x => x.titulo && Number.isFinite(x.valor)),
+        semDadosSensiveis: !/\d{4}-\d{9}-\d{3}|ultima|endereco|logradouro/i.test(JSON.stringify(C)) };
+      goToPage('comunicacao'); await esp(1200);
+      const nav = document.querySelector('.nav-btn[data-page="comunicacao"]');
+      out.nav = !!nav && /Comunicação/.test(nav.textContent) && nav.closest('[data-grupo="visao"]') !== null;
+      const cards = [...document.querySelectorAll('#comGrade .com-card')];
+      out.batalhao = { n: cards.length, titulo: /Comunicação organizacional/i.test(document.querySelector('.page-title').textContent), controles: !!document.getElementById('comTerr') && !!document.getElementById('comMin') && document.querySelectorAll('#comPeriodo button').length === 2,
+        recordes: COM_CARTOES.filter(c => c.id.startsWith('recorde-')).length >= 5, dias: COM_CARTOES.filter(c => c.id.startsWith('dias-')).length === 3, balanco: ['presos', 'armas', 'ops', 'motos', 'rolezinho', 'resumo'].every(id => COM_CARTOES.some(c => c.id === id)) };
+      const cv = cards[0].querySelector('canvas'), px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      let claros = 0; for (let i = 0; i < px.length; i += 4) if (px[i] > 200 && px[i + 1] > 200 && px[i + 2] > 190) claros++;
+      out.arte = { desenhada: claros > 500, dims: cv.width === 432 && cv.height === 540 };
+      await comPreparar();
+      const dimsDe = (f) => { const c2 = document.createElement('canvas'); comDesenhar(c2, COM_CARTOES[0], COM_FORMATOS[f], 1); return [c2.width, c2.height, c2.toDataURL('image/png').startsWith('data:image/png')].join(); };
+      out.formatos = [dimsDe('feed'), dimsDe('quadrado'), dimsDe('stories')].join('|');
+      const mv = C.dias_sem.mv.BATALHAO, c0 = COM_CARTOES.find(c => c.id === 'dias-mv');
+      out.legenda = { numero: c0.numero === fmtBr(mv.dias, 0), texto: c0.legenda.includes(fmtBr(mv.dias, 0) + ' dias sem mortes violentas') && c0.legenda.includes(comDataBr(C.referencia)) && /#PMMG #70BPM/.test(c0.legenda) };
+      document.getElementById('comMin').value = '100000'; document.getElementById('comMin').dispatchEvent(new Event('input')); await esp(600);
+      const semDestaque = COM_CARTOES.filter(c => c.id.startsWith('dias-')).every(c => !c.destaque);
+      document.getElementById('comMin').value = '1'; document.getElementById('comMin').dispatchEvent(new Event('input')); await esp(600);
+      const todosDestaque = COM_CARTOES.filter(c => c.id.startsWith('dias-')).every(c => c.destaque);
+      document.getElementById('comSo').checked = true; document.getElementById('comSo').dispatchEvent(new Event('change')); await esp(600);
+      out.minimo = { semDestaque, todosDestaque, filtro: document.querySelectorAll('#comGrade .com-card').length === COM_CARTOES.filter(c => c.destaque).length };
+      document.getElementById('comSo').checked = false; document.getElementById('comSo').dispatchEvent(new Event('change'));
+      const sel = document.getElementById('comTerr'); sel.value = 'ARACUAI'; sel.dispatchEvent(new Event('change')); await esp(600);
+      document.querySelector('#comPeriodo button[data-p="ano"]').click(); await esp(600);
+      const pres = COM_CARTOES.find(c => c.id === 'presos');
+      out.cidade = { terr: COM_CARTOES.every(c => c.terr === 'ARAÇUAÍ'), semRecordes: !COM_CARTOES.some(c => c.id.startsWith('recorde-')), dias: COM_CARTOES.find(c => c.id === 'dias-mv').numero === fmtBr(C.dias_sem.mv.ARACUAI.dias, 0),
+        presosAno: !!pres && pres.numero === fmtBr(C.presos.ARACUAI.slice(0, Math.min(MES_ATUAL_IDX, 11) + 1).reduce((a, b) => a + b, 0), 0), periodo: !!pres && /Janeiro a/.test(pres.periodoTxt) };
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(Object.values(r.dados).every(Boolean), 'dados de comunicação: dias sem (3 indicadores × 14 territórios), presos, motos do Rolezinho e recordes — só números, sem REDS nem data de ocorrência', 'dados: ' + JSON.stringify(r.dados));
+    checa(r.nav && r.batalhao.n >= 12 && r.batalhao.titulo && r.batalhao.controles, `página Comunicação na Visão geral, com ${r.batalhao.n} cartões e os controles (território, período, mínimo de dias)`, 'página: ' + JSON.stringify([r.nav, r.batalhao]));
+    checa(r.batalhao.recordes && r.batalhao.dias && r.batalhao.balanco, 'cartões: dias sem (morte violenta, roubo, CVPE), balanço (presos, armas, operações, motos, Rolezinho, resumo) e recordes do ano', 'cartões: ' + JSON.stringify(r.batalhao));
+    checa(r.arte.desenhada && r.arte.dims && r.formatos === '1080,1350,true|1080,1080,true|1080,1920,true', 'arte desenhada de verdade e exportável em Feed 4:5, Quadrado e Stories (1080 px de largura, PNG)', 'arte: ' + JSON.stringify([r.arte, r.formatos]));
+    checa(r.legenda.numero && r.legenda.texto, 'legenda pronta com o número, a data dos registros do SiGOp e as hashtags', 'legenda: ' + JSON.stringify(r.legenda));
+    checa(r.minimo.semDestaque && r.minimo.todosDestaque && r.minimo.filtro, 'mínimo de dias controla o destaque e o filtro "só os que passam do mínimo"', 'mínimo: ' + JSON.stringify(r.minimo));
+    checa(r.cidade.terr && r.cidade.semRecordes && r.cidade.dias && r.cidade.presosAno && r.cidade.periodo, 'escolher a cidade e o período (ano) muda os números dos cartões; recordes ficam só no Batalhão', 'cidade: ' + JSON.stringify(r.cidade));
+    checa(r.largura, 'Comunicação no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosM.length === 0, 'Comunicação sem erro de JavaScript', 'erros: ' + errosM.slice(0, 3).join(' | '));
+    await ctxM.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

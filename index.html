@@ -341,6 +341,15 @@
   .ind-tab .par { white-space:nowrap; }
   /* Páginas de indicador — onda 2 (2026-10-13): quadro mês a mês, ano vs limite, painel da cidade, barras e detalhamento */
   .hm2 td.hm2-n { font-weight:700; } .hm2 td, .hm2 th { padding:7px 8px; }
+  .com-controles { display:flex; flex-wrap:wrap; gap:14px 18px; align-items:center; margin:0 0 16px; font-size:13px; color:var(--muted); }
+  .com-controles select, .com-controles input[type=number] { background:var(--bg-2); color:var(--text); border:1px solid var(--panel-border); border-radius:8px; padding:7px 10px; font-size:13px; font-family:var(--sans); }
+  .com-controles input[type=number] { width:84px; } .com-controles .pills-vd { margin:0; } .com-chk { display:flex; align-items:center; gap:6px; }
+  .com-grade { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:18px; margin:0 0 18px; }
+  .com-card { background:var(--panel); border:1px solid var(--panel-border); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px; }
+  .com-card.dim canvas { opacity:.55; } .com-card canvas { width:100%; height:auto; border-radius:6px; display:block; }
+  .com-tag { font-size:12px; color:var(--muted); } .com-tag.ok { color:var(--signal); font-weight:600; } .com-tag.ok::before { content:'✓ '; }
+  .com-acoes { display:flex; flex-wrap:wrap; gap:6px; } .com-acoes button { background:var(--bg-2); border:1px solid var(--panel-border); color:var(--text); border-radius:999px; padding:6px 11px; font-size:12px; cursor:pointer; font-family:var(--sans); }
+  .com-acoes button:hover { border-color:var(--amber); } .com-acoes button:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
   .ind-sec { margin-top:30px; } .ind-sec h3.ind-tit { font-size:16px; margin:0 0 8px; }
   .hm td.hm-ok { background:rgba(33,201,138,.16); } .hm td.hm-atencao { background:rgba(212,194,42,.2); } .ind-tab small { font-size:11px; } .fs { display:inline-block; width:13px; text-align:center; font-size:12px; line-height:1; } .fs.ok { color:var(--signal); } .fs.no { color:var(--alert-text); } .hm td.hm-ruim { background:rgba(230,72,79,.26); font-weight:700; } .hm td.hm-zero { color:#8aa0b4; }
   .hm td, .hm th { padding:6px 6px; } .hm tr.rank-clic.sel td { outline:1px solid rgba(232,168,60,.45); }
@@ -658,6 +667,7 @@
       <button type="button" class="nav-group-label" aria-expanded="true"><span class="ic" aria-hidden="true">🏠</span><span class="nt">Visão geral</span><span class="bd gbd" hidden></span><span class="chev" aria-hidden="true">›</span></button>
       <div class="nav-group-itens">
         <button class="nav-btn com-ic active" data-page="home"><span class="ic" aria-hidden="true">🏠</span><span class="nt">Home</span><span class="bd" data-bd="home" hidden></span></button>
+        <button class="nav-btn com-ic" data-page="comunicacao" title="Números do policiamento prontos para divulgar nas redes"><span class="ic" aria-hidden="true">📣</span><span class="nt">Comunicação</span><span class="bd" data-bd="comunicacao" hidden></span></button>
         <button class="nav-btn com-ic" data-page="auditoria" title="Uso interno — exige login"><span class="ic" aria-hidden="true">🛡</span><span class="nt">Painel de Auditoria</span><span class="bd" data-bd="auditoria" hidden></span></button>
       </div>
     </div>
@@ -3695,6 +3705,209 @@ function fmtBr(n, dec) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
+// ===== Comunicação organizacional: números para divulgar, já em arte (cores e logo da nova identidade visual da PMMG) =====
+// Só dados agregados (dias desde a última ocorrência, totais, recordes). A arte é gerada no navegador; quem for publicar faz o recorte e posta.
+const COM_CORES = { fundo: '#0b0a08', dourado: '#9E8C5C', douradoClaro: '#C9B27A', creme: '#EBE9DF', vermelho: '#BC2329', cinza: '#9d9684' };
+const COM_FORMATOS = { feed: { w: 1080, h: 1350, nome: 'Feed 4:5' }, quadrado: { w: 1080, h: 1080, nome: 'Quadrado' }, stories: { w: 1080, h: 1920, nome: 'Stories' } };
+const COM_FONTE = 'Rajdhani, "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
+const COM_FONTE_TEXTO = '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif';
+let COM_IMG = null, COM_CARTOES = [];
+let COM_ESTADO = { terr: 'BATALHAO', periodo: 'mes', min: 30, soDestaque: false };
+
+function comCarregarImagem(src) { return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; }); }
+async function comPreparar() {
+  if (!COM_IMG) {
+    try { COM_IMG = { escudo: await comCarregarImagem('assets/comunicacao/escudo-pmmg.png'), logo: await comCarregarImagem('assets/comunicacao/logotipo-pmmg-negativo.png') }; } catch (e) { COM_IMG = { escudo: null, logo: null }; }
+  }
+  try { await Promise.all([document.fonts.load('700 100px Rajdhani'), document.fonts.load('600 30px "IBM Plex Sans"'), document.fonts.load('400 30px "IBM Plex Sans"')]); } catch (e) {}
+}
+function comNomeTerr(chave) { return chave === 'BATALHAO' ? '70º BATALHÃO' : (MUNICIPIOS_CANON.find(m => normMun(m) === chave) || chave).toUpperCase(); }
+function comDataBr(iso) { const p = (iso || '').split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : ''; }
+function comSerieValor(serie, periodo) {
+  if (!Array.isArray(serie)) return null;
+  const ult = Math.min(MES_ATUAL_IDX, serie.length - 1);
+  return periodo === 'mes' ? (serie[ult] || 0) : serie.slice(0, ult + 1).reduce((a, b) => a + (b || 0), 0);
+}
+function comSerieDe(chave, bloco) {
+  const C = DATA.comunicacao || {};
+  const porNome = (lista, campo) => { const m = (lista || []).find(x => normMun(x.nome) === chave); return m ? m[campo] : null; };
+  if (bloco === 'presos') return (C.presos || {})[chave] || null;
+  if (bloco === 'rolezinho') {
+    const r = C.rolezinho_motos; if (!r) return null;
+    const a = r.apreendidas[chave], b = r.removidas[chave]; return a && b ? a.map((v, i) => v + b[i]) : null;
+  }
+  if (bloco === 'armas') return chave === 'BATALHAO' ? DATA.armas.total_mes : porNome(DATA.armas.municipios, 'realizado_mes');
+  if (bloco === 'ops') return chave === 'BATALHAO' ? DATA.pog.total_mes : porNome(DATA.pog.municipios, 'realizado_mes');
+  if (bloco === 'motos') { const ef = DATA.cavaloaco_eficacia; return ef ? (chave === 'BATALHAO' ? ef.totais.motos_fisc : porNome(ef.municipios, 'motos_fisc')) : null; }
+  return null;
+}
+function comCartoes(estado) {
+  const C = DATA.comunicacao; if (!C) return [];
+  const { terr, periodo, min } = estado, nomeT = comNomeTerr(terr), ref = comDataBr(C.referencia);
+  const cartoes = [], fmt = (n) => fmtBr(n, 0);
+  const local = terr === 'BATALHAO' ? 'na área do 70º BPM' : 'em ' + (MUNICIPIOS_CANON.find(m => normMun(m) === terr) || terr);
+  const tag = terr === 'BATALHAO' ? '' : ' #' + (MUNICIPIOS_CANON.find(m => normMun(m) === terr) || terr).normalize('NFD').replace(/[^A-Za-z]/g, '');
+  const hash = '#PMMG #70BPM #15RPM #SegurançaPública' + tag;
+  const mesNome = MESES[MES_ATUAL_IDX], periodoTxt = periodo === 'mes' ? `${mesNome}/2026 · até ${ref.slice(0, 5)}` : `Janeiro a ${mesNome}/2026 · até ${ref.slice(0, 5)}`;
+  const periodoLeg = periodo === 'mes' ? `em ${mesNome.toLowerCase()} de 2026` : `em 2026 (de janeiro a ${mesNome.toLowerCase()})`;
+  const base = { terr: nomeT, ref, periodoTxt };
+  // 1) dias sem
+  [['mv', 'HÁ', 'DIAS SEM MORTES VIOLENTAS', 'mortes violentas', 'Homicídio, latrocínio, lesão seguida de morte, feminicídio e outras mortes violentas'],
+   ['cvpa', 'HÁ', 'DIAS SEM ROUBOS', 'roubos', 'Roubo e extorsão (crimes violentos contra o patrimônio)'],
+   ['cvpe', 'HÁ', 'DIAS SEM CRIMES VIOLENTOS CONTRA A PESSOA', 'crimes violentos contra a pessoa', 'Tentativas de homicídio, sequestro, tortura e feminicídio tentado']].forEach(([k, kicker, titulo, descr, nota]) => {
+    const d = ((C.dias_sem || {})[k] || {})[terr]; if (!d) return;
+    const destaque = d.dias >= min;
+    const sub = d.nenhum_no_ano ? 'Nenhum registro em 2026' : (d.em_andamento ? 'Maior sequência do ano' : `Maior sequência do ano: ${fmt(d.maior)} dias`);
+    cartoes.push({ ...base, id: 'dias-' + k, tipo: 'numero', kicker, numero: fmt(d.dias), titulo, sub, nota, destaque, valor: d.dias,
+      tagTxt: destaque ? `Pode publicar · ${fmt(d.dias)} dias` : `Abaixo de ${min} dias (${fmt(d.dias)})`, rodape: `Registros do SiGOp até ${ref}`,
+      legenda: `🛡️ ${fmt(d.dias)} dias sem ${descr} ${local}.${d.nenhum_no_ano ? ' Nenhum registro em 2026.' : (d.em_andamento ? ' É a maior sequência do ano.' : '')}\n\nSegundo os registros do SiGOp até ${ref}. O 70º BPM segue presente, todos os dias, para proteger quem vive aqui.\n\n${hash}` });
+  });
+  // 2) balanço do período
+  const num = (bloco) => comSerieValor(comSerieDe(terr, bloco), periodo);
+  const pres = num('presos'), armas = num('armas'), ops = num('ops'), motos = num('motos'), rol = num('rolezinho');
+  const bal = (id, kicker, titulo, valor, sub, texto) => { if (valor === null || valor === undefined) return; cartoes.push({ ...base, id, tipo: 'numero', kicker, numero: fmt(valor), titulo, sub: sub || periodoTxt, destaque: valor > 0, valor, tagTxt: periodoTxt, rodape: `Registros do SiGOp até ${ref}`, legenda: `${texto}\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` }); };
+  bal('presos', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'PESSOAS PRESAS', pres, null, `🚔 ${fmt(pres || 0)} pessoas presas ${local} ${periodoLeg}. Trabalho diário do 70º BPM para tirar o crime das ruas.`);
+  bal('armas', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'ARMAS DE FOGO APREENDIDAS', armas, null, `🔫 ${fmt(armas || 0)} armas de fogo apreendidas ${local} ${periodoLeg}. Cada arma a menos nas ruas é uma ameaça a menos.`);
+  bal('ops', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'OPERAÇÕES DE POLICIAMENTO', ops, 'Policiamento ostensivo geral (POG) · ' + periodoTxt, `🚓 ${fmt(ops || 0)} operações de policiamento ostensivo ${local} ${periodoLeg}. Presença da Polícia Militar onde o cidadão está.`);
+  bal('motos', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'MOTOS FISCALIZADAS', motos, 'Operação Cavalo de Aço · ' + periodoTxt, `🏍️ ${fmt(motos || 0)} motocicletas fiscalizadas ${local} ${periodoLeg} pela Operação Cavalo de Aço, por mais segurança no trânsito.`);
+  bal('rolezinho', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'MOTOS APREENDIDAS E REMOVIDAS', rol, 'Operação Rolezinho · ' + periodoTxt, `🏍️ ${fmt(rol || 0)} motocicletas apreendidas ou removidas ${local} ${periodoLeg} pela Operação Rolezinho, contra o barulho, as manobras perigosas e a irregularidade.`);
+  if (pres !== null && armas !== null && ops !== null && motos !== null) {
+    cartoes.push({ ...base, id: 'resumo', tipo: 'grade', kicker: periodo === 'mes' ? 'NO MÊS' : 'EM 2026', titulo: 'POLICIAMENTO EM NÚMEROS', sub: periodoTxt, destaque: true, valor: ops, tagTxt: periodoTxt, rodape: `Registros do SiGOp até ${ref}`,
+      itens: [[fmt(ops), 'operações de policiamento'], [fmt(motos), 'motos fiscalizadas'], [fmt(pres), 'pessoas presas'], [fmt(armas), 'armas de fogo apreendidas']],
+      legenda: `🛡️ O 70º BPM ${local} ${periodoLeg}:\n🚓 ${fmt(ops)} operações de policiamento\n🏍️ ${fmt(motos)} motos fiscalizadas\n🚔 ${fmt(pres)} pessoas presas\n🔫 ${fmt(armas)} armas de fogo apreendidas\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` });
+  }
+  // 3) recordes do ano (Batalhão)
+  if (terr === 'BATALHAO') (C.recordes || []).forEach(r => {
+    cartoes.push({ ...base, id: 'recorde-' + r.id, tipo: 'numero', kicker: 'RECORDE DE 2026', numero: fmt(r.valor), titulo: r.titulo.toUpperCase(), sub: `${r.unidade} · ${r.detalhe}`, destaque: true, valor: r.valor, tagTxt: 'Recorde do ano', rodape: `Registros do SiGOp até ${ref}`,
+      legenda: `🏆 Recorde de 2026 no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` });
+  });
+  return cartoes;
+}
+
+// ---- desenho da arte ----
+function comTexto(ctx, txt, x, y, sp, alinhar) {
+  if (!sp) { ctx.textAlign = alinhar || 'left'; ctx.fillText(txt, x, y); return; }
+  ctx.textAlign = 'left';
+  const larg = [...txt].reduce((a, ch) => a + ctx.measureText(ch).width + sp, -sp);
+  let px = alinhar === 'center' ? x - larg / 2 : (alinhar === 'right' ? x - larg : x);
+  [...txt].forEach(ch => { ctx.fillText(ch, px, y); px += ctx.measureText(ch).width + sp; });
+}
+function comQuebrar(ctx, txt, maxW) {
+  const linhas = []; let atual = '';
+  String(txt || '').split(' ').forEach(p => { const t = atual ? atual + ' ' + p : p; if (ctx.measureText(t).width > maxW && atual) { linhas.push(atual); atual = p; } else atual = t; });
+  if (atual) linhas.push(atual);
+  return linhas;
+}
+function comDesenhar(canvas, c, f, escala) {
+  const W = f.w, H = f.h, k = escala || 1, ctx = canvas.getContext('2d');
+  canvas.width = Math.round(W * k); canvas.height = Math.round(H * k);
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  const cor = COM_CORES, m = 88, img = COM_IMG || {};
+  // fundo
+  ctx.fillStyle = cor.fundo; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createRadialGradient(W * 0.85, H * 0.08, 20, W * 0.85, H * 0.08, W * 0.95); g.addColorStop(0, 'rgba(158,140,92,0.30)'); g.addColorStop(1, 'rgba(158,140,92,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (img.escudo) { ctx.globalAlpha = 0.07; const ah = H * 0.62, aw = ah * img.escudo.width / img.escudo.height; ctx.drawImage(img.escudo, W - aw * 0.78, H - ah * 0.82, aw, ah); ctx.globalAlpha = 1; }
+  // moldura dourada + cantos vermelhos (o triângulo do escudo)
+  ctx.strokeStyle = cor.dourado; ctx.lineWidth = 3; ctx.strokeRect(34, 34, W - 68, H - 68);
+  ctx.fillStyle = cor.vermelho; [[34, 34, 1, 1], [W - 34, 34, -1, 1], [34, H - 34, 1, -1], [W - 34, H - 34, -1, -1]].forEach(([x, y, sx, sy]) => { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + sx * 46, y); ctx.lineTo(x, y + sy * 46); ctx.closePath(); ctx.fill(); });
+  // cabeçalho: escudo + unidade, território à direita
+  const topo = 92;
+  if (img.escudo) { const eh = 124, ew = eh * img.escudo.width / img.escudo.height; ctx.drawImage(img.escudo, m, topo, ew, eh); }
+  ctx.fillStyle = cor.creme; ctx.font = `700 46px ${COM_FONTE}`; comTexto(ctx, '70º BPM', m + 124 * 0.89 + 24, topo + 52, 3);
+  ctx.fillStyle = cor.dourado; ctx.font = `600 21px ${COM_FONTE_TEXTO}`; comTexto(ctx, 'POLÍCIA MILITAR DE MINAS GERAIS', m + 124 * 0.89 + 24, topo + 90, 3);
+  ctx.font = `700 30px ${COM_FONTE}`; const tt = c.terr, tw = [...tt].reduce((a, ch) => a + ctx.measureText(ch).width + 3, 0) + 44;
+  ctx.strokeStyle = cor.dourado; ctx.lineWidth = 2; ctx.strokeRect(W - m - tw, topo + 8, tw, 62);
+  ctx.fillStyle = cor.douradoClaro; comTexto(ctx, tt, W - m - tw + 22, topo + 50, 3);
+  // corpo
+  const corpoTopo = topo + 190, corpoBase = H - 250, area = corpoBase - corpoTopo, maxW = W - 2 * m;
+  if (c.tipo === 'grade') {
+    ctx.fillStyle = cor.dourado; ctx.font = `600 30px ${COM_FONTE_TEXTO}`; comTexto(ctx, c.kicker, m, corpoTopo + 30, 6);
+    ctx.fillStyle = cor.creme; ctx.font = `700 ${f.h > 1500 ? 88 : 72}px ${COM_FONTE}`; comQuebrar(ctx, c.titulo, maxW).forEach((l, i) => comTexto(ctx, l, m, corpoTopo + 110 + i * 84, 2));
+    const gy = corpoTopo + 200, cw = (maxW - 40) / 2, ch = Math.min(300, (corpoBase - gy - 40) / 2);
+    c.itens.forEach(([n, rot], i) => {
+      const x = m + (i % 2) * (cw + 40), y = gy + Math.floor(i / 2) * (ch + 40);
+      ctx.fillStyle = 'rgba(235,233,223,0.05)'; ctx.fillRect(x, y, cw, ch); ctx.fillStyle = cor.vermelho; ctx.fillRect(x, y, 8, ch);
+      let fs = Math.min(190, ch * 0.62); ctx.font = `700 ${fs}px ${COM_FONTE}`; while (ctx.measureText(n).width > cw - 60 && fs > 50) { fs -= 8; ctx.font = `700 ${fs}px ${COM_FONTE}`; }
+      ctx.fillStyle = cor.creme; comTexto(ctx, n, x + 34, y + ch * 0.62, 0);
+      ctx.fillStyle = cor.douradoClaro; ctx.font = `600 28px ${COM_FONTE_TEXTO}`; comQuebrar(ctx, rot.toUpperCase(), cw - 60).forEach((l, j) => comTexto(ctx, l, x + 34, y + ch * 0.62 + 46 + j * 34, 2));
+    });
+  } else {
+    // kicker + número gigante + título + subtítulo, centralizados no corpo
+    ctx.font = `700 ${W > 1000 ? 36 : 30}px ${COM_FONTE_TEXTO}`;
+    const tam = f.h > 1500 ? 84 : 70;
+    ctx.font = `700 ${tam}px ${COM_FONTE}`; const linhasT = comQuebrar(ctx, c.titulo, maxW), hT = linhasT.length * (tam - 2);
+    ctx.font = `400 32px ${COM_FONTE_TEXTO}`; const linhasS = c.sub ? comQuebrar(ctx, c.sub, maxW) : [], hS = linhasS.length * 44;
+    const alt = (n) => 44 + n * 0.82 + 28 + 52 + hT + 18 + hS;
+    let fs = f.h > 1500 ? 560 : (f.h > 1200 ? 470 : 360); ctx.font = `700 ${fs}px ${COM_FONTE}`;
+    while ((ctx.measureText(c.numero).width > maxW || alt(fs) > area) && fs > 120) { fs -= 12; ctx.font = `700 ${fs}px ${COM_FONTE}`; }
+    const total = alt(fs); let y = corpoTopo + Math.max(0, (area - total) / 2);
+    ctx.fillStyle = cor.vermelho; ctx.beginPath(); ctx.moveTo(m, y + 28); ctx.lineTo(m + 34, y + 28); ctx.lineTo(m + 17, y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = cor.dourado; ctx.font = `700 34px ${COM_FONTE}`; comTexto(ctx, c.kicker, m + 52, y + 28, 7);
+    y += 44 + fs * 0.82; ctx.fillStyle = cor.creme; ctx.font = `700 ${fs}px ${COM_FONTE}`; comTexto(ctx, c.numero, m - 6, y, 0);
+    y += 28 + 52; ctx.fillStyle = cor.creme; ctx.font = `700 ${f.h > 1500 ? 84 : 70}px ${COM_FONTE}`; linhasT.forEach((l, i) => comTexto(ctx, l, m, y + i * (f.h > 1500 ? 82 : 70), 2));
+    y += hT - 40 + 18; ctx.fillStyle = cor.douradoClaro; ctx.font = `400 32px ${COM_FONTE_TEXTO}`; linhasS.forEach((l, i) => comTexto(ctx, l, m, y + 36 + i * 44, 0));
+  }
+  // rodapé: linha dourada, fonte dos dados e logotipo
+  ctx.strokeStyle = cor.dourado; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(m, H - 214); ctx.lineTo(W - m, H - 214); ctx.stroke();
+  ctx.fillStyle = cor.cinza; ctx.font = `400 25px ${COM_FONTE_TEXTO}`; comTexto(ctx, c.rodape || '', m, H - 150, 0);
+  ctx.font = `400 22px ${COM_FONTE_TEXTO}`; comTexto(ctx, 'Painel de gestão do 70º BPM · 15ª RPM', m, H - 112, 0);
+  if (img.logo) { const lw = 330, lh = lw * img.logo.height / img.logo.width; ctx.drawImage(img.logo, W - m - lw, H - 196, lw, lh); }
+}
+async function comBaixar(i, formato) {
+  await comPreparar();
+  const c = COM_CARTOES[i], f = COM_FORMATOS[formato]; if (!c || !f) return;
+  const cv = document.createElement('canvas'); comDesenhar(cv, c, f, 1);
+  cv.toBlob(b => {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `70bpm-${c.id}-${(c.terr || '').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-')}-${formato}.png`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }, 'image/png');
+}
+async function comCopiarLegenda(i) {
+  const c = COM_CARTOES[i]; if (!c) return;
+  try { await navigator.clipboard.writeText(c.legenda); }
+  catch (e) { const t = document.createElement('textarea'); t.value = c.legenda; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); } catch (er) {} t.remove(); }
+  const b = document.querySelector(`#comGrade [data-leg="${i}"]`); if (b) { const antes = b.textContent; b.textContent = 'Legenda copiada ✓'; setTimeout(() => { b.textContent = antes; }, 1800); }
+}
+async function comMontarCartoes() {
+  await comPreparar();
+  COM_CARTOES = comCartoes(COM_ESTADO);
+  const lista = COM_CARTOES.map((c, i) => ({ c, i })).filter(x => !COM_ESTADO.soDestaque || x.c.destaque);
+  const box = document.getElementById('comGrade'); if (!box) return;
+  box.innerHTML = lista.length ? lista.map(({ c, i }) => `<div class="com-card${c.destaque ? '' : ' dim'}" data-card="${i}"><canvas aria-label="${msgEsc(c.kicker + ' ' + c.numero + ' ' + c.titulo)}"></canvas>
+      <div class="com-tag ${c.destaque ? 'ok' : ''}">${msgEsc(c.tagTxt)}</div>
+      <div class="com-acoes"><button type="button" data-baixar="${i}" data-f="feed">Feed 4:5</button><button type="button" data-baixar="${i}" data-f="quadrado">Quadrado</button><button type="button" data-baixar="${i}" data-f="stories">Stories</button><button type="button" data-leg="${i}">Copiar legenda</button></div></div>`).join('')
+    : `<div class="pending-box">Nenhum cartão atende ao filtro. Diminua o mínimo de dias ou desligue "Só os que passam do mínimo".</div>`;
+  lista.forEach(({ c, i }) => { const cv = box.querySelector(`[data-card="${i}"] canvas`); if (cv) comDesenhar(cv, c, COM_FORMATOS.feed, 0.4); });
+}
+function renderComunicacaoPage() {
+  const C = DATA.comunicacao;
+  try { const s = JSON.parse(localStorage.getItem('comEstado') || 'null'); if (s && typeof s === 'object') COM_ESTADO = { ...COM_ESTADO, ...s }; } catch (e) {}
+  if (!C) { document.getElementById('main').innerHTML = `<div class="page-title">Comunicação organizacional</div><div class="def-box">Os dados desta página ainda não foram publicados pela rotina.</div>`; return; }
+  const terrs = ['BATALHAO'].concat(MUNICIPIOS_CANON.map(m => normMun(m)));
+  let html = `<div class="page-title">Comunicação organizacional</div>`;
+  html += `<div class="vd-recorte">Números do policiamento prontos para divulgar, em arte com as cores e a logo da PMMG. Escolha o Batalhão ou a cidade, baixe a imagem no formato da rede social e copie a legenda. Quem for publicar faz o recorte e posta direto. Só aparecem números agregados (nenhum REDS, endereço ou nome). Dados do SiGOp até ${comDataBr(C.referencia)}.</div>`;
+  html += `<div class="com-controles"><label>Território <select id="comTerr">${terrs.map(t => `<option value="${t}" ${t === COM_ESTADO.terr ? 'selected' : ''}>${comNomeTerr(t)}</option>`).join('')}</select></label>`;
+  html += `<div class="pills-vd" id="comPeriodo" role="group" aria-label="Período"><button type="button" data-p="mes">Mês atual</button><button type="button" data-p="ano">Ano (2026)</button></div>`;
+  html += `<label>Mínimo de dias para "dias sem" <input id="comMin" type="number" min="1" max="365" value="${COM_ESTADO.min}"></label>`;
+  html += `<label class="com-chk"><input id="comSo" type="checkbox" ${COM_ESTADO.soDestaque ? 'checked' : ''}> Só os que passam do mínimo</label></div>`;
+  html += `<div class="com-grade" id="comGrade"><div class="def-box">Montando os cartões…</div></div>`;
+  html += `<div class="vd-recorte">Cuidado ao publicar: os números vêm dos registros do SiGOp até a data indicada e podem mudar com lançamentos posteriores. "Dias sem" conta os dias desde o último registro; sem registro no ano, conta desde 1º de janeiro. Motos apreendidas e removidas = produtividade lançada nos RATs da Operação Rolezinho.</div>`;
+  document.getElementById('main').innerHTML = html;
+  const salvar = () => { try { localStorage.setItem('comEstado', JSON.stringify(COM_ESTADO)); } catch (e) {} };
+  const marcar = () => document.querySelectorAll('#comPeriodo button').forEach(b => b.classList.toggle('on', b.dataset.p === COM_ESTADO.periodo));
+  marcar();
+  document.getElementById('comTerr').addEventListener('change', (e) => { COM_ESTADO.terr = e.target.value; salvar(); comMontarCartoes(); });
+  document.getElementById('comPeriodo').addEventListener('click', (e) => { const b = e.target.closest('button[data-p]'); if (!b) return; COM_ESTADO.periodo = b.dataset.p; salvar(); marcar(); comMontarCartoes(); });
+  document.getElementById('comMin').addEventListener('input', (e) => { COM_ESTADO.min = Math.max(1, parseInt(e.target.value) || 30); salvar(); comMontarCartoes(); });
+  document.getElementById('comSo').addEventListener('change', (e) => { COM_ESTADO.soDestaque = e.target.checked; salvar(); comMontarCartoes(); });
+  document.getElementById('comGrade').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.baixar !== undefined) comBaixar(parseInt(b.dataset.baixar), b.dataset.f);
+    else if (b.dataset.leg !== undefined) comCopiarLegenda(parseInt(b.dataset.leg));
+  });
+  comMontarCartoes();
+}
+
 function renderGuiaComandantesPage() {
   let html = `<div class="page-title">Guia de Comandantes</div>`;
   html += `<div class="def-box">Síntese de diretrizes, emprego estratégico e lançamento de registros (REDS/BOS/RAT) do 70º BPM. Baseado no "Guia Operacional e Indicadores 70º BPM" e no Memorando Técnico 002.2/2025-DOP. Três pilares: <b>Prevenção</b>, <b>Proximidade</b> e <b>Repressão Qualificada</b>. O sucesso das metas da UEOP depende da execução exata e do registro correto no sistema.</div>`;
@@ -5160,6 +5373,7 @@ function renderPending(name) {
 const pages = {
   home: renderHome,
   auditoria: renderAuditoriaPage,
+  comunicacao: renderComunicacaoPage,
   analise_preditiva: renderAnalisePreditivaPage,
   violencia_domestica: renderViolenciaDomesticaPage,
   crimes_violentos: renderCrimesViolentosPage,
