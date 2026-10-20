@@ -2180,14 +2180,16 @@ function auditar() {
       try { localStorage.removeItem('comEstado'); } catch (e) {}
       out.dados = { terr: terrs.length === 14 && terrs.includes('BATALHAO'), tres: ['mv', 'cvpa', 'cvpe'].every(k => Object.keys(C.dias_sem[k]).length === 14 && Object.values(C.dias_sem[k]).every(v => Number.isInteger(v.dias) && v.dias >= 0 && v.maior >= v.dias)),
         presos: Object.keys(C.presos).length === 14 && Object.values(C.presos).every(a => a.length === 12) && C.presos.BATALHAO.every((v, i) => v === terrs.filter(t => t !== 'BATALHAO').reduce((a, t) => a + C.presos[t][i], 0)),
-        rolezinho: ['apreendidas', 'removidas', 'fiscalizadas', 'autuadas'].every(k => C.rolezinho_motos[k].BATALHAO.length === 12), recordes: C.recordes.length >= 5 && C.recordes.every(x => x.titulo && Number.isFinite(x.valor)),
+        rolezinho: ['apreendidas', 'removidas', 'fiscalizadas', 'autuadas'].every(k => C.rolezinho_motos[k].BATALHAO.length === 12), series: ['veic_recuperados', 'veic_retirados', 'drogas', 'foragidos', 'ocorrencias', 'pessoas_abordadas', 'veic_fiscalizados', 'locais_fiscalizados', 'horas_policiamento', 'visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].every(k => Object.keys(C.series[k]).length === 14 && Object.values(C.series[k]).every(a => a.length === 12) && C.series[k].BATALHAO.every((v, i) => v === terrs.filter(t => t !== 'BATALHAO').reduce((a, t) => a + C.series[k][t][i], 0))), recordes: C.recordes.length >= 5 && C.recordes.every(x => x.titulo && Number.isFinite(x.valor)),
         semDadosSensiveis: !/\d{4}-\d{9}-\d{3}|ultima|endereco|logradouro/i.test(JSON.stringify(C)) };
       goToPage('comunicacao'); await esp(1200);
       const nav = document.querySelector('.nav-btn[data-page="comunicacao"]');
       out.nav = !!nav && /Comunicação/.test(nav.textContent) && nav.closest('[data-grupo="visao"]') !== null;
       const cards = [...document.querySelectorAll('#comGrade .com-card')];
       out.batalhao = { n: cards.length, titulo: /Comunicação organizacional/i.test(document.querySelector('.page-title').textContent), controles: !!document.getElementById('comTerr') && !!document.getElementById('comMin') && document.querySelectorAll('#comPeriodo button').length === 2,
-        recordes: COM_CARTOES.filter(c => c.id.startsWith('recorde-')).length >= 5, dias: COM_CARTOES.filter(c => c.id.startsWith('dias-')).length === 3, balanco: ['presos', 'armas', 'ops', 'motos', 'rolezinho', 'resumo'].every(id => COM_CARTOES.some(c => c.id === id)) };
+        recordes: COM_CARTOES.filter(c => c.id.startsWith('recorde-')).length >= 5, dias: COM_CARTOES.filter(c => c.id.startsWith('dias-')).length === 3, balanco: ['presos', 'armas', 'ops', 'motos', 'rolezinho', 'resumo'].every(id => COM_CARTOES.some(c => c.id === id)),
+        novos: ['veic_recuperados', 'veic_retirados', 'drogas', 'foragidos', 'pessoas_abordadas', 'veic_fiscalizados', 'locais_fiscalizados', 'horas_policiamento', 'ocorrencias', 'visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].every(id => COM_CARTOES.some(c => c.id === id)),
+        grupos: document.querySelectorAll('#comGrade h3.com-grupo').length === 5 };
       const cv = cards[0].querySelector('canvas'), px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
       let claros = 0; for (let i = 0; i < px.length; i += 4) if (px[i] > 200 && px[i + 1] > 200 && px[i + 2] > 190) claros++;
       out.arte = { desenhada: claros > 500, dims: cv.width === 432 && cv.height === 540 };
@@ -2213,6 +2215,7 @@ function auditar() {
     });
     checa(Object.values(r.dados).every(Boolean), 'dados de comunicação: dias sem (3 indicadores × 14 territórios), presos, motos do Rolezinho e recordes — só números, sem REDS nem data de ocorrência', 'dados: ' + JSON.stringify(r.dados));
     checa(r.nav && r.batalhao.n >= 12 && r.batalhao.titulo && r.batalhao.controles, `página Comunicação na Visão geral, com ${r.batalhao.n} cartões e os controles (território, período, mínimo de dias)`, 'página: ' + JSON.stringify([r.nav, r.batalhao]));
+    checa(r.batalhao.novos && r.batalhao.grupos, 'cartões novos (veículos recuperados e retirados, droga, foragidos, abordagens, fiscalizações, horas, ocorrências, visitas, reuniões, egressos) em 5 grupos', 'novos cartões: ' + JSON.stringify(r.batalhao));
     checa(r.batalhao.recordes && r.batalhao.dias && r.batalhao.balanco, 'cartões: dias sem (morte violenta, roubo, CVPE), balanço (presos, armas, operações, motos, Rolezinho, resumo) e recordes do ano', 'cartões: ' + JSON.stringify(r.batalhao));
     checa(r.arte.desenhada && r.arte.dims && r.formatos === '1080,1350,true|1080,1080,true|1080,1920,true', 'arte desenhada de verdade e exportável em Feed 4:5, Quadrado e Stories (1080 px de largura, PNG)', 'arte: ' + JSON.stringify([r.arte, r.formatos]));
     checa(r.legenda.numero && r.legenda.texto, 'legenda pronta com o número, a data dos registros do SiGOp e as hashtags', 'legenda: ' + JSON.stringify(r.legenda));

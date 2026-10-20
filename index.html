@@ -344,7 +344,8 @@
   .com-controles { display:flex; flex-wrap:wrap; gap:14px 18px; align-items:center; margin:0 0 16px; font-size:13px; color:var(--muted); }
   .com-controles select, .com-controles input[type=number] { background:var(--bg-2); color:var(--text); border:1px solid var(--panel-border); border-radius:8px; padding:7px 10px; font-size:13px; font-family:var(--sans); }
   .com-controles input[type=number] { width:84px; } .com-controles .pills-vd { margin:0; } .com-chk { display:flex; align-items:center; gap:6px; }
-  .com-grade { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:18px; margin:0 0 18px; }
+  .com-grade { margin:0 0 18px; } .com-grupo { font-size:15px; letter-spacing:.04em; margin:22px 0 10px; color:var(--amber); text-transform:uppercase; font-family:var(--display); }
+  .com-grade-in { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:18px; }
   .com-card { background:var(--panel); border:1px solid var(--panel-border); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px; }
   .com-card.dim canvas { opacity:.55; } .com-card canvas { width:100%; height:auto; border-radius:6px; display:block; }
   .com-tag { font-size:12px; color:var(--muted); } .com-tag.ok { color:var(--signal); font-weight:600; } .com-tag.ok::before { content:'✓ '; }
@@ -3731,6 +3732,7 @@ function comSerieValor(serie, periodo) {
 function comSerieDe(chave, bloco) {
   const C = DATA.comunicacao || {};
   const porNome = (lista, campo) => { const m = (lista || []).find(x => normMun(x.nome) === chave); return m ? m[campo] : null; };
+  if (C.series && C.series[bloco]) return C.series[bloco][chave] || null;
   if (bloco === 'presos') return (C.presos || {})[chave] || null;
   if (bloco === 'rolezinho') {
     const r = C.rolezinho_motos; if (!r) return null;
@@ -3771,6 +3773,23 @@ function comCartoes(estado) {
   bal('ops', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'OPERAÇÕES DE POLICIAMENTO', ops, 'Policiamento ostensivo geral (POG) · ' + periodoTxt, `🚓 ${fmt(ops || 0)} operações de policiamento ostensivo ${local} ${periodoLeg}. Presença da Polícia Militar onde o cidadão está.`);
   bal('motos', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'MOTOS FISCALIZADAS', motos, 'Operação Cavalo de Aço · ' + periodoTxt, `🏍️ ${fmt(motos || 0)} motocicletas fiscalizadas ${local} ${periodoLeg} pela Operação Cavalo de Aço, por mais segurança no trânsito.`);
   bal('rolezinho', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'MOTOS APREENDIDAS E REMOVIDAS', rol, 'Operação Rolezinho · ' + periodoTxt, `🏍️ ${fmt(rol || 0)} motocicletas apreendidas ou removidas ${local} ${periodoLeg} pela Operação Rolezinho, contra o barulho, as manobras perigosas e a irregularidade.`);
+  // mais números: resultados, abordagem e proximidade (séries por cidade e mês geradas pela rotina)
+  const nv = (b) => num(b), tipos = ((C.veic_recuperados_tipos || {})[terr]) || null;
+  const tipoTxt = tipos && periodo === 'ano' ? [['motos', 'motos'], ['automoveis', 'automóveis'], ['caminhoes', 'caminhões']].filter(([k]) => tipos[k]).map(([k, n]) => `${tipos[k]} ${n}`).join(' · ') : '';
+  const kick = periodo === 'mes' ? 'NO MÊS' : 'EM 2026';
+  bal('veic_recuperados', kick, 'VEÍCULOS RECUPERADOS', nv('veic_recuperados'), (tipoTxt ? tipoTxt + ' · ' : '') + periodoTxt, `🚗 ${fmt(nv('veic_recuperados') || 0)} veículos recuperados ${local} ${periodoLeg}. Patrimônio devolvido ao cidadão.`);
+  bal('veic_retirados', kick, 'VEÍCULOS APREENDIDOS E REMOVIDOS', nv('veic_retirados'), 'Irregularidades e infrações · ' + periodoTxt, `🚨 ${fmt(nv('veic_retirados') || 0)} veículos apreendidos ou removidos ${local} ${periodoLeg}, por irregularidades e infrações de trânsito.`);
+  bal('drogas', kick, 'PORÇÕES DE DROGA APREENDIDAS', nv('drogas'), 'Buchas, pedras, papelotes e pinos · ' + periodoTxt, `🚫 ${fmt(nv('drogas') || 0)} porções de droga apreendidas ${local} ${periodoLeg}. Menos droga nas ruas, mais segurança para as famílias.`);
+  bal('foragidos', kick, 'FORAGIDOS DA JUSTIÇA CAPTURADOS', nv('foragidos'), periodoTxt, `⚖️ ${fmt(nv('foragidos') || 0)} foragidos da Justiça capturados ${local} ${periodoLeg}.`);
+  bal('pessoas_abordadas', kick, 'PESSOAS ABORDADAS', nv('pessoas_abordadas'), 'Abordagens policiais · ' + periodoTxt, `🛡️ ${fmt(nv('pessoas_abordadas') || 0)} pessoas abordadas ${local} ${periodoLeg}. Presença e prevenção todos os dias.`);
+  bal('veic_fiscalizados', kick, 'VEÍCULOS FISCALIZADOS', nv('veic_fiscalizados'), 'Fiscalização e abordagens · ' + periodoTxt, `🚓 ${fmt(nv('veic_fiscalizados') || 0)} veículos fiscalizados ${local} ${periodoLeg}.`);
+  bal('locais_fiscalizados', kick, 'LOCAIS FISCALIZADOS', nv('locais_fiscalizados'), 'Locais visitados nas operações · ' + periodoTxt, `📍 ${fmt(nv('locais_fiscalizados') || 0)} locais fiscalizados ${local} ${periodoLeg}.`);
+  bal('horas_policiamento', kick, 'HORAS DE POLICIAMENTO EM OPERAÇÕES', nv('horas_policiamento'), 'Duração × efetivo de cada operação · ' + periodoTxt, `⏱️ ${fmt(nv('horas_policiamento') || 0)} horas de policiamento em operações ${local} ${periodoLeg}.`);
+  bal('ocorrencias', kick, 'OCORRÊNCIAS ATENDIDAS', nv('ocorrencias'), 'Registros de REDS · ' + periodoTxt, `📞 ${fmt(nv('ocorrencias') || 0)} ocorrências atendidas ${local} ${periodoLeg}. A Polícia Militar presente quando o cidadão precisa.`);
+  bal('visitas_tranq', kick, 'VISITAS TRANQUILIZADORAS A VÍTIMAS', nv('visitas_tranq'), 'Acolhimento após crimes e sinistros · ' + periodoTxt, `🤝 ${fmt(nv('visitas_tranq') || 0)} visitas tranquilizadoras a vítimas ${local} ${periodoLeg}. A PM também cuida de quem sofreu um crime.`);
+  bal('visitas_prev', kick, 'VISITAS PREVENTIVAS', nv('visitas_prev'), 'Escolas, comércio, bancos e residências · ' + periodoTxt, `🏫 ${fmt(nv('visitas_prev') || 0)} visitas preventivas ${local} ${periodoLeg}: escolas, comércio, bancos e residências.`);
+  bal('reunioes', kick, 'REUNIÕES COMUNITÁRIAS E DE REDES DE PROTEÇÃO', nv('reunioes'), 'Comunidade, comerciantes e vizinhos protegidos · ' + periodoTxt, `👥 ${fmt(nv('reunioes') || 0)} reuniões comunitárias e de redes de proteção ${local} ${periodoLeg}. Segurança se constrói junto com a comunidade.`);
+  bal('egressos', kick, 'EGRESSOS DO SISTEMA PRISIONAL ACOMPANHADOS', nv('egressos'), 'Fiscalização preventiva · ' + periodoTxt, `🔁 ${fmt(nv('egressos') || 0)} acompanhamentos de egressos do sistema prisional ${local} ${periodoLeg}.`);
   if (pres !== null && armas !== null && ops !== null && motos !== null) {
     cartoes.push({ ...base, id: 'resumo', tipo: 'grade', kicker: periodo === 'mes' ? 'NO MÊS' : 'EM 2026', titulo: 'POLICIAMENTO EM NÚMEROS', sub: periodoTxt, destaque: true, valor: ops, tagTxt: periodoTxt, rodape: `Registros do SiGOp até ${ref}`,
       itens: [[fmt(ops), 'operações de policiamento'], [fmt(motos), 'motos fiscalizadas'], [fmt(pres), 'pessoas presas'], [fmt(armas), 'armas de fogo apreendidas']],
@@ -3781,6 +3800,10 @@ function comCartoes(estado) {
     cartoes.push({ ...base, id: 'recorde-' + r.id, tipo: 'numero', kicker: 'RECORDE DE 2026', numero: fmt(r.valor), titulo: r.titulo.toUpperCase(), sub: `${r.unidade} · ${r.detalhe}`, destaque: true, valor: r.valor, tagTxt: 'Recorde do ano', rodape: `Registros do SiGOp até ${ref}`,
       legenda: `🏆 Recorde de 2026 no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` });
   });
+  const GRUPO_DE = (id) => (id.startsWith('dias-') ? 'Dias sem ocorrência' : (id.startsWith('recorde-') ? 'Recordes de 2026'
+    : (['presos', 'armas', 'rolezinho', 'veic_recuperados', 'veic_retirados', 'drogas', 'foragidos'].includes(id) ? 'Resultados e apreensões'
+    : (['visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].includes(id) ? 'Proximidade e prevenção' : 'Policiamento e abordagem'))));
+  cartoes.forEach(c => { c.grupo = GRUPO_DE(c.id); });
   return cartoes;
 }
 
@@ -3873,9 +3896,11 @@ async function comMontarCartoes() {
   COM_CARTOES = comCartoes(COM_ESTADO);
   const lista = COM_CARTOES.map((c, i) => ({ c, i })).filter(x => !COM_ESTADO.soDestaque || x.c.destaque);
   const box = document.getElementById('comGrade'); if (!box) return;
-  box.innerHTML = lista.length ? lista.map(({ c, i }) => `<div class="com-card${c.destaque ? '' : ' dim'}" data-card="${i}"><canvas aria-label="${msgEsc(c.kicker + ' ' + c.numero + ' ' + c.titulo)}"></canvas>
+  const ORDEM = ['Dias sem ocorrência', 'Resultados e apreensões', 'Policiamento e abordagem', 'Proximidade e prevenção', 'Recordes de 2026'];
+  const cartaoHtml = ({ c, i }) => `<div class="com-card${c.destaque ? '' : ' dim'}" data-card="${i}"><canvas aria-label="${msgEsc(c.kicker + ' ' + c.numero + ' ' + c.titulo)}"></canvas>
       <div class="com-tag ${c.destaque ? 'ok' : ''}">${msgEsc(c.tagTxt)}</div>
-      <div class="com-acoes"><button type="button" data-baixar="${i}" data-f="feed">Feed 4:5</button><button type="button" data-baixar="${i}" data-f="quadrado">Quadrado</button><button type="button" data-baixar="${i}" data-f="stories">Stories</button><button type="button" data-leg="${i}">Copiar legenda</button></div></div>`).join('')
+      <div class="com-acoes"><button type="button" data-baixar="${i}" data-f="feed">Feed 4:5</button><button type="button" data-baixar="${i}" data-f="quadrado">Quadrado</button><button type="button" data-baixar="${i}" data-f="stories">Stories</button><button type="button" data-leg="${i}">Copiar legenda</button></div></div>`;
+  box.innerHTML = lista.length ? ORDEM.map(g => { const doGrupo = lista.filter(x => x.c.grupo === g); return doGrupo.length ? `<h3 class="com-grupo">${g}</h3><div class="com-grade-in">${doGrupo.map(cartaoHtml).join('')}</div>` : ''; }).join('')
     : `<div class="pending-box">Nenhum cartão atende ao filtro. Diminua o mínimo de dias ou desligue "Só os que passam do mínimo".</div>`;
   lista.forEach(({ c, i }) => { const cv = box.querySelector(`[data-card="${i}"] canvas`); if (cv) comDesenhar(cv, c, COM_FORMATOS.feed, 0.4); });
 }

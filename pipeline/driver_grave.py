@@ -1249,6 +1249,101 @@ def run_comunicacao(data, rows_bo, report):
         saida['rolezinho_motos'] = rol
         saida['rolezinho_ops_cruzadas'] = {'rolezinho': len(rows_rol), 'com_rat': n_ok}
 
+    # 3b) mais números: proximidade/prevenção (BOS), resultados (REDS) e abordagem/esforço (RAT) — por cidade e mês, só contagens
+    import re as _re2
+    series = {}
+
+    def nova():
+        return {t: [0] * N_MESES for t in terr}
+
+    def soma_bat(sr):
+        sr['BATALHAO'] = [sum(sr[t][i] for t in terr) for i in range(N_MESES)]
+        return sr
+
+    def mes_de(r):
+        try:
+            mm = int(r.get('MES_NUMERICO') or 0) - 1
+        except ValueError:
+            return None
+        return mm if 0 <= mm < N_MESES else None
+    f_bos = latest_csv('TODOS OS B.O.S')
+    if f_bos:
+        vt, vp, ru, eg = nova(), nova(), nova(), nova()
+        for r in read_csv(f_bos, encoding='latin-1'):
+            t, mm = _chave_terr(r.get('MUNICIPIO')), mes_de(r)
+            if t not in vt or mm is None:
+                continue
+            cod, desc = (r.get('CODIGO_NATUREZA') or '').strip(), _sem_acento_up(r.get('DESC_NATUREZA'))
+            if desc.startswith('VISITA TRANQUILIZADORA'):
+                vt[t][mm] += 1
+            elif cod == 'A21007':
+                vp[t][mm] += 1
+            elif cod.startswith('A19') or desc.startswith('REUNIAO'):
+                ru[t][mm] += 1
+            elif cod == 'A23001':
+                eg[t][mm] += 1
+        series.update({'visitas_tranq': soma_bat(vt), 'visitas_prev': soma_bat(vp), 'reunioes': soma_bat(ru), 'egressos': soma_bat(eg)})
+    rec_v, ret_v, dro, forag, oco = nova(), nova(), nova(), nova(), nova()
+    tipos = {t: collections.Counter() for t in terr}
+    DROGA = _re2.compile('MACONHA|COCAINA|CRACK|PAPELOTE|PINO|BUCHA|SKUNK|HAXIXE')
+    for r in rows_bo:
+        t, mm = _chave_terr(r.get('MUNICIPIO')), mes_de(r)
+        if t not in rec_v or mm is None:
+            continue
+        oco[t][mm] += 1
+        for e in (r.get('VEICULOS') or '').split('|'):
+            sit = _re2.search(r'situacaoPlacaDescricao:([^/]*)/', e)
+            if not sit:
+                continue
+            sit = sit.group(1).strip().upper()
+            if sit == 'RECUPERADO':
+                rec_v[t][mm] += 1
+                tp = _re2.search(r'tipoVeiculoDescricao:([^/]*)/', e)
+                tp = _sem_acento_up(tp.group(1)) if tp else ''
+                tipos[t]['motos' if 'MOTO' in tp else ('automoveis' if ('AUTOMOVEL' in tp or 'CAMIONETA' in tp or 'CAMINHONETE' in tp) else ('caminhoes' if 'CAMINH' in tp else 'outros'))] += 1
+            elif sit in ('APREENDIDO', 'REMOVIDO'):
+                ret_v[t][mm] += 1
+        for e in (r.get('MATERIAIS') or '').split('|'):
+            if 'unidadeMedidaDescricao:UNIDADE' in e:
+                up = _sem_acento_up(e)
+                if DROGA.search(up) and 'EQUIPAMENTOS' not in up:
+                    q = _re2.search(r'quantidadeMaterial:([^/]*)/', e)
+                    dro[t][mm] += int(q.group(1)) if q and q.group(1).isdigit() else 1
+        nats = _sem_acento_up(' '.join((r.get(k) or '') for k in ('DESCR_NATUREZA_PRINCIPAL', 'DESCR_NATUREZA_SECUNDARIA1', 'DESCR_NATUREZA_SECUNDARIA2', 'DESCR_NATUREZA_SECUNDARIA3')))
+        if 'FORAGIDO DA JUSTICA' in nats:
+            forag[t][mm] += 1
+    series.update({'veic_recuperados': soma_bat(rec_v), 'veic_retirados': soma_bat(ret_v), 'drogas': soma_bat(dro), 'foragidos': soma_bat(forag), 'ocorrencias': soma_bat(oco)})
+    tp_bat = collections.Counter()
+    for t in terr:
+        tp_bat.update(tipos[t])
+    saida['veic_recuperados_tipos'] = {**{t: dict(tipos[t]) for t in terr}, 'BATALHAO': dict(tp_bat)}
+    f_rat2 = latest_csv('TODOS OS RAT')
+    if f_rat2:
+        pa, vf, lf, hp, ait, etl = nova(), nova(), nova(), nova(), nova(), nova()
+        for r in read_csv(f_rat2, encoding='latin-1'):
+            t, mm = _chave_terr(r.get('MUNICIPIO')), mes_de(r)
+            if t not in pa or mm is None:
+                continue
+            for mt in _re2.finditer(r'idIndicador:(\d+)/descricao:([^/]*)/quantidade:(\d+)/', r.get('PRODUTIVIDADE') or ''):
+                du, q = _sem_acento_up(mt.group(2)), int(mt.group(3))
+                if 'PESSOAS ABORDADAS' in du:
+                    pa[t][mm] += q
+                elif 'VEICULOS FISCALIZADOS' in du:
+                    vf[t][mm] += q
+                elif 'LOCAIS FISCALIZADOS' in du:
+                    lf[t][mm] += q
+                elif du.endswith('QDE DE AIT'):
+                    ait[t][mm] += q
+                elif 'SOPRARAM O ETILOMETRO' in du:
+                    etl[t][mm] += q
+            minutos, efe = _num(r.get('OPR_TEMPO_TOTAL_MINUTOS')), _contar_itens(r.get('EFETIVOS'))
+            if 0 < minutos <= DURACAO_MAX_MIN and efe:
+                hp[t][mm] += minutos * efe / 60.0
+        for t in terr:
+            hp[t] = [int(round(v)) for v in hp[t]]
+        series.update({'pessoas_abordadas': soma_bat(pa), 'veic_fiscalizados': soma_bat(vf), 'locais_fiscalizados': soma_bat(lf), 'horas_policiamento': soma_bat(hp), 'ait': soma_bat(ait), 'etilometro': soma_bat(etl)})
+    saida['series'] = series
+
     # 4) recordes do ano (Batalhão)
     rec = []
     meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
@@ -1285,6 +1380,12 @@ def run_comunicacao(data, rows_bo, report):
             rec.append({'id': 'ops_dia', 'titulo': 'Dia com mais operações', 'valor': v, 'unidade': 'operações de POG em um só dia', 'detalhe': d.strftime('%d/%m')})
     mv_b = ds['mv']['BATALHAO']
     rec.append({'id': 'mv_sequencia', 'titulo': 'Maior sequência sem morte violenta no Batalhão', 'valor': mv_b['maior'], 'unidade': 'dias', 'detalhe': 'em andamento' if mv_b['em_andamento'] else 'no ano'})
+    for rid, chave_s, titulo_r, unid in (('visitas_mes', 'visitas_prev', 'Mês com mais visitas preventivas', 'visitas preventivas'), ('abordados_mes', 'pessoas_abordadas', 'Mês com mais pessoas abordadas', 'pessoas abordadas'),
+                                         ('drogas_mes', 'drogas', 'Mês com mais porções de droga apreendidas', 'porções de droga'), ('horas_mes', 'horas_policiamento', 'Mês com mais horas de policiamento', 'horas de policiamento')):
+        if series.get(chave_s):
+            i, v = melhor_mes(series[chave_s]['BATALHAO'], ult)
+            if v:
+                rec.append({'id': rid, 'titulo': titulo_r, 'valor': v, 'unidade': unid, 'detalhe': meses[i].capitalize() + (' (em andamento)' if i == ult else '')})
     saida['recordes'] = rec
     data['comunicacao'] = saida
     report['comunicacao'] = {'dias_sem_mv_batalhao': mv_b['dias'], 'recordes': len(rec), 'presos_ano': sum(pres['BATALHAO']), 'rolezinho': rol is not None}
