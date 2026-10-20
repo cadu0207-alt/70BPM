@@ -3718,7 +3718,7 @@ let COM_ESTADO = { terr: 'BATALHAO', periodo: 'mes', min: 30, soDestaque: false 
 function comCarregarImagem(src) { return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; }); }
 async function comPreparar() {
   if (!COM_IMG) {
-    try { COM_IMG = { escudo: await comCarregarImagem('assets/comunicacao/escudo-pmmg.png'), logo: await comCarregarImagem('assets/comunicacao/logotipo-pmmg-negativo.png') }; } catch (e) { COM_IMG = { escudo: null, logo: null }; }
+    try { COM_IMG = { escudo: await comCarregarImagem('assets/comunicacao/escudo-pmmg.png'), logo: await comCarregarImagem('assets/comunicacao/logotipo-pmmg-claro.png') }; } catch (e) { COM_IMG = { escudo: null, logo: null }; }
   }
   try { await Promise.all([document.fonts.load('700 100px Rajdhani'), document.fonts.load('600 30px "IBM Plex Sans"'), document.fonts.load('400 30px "IBM Plex Sans"')]); } catch (e) {}
 }
@@ -3874,7 +3874,7 @@ function comDesenhar(canvas, c, f, escala) {
   ctx.strokeStyle = cor.dourado; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(m, H - 214); ctx.lineTo(W - m, H - 214); ctx.stroke();
   ctx.fillStyle = cor.cinza; ctx.font = `400 25px ${COM_FONTE_TEXTO}`; comTexto(ctx, c.rodape || '', m, H - 150, 0);
   ctx.font = `400 22px ${COM_FONTE_TEXTO}`; comTexto(ctx, 'Painel de gestão do 70º BPM · 15ª RPM', m, H - 112, 0);
-  if (img.logo) { const lw = 330, lh = lw * img.logo.height / img.logo.width; ctx.drawImage(img.logo, W - m - lw, H - 196, lw, lh); }
+  if (img.logo) { const lw = 290, lh = lw * img.logo.height / img.logo.width; ctx.drawImage(img.logo, W - m - lw, H - 124 - lh / 2, lw, lh); }
 }
 async function comBaixar(i, formato) {
   await comPreparar();
