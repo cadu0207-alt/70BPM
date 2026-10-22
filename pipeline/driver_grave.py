@@ -1021,7 +1021,7 @@ def run_idob_cruzamento(data, rows_bo, report):
 # ---- Cavalo de Aço: detalhamento do conjunto oficial (esforço, dia × faixa, bairro, local, qualidade) + regularidade SEMANAL ----
 # Regularidade (informativa): a meta de verdade é semanal (mínimo 1 por destacamento, 2 por pelotão, 4 por sede de companhia); a meta mensal
 # do painel é sempre cumprida. Semana = segunda a domingo, só as já encerradas. Só contagem por cidade e semana, nada pessoal.
-def _semanas(rows, municipios):
+def _semanas(rows, municipios, ref=None):
     datas = []
     for r in rows:
         try:
@@ -1030,7 +1030,7 @@ def _semanas(rows, municipios):
             continue
     if not datas:
         return None
-    ref = max(datas)
+    ref = ref or max(datas)
     d0 = datetime.date(datetime.date.today().year, 1, 1)
     seg = d0 - datetime.timedelta(days=d0.weekday())
     segundas = []
@@ -1087,6 +1087,39 @@ def run_cavalo_detalhe(data, report):
         det['semanas'] = sem
     data['cavaloaco_detalhe'] = det
     report['cavalo_detalhe'] = {'file': f, 'ops': len(sel), 'sem_bairro': det['qualidade']['sem_bairro'], 'semanas': len(sem['rotulos']) if sem else 0}
+
+
+# ---- Rolezinho: regularidade SEMANAL (a meta é 1 operação por semana em cada município; o painel mensal soma 4 ou 5 por mês) ----
+# Semana = segunda a domingo, só as encerradas até o dia anterior à atualização. Só contagem por cidade e semana, nada pessoal.
+# Os valores corrigidos à mão no painel mensal (ROLEZINHO_FROZEN) não entram aqui: a regularidade usa só o que está no export.
+def run_rolezinho_semanas(data, report):
+    f = latest_csv('Rolezinho')
+    if not f or 'rolezinho' not in data:
+        report['rolezinho_semanas'] = {'skipped': True, 'reason': 'sem export em entrada/Rolezinho'}
+        return
+    try:
+        rows = read_csv(f, encoding='latin-1')
+    except UnicodeDecodeError:
+        report['rolezinho_semanas'] = {'skipped': True, 'reason': 'arquivo ilegível'}
+        return
+    if not rows or 'Município do Fato' not in rows[0]:
+        report['rolezinho_semanas'] = {'skipped': True, 'reason': 'arquivo sem as colunas do export de Rolezinho'}
+        return
+    sel = []
+    for r in rows:
+        if 'Y01003' not in (r.get('Natureza Principal') or '') or '70 BPM' not in (r.get('Unidade Responsável pelo Registro') or ''):
+            continue
+        sel.append({'DATA_FATO': (r.get('Data/Hora do Fato') or '').strip()[:10], 'MUNICIPIO': _sem_acento_up(r.get('Município do Fato'))})
+    nomes = [_sem_acento_up(m['nome']) for m in data['rolezinho']['municipios']]
+    ref = datetime.date.today() - datetime.timedelta(days=1)
+    sem = _semanas(sel, nomes, ref=ref)
+    if not sem:
+        report['rolezinho_semanas'] = {'skipped': True, 'reason': 'sem datas válidas'}
+        return
+    sem['meta_semanal'] = {n: 1 for n in nomes}
+    sem['ate'] = ref.strftime('%d/%m/%Y')
+    data['rolezinho']['semanas'] = sem
+    report['rolezinho_semanas'] = {'file': f, 'ops': len(sel), 'semanas': len(sem['rotulos'])}
 
 
 # ---- Cavalo de Aço onda 3: roubos de veículo e de carga (CVPa) com o Cavalo de Aço ao redor (RESTRITO: REDS, data, bairro) ----
@@ -1444,6 +1477,7 @@ def main():
     run_operacoes_detalhe(data, report)
     run_idob_detalhe(data, report)
     run_cavalo_detalhe(data, report)
+    run_rolezinho_semanas(data, report)
     run_mv_ocorrencias(data, report)
     run_cvpe_ocorrencias(data, report)
     run_cvpa_ocorrencias(data, report)

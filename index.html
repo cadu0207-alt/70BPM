@@ -2848,48 +2848,79 @@ function renderCavaloAcoPage() {
   opLigarCidades(['cavTable', 'opQuadro', 'cavEfTable', 'cavReg', 'opEsforco', 'opCruzaCidade']);
 }
 
-function renderRolezinhoPage() {
-  const d = DATA.rolezinho;
-  const mesesLocais = d.meses || MESES.slice(0, d.total_mes.length);
-  let mi = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
-
-  function cumpriuCell(realizado, meta) {
-    const cumpriu = realizado >= meta;
-    return `<td style="background:${cumpriu?'rgba(33,201,138,0.22)':'rgba(230,72,79,0.22)'};color:${cumpriu?'#3fe0a5':'#ff8a8f'};font-weight:600">${realizado}</td>`;
-  }
-
-  function rows(mi) {
-    let html = '';
-    d.municipios.forEach(m => {
-      const rMes=m.realizado_mes[mi], mMes=m.meta_mes[mi], rAc=m.realizado_acum[mi], mAc=m.meta_acum[mi];
-      html += `<tr><td style="text-align:left">${m.nome}</td>
-        <td>${mMes}</td>${cumpriuCell(rMes, mMes)}
-        <td class="col-divider">${mAc}</td>${cumpriuCell(rAc, mAc)}
-      </tr>`;
-    });
-    const tRMes=d.total_mes[mi], tMMes=d.total_meta_mes[mi], tRAc=d.total_acum[mi], tMAc=d.total_meta_acum[mi];
-    html += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)"><td style="text-align:left">70º BPM</td>
-      <td>${tMMes}</td>${cumpriuCell(tRMes, tMMes)}
-      <td class="col-divider">${tMAc}</td>${cumpriuCell(tRAc, tMAc)}
-    </tr>`;
-    return html;
-  }
-
-  let html = `<div class="page-title">Operação Rolezinho em ${mesesLocais[mi]} de 2026</div>`;
-  html += `<div class="def-box">${DEFS.rolezinho}</div>`;
-  html += bannerAcompanhamentoDiario([{ label: 'Rolezinho (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(d) }]);
-  html += `<select class="month-select" id="rolezinhoMonthSel">`;
-  mesesLocais.forEach((m,i) => html += `<option value="${i}" ${i===mi?'selected':''}>${m}</option>`);
-  html += `</select>`;
-  html += `<table class="data-table" id="rolezinhoTable"><thead><tr>
-    <th style="text-align:left">Município</th><th>Meta Mês</th><th>Op. Mês</th>
-    <th class="col-divider">Meta Acum</th><th>Op. Acum</th>
-  </tr></thead><tbody>${rows(mi)}</tbody></table>`;
-  html += `<div class="updated">Meta: 1 operação por semana, por município. Fonte: export REDS (Natureza=Y01003 E Histórico="ROLEZINHO" E Unidade Responsável=70 BPM), ${d.total_acum[d.total_acum.length-1]} ocorrências jan-ago/2026 — inclui alguns casos confirmados individualmente por Eduardo com natureza divergente (Y04999/Y07001), pois a busca oficial por Y01003 não os captura. Verde = cumpriu a meta, vermelho = não cumpriu.</div>`;
-  document.getElementById('main').innerHTML = html;
-  document.getElementById('rolezinhoMonthSel').addEventListener('change', (e) => {
-    document.querySelector('#rolezinhoTable tbody').innerHTML = rows(parseInt(e.target.value));
+// ---- Rolezinho: mesmo padrão das páginas de operações (meses em botões, meta proporcional no mês em andamento, ano com projeção,
+// painel da cidade, quadro município × mês) + regularidade SEMANAL, que é a regra de verdade (1 operação por semana em cada município) ----
+function rolRegularidadeHtml(sm, munFiltro) {
+  if (!sm || !sm.rotulos.length) return '';
+  const N = sm.rotulos.length, ULT = Math.min(12, N);
+  const linhas = Object.keys(sm.municipios).map(nome => {
+    const v = sm.municipios[nome], meta = (sm.meta_semanal || {})[nome] || 1, ult = v.slice(-ULT);
+    const ok = v.filter(x => x >= meta).length, ok12 = ult.filter(x => x >= meta).length, zero = v.filter(x => x === 0).length;
+    let aberto = 0;
+    for (let i = v.length - 1; i >= 0 && v[i] < meta; i--) aberto++;
+    return { nome, v, meta, ok, ok12, zero, aberto };
+  }).sort((a, b) => (a.ok12 - b.ok12) || (a.ok - b.ok) || a.nome.localeCompare(b.nome));
+  let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">Regularidade — semanas com a meta semanal cumprida</h3>`;
+  h += `<div class="vd-recorte">A meta de verdade é semanal: <b>1 operação por semana em cada município</b>. O total do mês pode fechar no verde com semanas inteiras sem operar. Semana = segunda a domingo, só as encerradas (${N} até ${sm.ate}). A cor usa as últimas ${ULT} semanas: verde = 90% ou mais, amarelo = 75% a 90%, vermelho = abaixo disso. Da cidade com menos semanas cumpridas para a com mais; clique numa cidade para filtrar.</div>`;
+  h += `<div class="table-wrap"><table class="data-table ind-tab" id="rolReg"><thead><tr><th style="text-align:left">Município</th><th>Últimas ${ULT} semanas</th><th style="text-align:left">Semana a semana</th></tr></thead><tbody>`;
+  linhas.forEach(l => {
+    const pc = l.ok12 / ULT * 100, st = pc >= 90 ? 'verde' : (pc >= 75 ? 'amarelo' : 'vermelho'), txt = `${l.ok12} de ${ULT} · ${fmtBr(pc, 0)}%`;
+    const pcHtml = st === 'verde' ? `<span class="neg">${txt}</span>` : (st === 'amarelo' ? `<span style="color:var(--caution)">! ${txt}</span>` : `<span class="pos">${txt}</span>`);
+    const strip = l.v.slice(-ULT).map((x, k) => { const rot = sm.rotulos[N - ULT + k]; return `<span class="fs ${x >= l.meta ? 'ok' : 'no'}" title="Semana de ${rot}: ${x} operação(ões) (meta ${l.meta})">${x >= l.meta ? '●' : '○'}</span>`; }).join('');
+    h += `<tr class="rank-clic${normMun(l.nome) === munFiltro ? ' sel' : ''}" data-mun="${l.nome}" title="Filtrar por ${l.nome}"><td style="text-align:left">${l.nome}</td><td>${pcHtml}<br><small>${l.ok} de ${N} no ano · ${l.zero} sem nenhuma operação</small></td><td style="text-align:left">${strip}${l.aberto ? '<br><small>abaixo da meta há ' + l.aberto + ' semana' + (l.aberto > 1 ? 's' : '') + '</small>' : ''}</td></tr>`;
   });
+  return h + `</tbody></table></div><div class="vd-recorte">● = meta semanal cumprida · ○ = nenhuma operação na semana. Passe o mouse (ou toque) para ver a semana e a quantidade. Conta só o que está no export do SiGOp; os ajustes manuais do painel mensal não entram aqui.</div></div>`;
+}
+
+function renderRolezinhoPage() {
+  const d = DATA.rolezinho, cfg = OP_PISO, LM = opLimites(true);
+  const mesesLocais = d.meses || MESES.slice(0, d.total_mes.length);
+  const ultimoIdx = Math.min(MES_ATUAL_IDX, mesesLocais.length - 1);
+  let mi = ultimoIdx;
+  try { const s = localStorage.getItem('indMes_rolezinho'); if (/^\d+$/.test(s || '') && parseInt(s) <= ultimoIdx) mi = parseInt(s); } catch (e) {}
+  const munFiltro = normMun(getMunFiltro());
+  const par = (real, lim) => `<span class="par"><b>${real}</b> <span class="ind-lim">/ ${lim}</span></span>`;
+  const titulo = (i) => `Operação Rolezinho — ${mesesLocais[i]} de 2026`;
+
+  // no mês em andamento a meta é proporcional aos dias já fechados (piso, arredonda para baixo)
+  function linhaMeta(nome, rM, mM, rA, mA, f, atr, cls) {
+    const lM = LM.mes(mM, f), lA = LM.acum(mA, mM, f);
+    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
+  }
+  function tabelaMeta(i) {
+    const f = fatorMesEmAndamento(d, i);
+    let rows = '';
+    opGruposCia(d.municipios).forEach(g => {
+      g.itens.forEach(m => { rows += linhaMeta(m.nome, m.realizado_mes[i], m.meta_mes[i], m.realizado_acum[i], m.meta_acum[i], f, ` data-mun="${m.nome}" title="Filtrar por ${m.nome}"`, 'rank-clic' + (normMun(m.nome) === munFiltro ? ' sel' : '')); });
+      rows += linhaMeta('Subtotal ' + g.cia, opSoma(g.itens, 'realizado_mes', i), opSoma(g.itens, 'meta_mes', i), opSoma(g.itens, 'realizado_acum', i), opSoma(g.itens, 'meta_acum', i), f, '', 'cia-sub');
+    });
+    rows += linhaMeta('70º BPM', d.total_mes[i], d.total_meta_mes[i], d.total_acum[i], d.total_meta_acum[i], f, ' style="font-weight:700"', '');
+    return rows;
+  }
+
+  const blocos = opBlocosHtml(d, cfg, { mesesLocais, ultimoIdx, munFiltro, rotulo: '' });
+  let html = `<div class="page-title" id="rolTitulo">${titulo(mi)}</div>`;
+  html += freshBadge(mesesLocais[ultimoIdx], { semDadoReal: indicadorSemDadoNoMes(d, ultimoIdx, false) });
+  html += `<details class="aud-como"><summary>Metodologia e definições</summary><div>${DEFS.rolezinho}</div></details>`;
+  html += bannerAcompanhamentoDiario([{ label: 'Rolezinho (Batalhão)', meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], dataAtualizacao: dataAtualizacaoIndicador(d) }]);
+  html += `<div class="pills-vd" id="rolMeses" role="group" aria-label="Mês">` + mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<button type="button" data-p="${i}">${m}${i === ultimoIdx && ultimoIdx === MES_ATUAL_IDX ? ' (parcial)' : ''}</button>`).join('') + `</div>`;
+  html += `<div class="vd-recorte" id="rolNota">${opNotaMesParcial(d, mesesLocais, mi)}</div>`;
+  html += `<div class="vd-recorte">Mês e acumulado mostram realizado / meta de operações (1 por semana em cada município: 4 ou 5 por mês). A situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). Fonte: ${d.total_acum[d.total_acum.length - 1]} operações no ano (export do SiGOp com natureza Y01003 e o Histórico citando "Rolezinho"), mais os casos confirmados individualmente com outra natureza.</div>`;
+  html += `<div class="table-wrap"><table class="data-table ind-tab" id="rolTable"><thead><tr><th style="text-align:left">Município</th><th>Mês</th><th class="col-divider">Acumulado</th><th>% da meta</th><th style="text-align:left">Situação</th></tr></thead><tbody>${tabelaMeta(mi)}</tbody></table></div>`;
+  html += blocos.ano + blocos.cidade + blocos.quadro + rolRegularidadeHtml(d.semanas, munFiltro);
+  document.getElementById('main').innerHTML = html;
+
+  const marcar = () => document.querySelectorAll('#rolMeses button').forEach(b => b.classList.toggle('on', parseInt(b.dataset.p) === mi));
+  marcar();
+  document.getElementById('rolMeses').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-p]'); if (!b) return;
+    mi = parseInt(b.dataset.p); try { localStorage.setItem('indMes_rolezinho', String(mi)); } catch (er) {}
+    marcar();
+    document.querySelector('#rolTable tbody').innerHTML = tabelaMeta(mi);
+    document.getElementById('rolTitulo').textContent = titulo(mi);
+    document.getElementById('rolNota').textContent = opNotaMesParcial(d, mesesLocais, mi);
+  });
+  opLigarCidades(['rolTable', 'opQuadro', 'rolReg']);
 }
 
 function desColor(reds, prisoes) {

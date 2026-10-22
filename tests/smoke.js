@@ -244,7 +244,7 @@ function auditar() {
   page = await ctx.newPage();
   await page.goto(base);
   await page.waitForFunction(() => typeof goToPage === 'function' && typeof pages === 'object');
-  await page.evaluate(() => goToPage('rolezinho'));
+  await page.evaluate(() => goToPage('itvd'));
   await page.waitForTimeout(300);
   const antes = await page.evaluate(() => {
     const sel = document.querySelector('#main select.month-select');
@@ -263,7 +263,7 @@ function auditar() {
     checa(depois.valor === antes.valor, 'seletor continua no mesmo mês depois do reload', `seletor voltou para "${depois.valor}" (era "${antes.valor}")`);
     checa(rolouAntes === 0 || Math.abs(depois.rolagem - rolouAntes) <= 3, `rolagem restaurada (${rolouAntes}px → ${depois.rolagem}px)`, `rolagem não voltou: era ${rolouAntes}px, ficou ${depois.rolagem}px`);
     // navegar pelo menu começa limpo
-    await page.evaluate(() => goToPage('home')); await page.evaluate(() => goToPage('rolezinho')); await page.waitForTimeout(300);
+    await page.evaluate(() => goToPage('home')); await page.evaluate(() => goToPage('itvd')); await page.waitForTimeout(300);
     const limpo = await page.evaluate((id) => (document.getElementById(id) || {}).selectedIndex, antes.id);
     checa(limpo !== undefined, 'navegar pelo menu abre a página normalmente', 'página não abriu depois de navegar pelo menu');
   }
@@ -2224,6 +2224,52 @@ function auditar() {
     checa(r.largura, 'Comunicação no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
     checa(errosM.length === 0, 'Comunicação sem erro de JavaScript', 'erros: ' + errosM.slice(0, 3).join(' | '));
     await ctxM.close();
+  }
+
+  // ---------- 48) Rolezinho: mesmo padrão das páginas de operações + regularidade semanal ----------
+  console.log('\n[48] Rolezinho');
+  {
+    const ctxR = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pr = await ctxR.newPage();
+    const errosR = []; pr.on('pageerror', (e) => errosR.push(e.message));
+    await pr.goto(base);
+    await pr.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pr.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, d = DATA.rolezinho, ult = Math.min(MES_ATUAL_IDX, d.meses.length - 1), sm = d.semanas;
+      try { localStorage.removeItem('indMes_rolezinho'); } catch (e) {}
+      setMunFiltro('');
+      goToPage('rolezinho'); await esp(400);
+      const m = document.getElementById('main'), linhas = [...document.querySelectorAll('#rolTable tbody tr')], f = fatorMesEmAndamento(d, ult);
+      out.estrutura = { semSelect: !document.getElementById('rolezinhoMonthSel'), pills: document.querySelectorAll('#rolMeses button').length === ult + 1 && document.querySelector('#rolMeses button.on').dataset.p === String(ult), linhas: linhas.length, subtotais: linhas.filter(t => t.classList.contains('cia-sub')).length,
+        metodologia: !!document.querySelector('details.aud-como') && !document.querySelector('details.aud-como').open };
+      const esperado = d.municipios.filter(x => x.realizado_mes[ult] < Math.floor(x.meta_mes[ult] * f + 1e-9)).map(x => normMun(x.nome)).sort().join();
+      const naTela = linhas.filter(t => t.dataset.mun && /faltam/.test(t.children[1].textContent)).map(t => normMun(t.dataset.mun)).sort().join();
+      out.prop = { igual: esperado === naTela, total: linhas[linhas.length - 1].children[1].textContent.includes('/ ' + Math.floor(d.total_meta_mes[ult] * f + 1e-9)), nota: f < 1 ? /proporcional aos dias já fechados/.test(document.getElementById('rolNota').textContent) : true, semNaoCumpriu: !/NÃO CUMPRIU/.test(m.textContent) };
+      out.blocos = { ano: !!m.querySelector('svg.ano-svg') && /Projeção para o ano/.test(m.textContent), quadro: document.querySelectorAll('#opQuadro tbody tr').length === 14 };
+      // regularidade: 1 por semana em cada município, dados da rotina, só contagem
+      const ULT = Math.min(12, sm.rotulos.length), regs = [...document.querySelectorAll('#rolReg tbody tr')];
+      out.semanas = { dados: sm.rotulos.length > 20 && Object.keys(sm.municipios).length === 13 && Object.values(sm.municipios).every(v => v.length === sm.rotulos.length) && Object.values(sm.meta_semanal).every(x => x === 1), linhas: regs.length === 13,
+        bolinhas: regs.every(t => t.querySelectorAll('.fs').length === ULT), ordem: regs.map(t => parseInt(t.children[1].textContent.match(/(\d+) de/)[1])).every((v, i, a) => !i || a[i - 1] <= v),
+        conta: regs.every(t => { const k = Object.keys(sm.municipios).find(n => normMun(n) === normMun(t.dataset.mun)); return t.querySelectorAll('.fs.ok').length === sm.municipios[k].slice(-ULT).filter(x => x >= 1).length; }) };
+      document.querySelector('#rolMeses button[data-p="0"]').click(); await esp(100);
+      const t0 = [...document.querySelectorAll('#rolTable tbody tr')].pop();
+      out.janeiro = { titulo: /Janeiro/.test(document.getElementById('rolTitulo').textContent), metaCheia: t0.children[1].textContent.includes('/ ' + d.total_meta_mes[0]), nota: document.getElementById('rolNota').textContent === '' };
+      document.querySelector('#rolTable tr.rank-clic').click(); await esp(400);
+      out.cidade = { filtro: !!getMunFiltro(), painel: /— mês a mês/.test(document.getElementById('main').innerHTML) && document.querySelectorAll('#main svg.ano-svg').length >= 2 };
+      setMunFiltro('');
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.estrutura.semSelect && r.estrutura.pills && r.estrutura.metodologia && r.estrutura.linhas === 17 && r.estrutura.subtotais === 3, 'Rolezinho: botões de mês (mês atual marcado), sem seletor antigo, metodologia recolhida e subtotal por companhia', 'estrutura: ' + JSON.stringify(r.estrutura));
+    checa(r.prop.igual && r.prop.total && r.prop.nota && r.prop.semNaoCumpriu, 'Rolezinho: no mês em andamento a meta é proporcional — só "faltam" quem está abaixo da meta dos dias fechados', 'meta proporcional: ' + JSON.stringify(r.prop));
+    checa(r.blocos.ano && r.blocos.quadro, 'Rolezinho: ano contra a meta com projeção e quadro município × mês', 'blocos: ' + JSON.stringify(r.blocos));
+    checa(Object.values(r.semanas).every(Boolean), 'Rolezinho: regularidade semanal (1 operação por semana, 13 municípios, últimas 12 semanas, da pior para a melhor)', 'semanas: ' + JSON.stringify(r.semanas));
+    checa(r.janeiro.titulo && r.janeiro.metaCheia && r.janeiro.nota, 'Rolezinho: trocar o mês muda título, tabela e nota (mês fechado usa a meta cheia)', 'janeiro: ' + JSON.stringify(r.janeiro));
+    checa(r.cidade.filtro && r.cidade.painel, 'Rolezinho: clicar na cidade filtra e abre o painel mês a mês', 'cidade: ' + JSON.stringify(r.cidade));
+    checa(r.largura, 'Rolezinho no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosR.length === 0, 'Rolezinho sem erro de JavaScript', 'erros: ' + errosR.slice(0, 3).join(' | '));
+    await ctxR.close();
   }
 
   await browser.close();
