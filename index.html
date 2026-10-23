@@ -5045,7 +5045,7 @@ async function renderAuditoriaPage() {
     } else {
       htmlCidades += `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th style="text-align:left">Nº REDS</th><th style="text-align:left">Data do Fato</th><th>Em Aberto</th><th style="text-align:left">Bairro/Logradouro</th><th style="text-align:left">Responsável</th><th>Status</th><th style="text-align:left">Problema</th></tr></thead><tbody>`;
       const nAnd = flagged.filter(x => x.sem === 'amarelo').length;
-      if (nAnd) htmlCidades += `<div class="vd-recorte">${flagged.length - nAnd} em vermelho (sem caso, aberto ou prazo vencido) e ${nAnd} em andamento, em amarelo (visita despachada ou decisão do comando, ainda sem solução final). Os dois contam como pendência até o caso ser estabilizado.</div>`;
+      if (nAnd) htmlCidades += `<div class="vd-recorte">${flagged.length - nAnd} em vermelho (sem caso, aberto ou prazo vencido) e ${nAnd} em andamento, em amarelo (em visita, com o retorno ainda dentro do prazo, ou aguardando decisão do comando; ainda sem solução final). Os dois contam como pendência até o caso ser estabilizado.</div>`;
       flagged.sort((a, b) => b.horas - a.horas).forEach(({ o, caso, horas, sem }) => {
         const end = `${o.b || ''}${o.l ? (' - ' + o.l) : ''}${o.nu && o.nu !== '0' ? (', ' + o.nu) : ''}`;
         const resp = caso ? (caso.militar_responsavel || '—') : '—';
@@ -5053,7 +5053,7 @@ async function renderAuditoriaPage() {
         const problema = !caso
           ? 'Nenhuma informação/BO carregado — caso nem foi aberto'
           : (!caso.status || caso.status === 'aberto' ? 'Sem visita registrada até agora'
-            : (caso.status === 'em_visita' && sem === 'amarelo' ? 'Visita despachada, aguardando retorno (dentro do prazo)'
+            : (caso.status === 'em_visita' && sem === 'amarelo' ? 'Em visita, ainda sem solução final (retorno dentro do prazo)'
               : (caso.status === 'decisao_cmd' ? 'Aguardando decisão do comando' : 'Sem solução final (não estabilizado)')));
         const diasTxt = horas >= 24 ? `${(horas / 24).toFixed(1)}d` : `${horas.toFixed(0)}h`;
         htmlCidades += `<tr class="vd-row-${sem === 'amarelo' ? 'amarelo' : 'vermelho'}"><td style="text-align:left">${o.r || '—'}</td><td style="text-align:left">${o.d}</td><td>${diasTxt}</td><td style="text-align:left">${end}</td><td style="text-align:left">${resp}</td><td>${statusTxt}</td><td style="text-align:left">${problema}</td></tr>`;
