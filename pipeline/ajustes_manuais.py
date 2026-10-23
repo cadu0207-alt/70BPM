@@ -65,3 +65,33 @@ def neutralizar_mv(rows, fonte, report):
                             'detalhe': f"{a['reds']} não vem mais como MV no export de MV — a fonte já refletiu a retirada. Ajuste desligado."})
     if mudou:
         _salvar(ajustes)
+
+
+def ajustar_armas(rows, report):
+    """Retificação de QUANTIDADE de armas de fogo apreendidas (tipo 'ajustar_armas'): o REDS foi lançado no SiGOp com
+    menos armas do que foram apreendidas. Eleva QTDE_ARMAS_FOGO da linha para o valor aprovado (modifica `rows` no lugar).
+    Se o export já traz a quantidade aprovada (ou mais), a fonte foi corrigida: o ajuste vira 'resolvido' e para de mexer."""
+    ajustes = _carregar()
+    ativos = [a for a in ajustes if a.get('tipo') == 'ajustar_armas' and a.get('status') == 'ativo']
+    if not ativos:
+        return
+    eventos = report.setdefault('ajustes_manuais', [])
+    mudou = False
+    for a in ativos:
+        linhas = [r for r in rows if r.get('NUMERO_REDS', '') == a['reds']]
+        if not linhas:
+            continue
+        for r in linhas:
+            atual = int(r.get('QTDE_ARMAS_FOGO') or 0)
+            if atual < a['armas_corrigidas']:
+                r['QTDE_ARMAS_FOGO'] = str(a['armas_corrigidas'])
+                eventos.append({'id': a['id'], 'fonte': 'ARMAS DE FOGO', 'situacao': 'APLICADO',
+                                'detalhe': f"{a['reds']} vem com {atual} arma(s) no export; contadas {a['armas_corrigidas']} (retificação aprovada)."})
+            else:
+                a['status'] = 'resolvido'
+                a['resolvido_em'] = datetime.date.today().isoformat()
+                mudou = True
+                eventos.append({'id': a['id'], 'fonte': 'ARMAS DE FOGO', 'situacao': 'AJUSTE RESOLVIDO',
+                                'detalhe': f"{a['reds']} já vem com {atual} arma(s) no export — a fonte refletiu a retificação. Ajuste desligado."})
+    if mudou:
+        _salvar(ajustes)

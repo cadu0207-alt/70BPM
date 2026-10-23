@@ -314,6 +314,7 @@ def main():
 
     f = latest_csv('ARMAS DE FOGO')
     rows = read_utf8_reds(f)
+    aj.ajustar_armas(rows, report)  # retificações de quantidade aprovadas (ver ajustes_manuais.py)
     new_d = agg_sum_field(rows, 'QTDE_ARMAS_FOGO')
     new_d_simulacro = agg_simulacro_field(rows)
     new_d = merge_add(new_d, new_d_simulacro)
