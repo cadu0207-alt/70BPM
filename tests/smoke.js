@@ -2404,6 +2404,44 @@ function auditar() {
     await ctxR.close();
   }
 
+  // ---------- 52) Comunicação: cartão Balanço 2026 × 2025 ----------
+  console.log('\n[52] Balanço 2026 × 2025');
+  {
+    const ctxB = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pb = await ctxB.newPage();
+    const errosB = []; pb.on('pageerror', (e) => errosB.push(e.message));
+    await pb.goto(base);
+    await pb.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pb.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, C = DATA.comunicacao, CP = C.comparativo_2025;
+      try { localStorage.removeItem('comEstado'); } catch (e) {}
+      goToPage('comunicacao'); await esp(1200);
+      document.querySelector('#comPeriodo button[data-p="ano"]').click(); await esp(700);
+      await comPreparar();
+      const c = COM_CARTOES.find(x => x.id === 'balanco-2025');
+      const selos = COM_CARTOES.filter(x => x.selo && x.id !== 'balanco-2025').length;
+      out.cartao = !!c && c.tipo === 'balanco' && c.itens.length >= 2 && c.itens.length <= 7 && c.grupo === 'Comparativo com 2025';
+      out.itens = !!c && c.itens.every(i => /^[−+]\d/.test(i.delta) && Number.isFinite(i.a) && Number.isFinite(i.b)) && /mesmo período de 2025/.test(c.legenda) && /#PMMG/.test(c.legenda);
+
+      out.formatos = !!c && ['feed', 'quadrado', 'stories'].every(f => { const cv = document.createElement('canvas'); comDesenhar(cv, c, COM_FORMATOS[f], 1); return cv.width === COM_FORMATOS[f].w; });
+      const sel = document.getElementById('comTerr'); sel.value = 'ARACUAI'; sel.dispatchEvent(new Event('change')); await esp(600);
+      const ca = COM_CARTOES.find(x => x.id === 'balanco-2025');
+      out.cidade = !ca || (ca.terr === 'ARAÇUAÍ' && ca.itens.length >= 2);
+      document.querySelector('#comPeriodo button[data-p="mes"]').click(); await esp(600);
+      const cm = COM_CARTOES.find(x => x.id === 'balanco-2025');
+      out.mes = !cm || /2026 × 2025/.test(cm.kicker);
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.cartao && r.itens, 'cartão Balanço 2026 × 2025: só melhoras (2 a 7 linhas), números e legenda com a fonte', 'cartão: ' + JSON.stringify([r.cartao, r.itens]));
+    checa(r.formatos, 'balanço desenha nos três formatos', 'formatos: ' + r.formatos);
+    checa(r.cidade && r.mes, 'balanço acompanha cidade e período (some se tiver menos de 2 melhoras)', 'cidade/mês: ' + JSON.stringify([r.cidade, r.mes]));
+    checa(r.largura, 'balanço no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosB.length === 0, 'balanço sem erro de JavaScript', 'erros: ' + errosB.slice(0, 3).join(' | '));
+    await ctxB.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

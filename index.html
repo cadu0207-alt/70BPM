@@ -3794,7 +3794,7 @@ function comCartoes(estado) {
     const pct = b >= 10, dif = Math.abs(a - b), sinal = a < b ? '−' : '+', icone = favor === 'menos' ? '📉' : '📈';
     const grande = pct ? `${sinal}${fmt(dif / b * 100)}%` : `${sinal}${fmt(dif)}`, pequeno = pct ? 'em relação a 2025' : (a < b ? 'a menos que em 2025' : 'a mais que em 2025');
     const linha = pct ? `${icone} ${rotulo}: ${grande} em relação ao mesmo período de 2025 (${fmt(a)} contra ${fmt(b)}).` : `${icone} ${rotulo}: ${fmt(dif)} ${a < b ? 'a menos' : 'a mais'} que no mesmo período de 2025 (${fmt(a)} contra ${fmt(b)}).`;
-    return { grande, pequeno, linha };
+    return { grande, pequeno, linha, a, b };
   };
   // 1) dias sem
   [['mv', 'HÁ', 'DIAS SEM MORTES VIOLENTAS', 'mortes violentas', 'Homicídio, latrocínio, lesão seguida de morte, feminicídio e outras mortes violentas'],
@@ -3868,7 +3868,16 @@ function comCartoes(estado) {
         : (bateu ? `🏆 Recorde de 2026 no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}`
           : `📊 Melhor resultado de 2026 no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}); o melhor de 2025 foi ${fmt(r25.valor)} (${r25.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}`) });
   });
-  const GRUPO_DE = (id) => (id.startsWith('dias-') ? 'Dias sem ocorrência' : (id.startsWith('comp-') ? 'Comparativo com 2025' : (id.startsWith('recorde-') ? 'Recordes de 2026'
+  // 3b) balanço 2026 × 2025: um cartão só com o que melhorou (precisa de pelo menos 2 itens para valer a pena)
+  {
+    const itens = [['cvpa', 'menos', 'Roubos', 'Roubos'], ['cvpe', 'menos', 'Crimes violentos contra a pessoa', 'Crimes violentos (CVPE)'], ['mv', 'menos', 'Mortes violentas', 'Mortes violentas'], ['furto', 'menos', 'Furtos rurais', 'Furtos rurais'],
+      ['drogas', 'mais', 'Porções de droga apreendidas', 'Porções de droga apreendidas'], ['foragidos', 'mais', 'Foragidos capturados', 'Foragidos capturados'], ['veic_recuperados', 'mais', 'Veículos recuperados', 'Veículos recuperados']]
+      .map(([k, favor, rotulo, curto]) => { const s = seloDe(k, favor, rotulo); return s ? { rot: curto, delta: s.grande, a: s.a, b: s.b, linha: s.linha } : null; }).filter(Boolean);
+    if (itens.length >= 2) cartoes.push({ ...base, id: 'balanco-2025', tipo: 'balanco', kicker: periodo === 'mes' ? `${mesNome.toUpperCase()} · 2026 × 2025` : `JANEIRO A ${mesNome.toUpperCase()} · 2026 × 2025`, titulo: 'BALANÇO 2026 × 2025', sub: periodoTxt, destaque: true, valor: itens.length, tagTxt: `Pode publicar · ${itens.length} melhoras`,
+      rodape: `Registros do SiGOp até ${ref} · mesmo período de 2025`, itens,
+      legenda: `📊 Balanço ${local} ${periodoLeg}, em relação ao mesmo período de 2025:\n${itens.map(i => i.linha).join('\n')}\n\nSegundo os registros do SiGOp até ${ref}. Prevenir e proteger é o nosso compromisso.\n\n${hash}` });
+  }
+  const GRUPO_DE = (id) => (id === 'balanco-2025' ? 'Comparativo com 2025' : id.startsWith('dias-') ? 'Dias sem ocorrência' : (id.startsWith('comp-') ? 'Comparativo com 2025' : (id.startsWith('recorde-') ? 'Recordes de 2026'
     : (['presos', 'armas', 'rolezinho', 'veic_recuperados', 'veic_retirados', 'drogas', 'foragidos'].includes(id) ? 'Resultados e apreensões'
     : (['visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].includes(id) ? 'Proximidade e prevenção' : 'Policiamento e abordagem')))));
   cartoes.forEach(c => { c.grupo = GRUPO_DE(c.id); });
@@ -3931,6 +3940,20 @@ function comDesenhar(canvas, c, f, escala) {
       let fs = Math.min(190, ch * 0.62); ctx.font = `700 ${fs}px ${COM_FONTE}`; while (ctx.measureText(n).width > cw - 60 && fs > 50) { fs -= 8; ctx.font = `700 ${fs}px ${COM_FONTE}`; }
       ctx.fillStyle = cor.creme; comTexto(ctx, n, x + 34, y + ch * 0.62, 0);
       ctx.fillStyle = cor.douradoClaro; ctx.font = `600 28px ${COM_FONTE_TEXTO}`; comQuebrar(ctx, rot.toUpperCase(), cw - 60).forEach((l, j) => comTexto(ctx, l, x + 34, y + ch * 0.62 + 46 + j * 34, 2));
+    });
+  } else if (c.tipo === 'balanco') {
+    // tabela de melhoras: rótulo e "2026 × 2025" à esquerda, variação em dourado à direita
+    ctx.fillStyle = cor.dourado; ctx.font = `600 28px ${COM_FONTE_TEXTO}`; comTexto(ctx, c.kicker, m, corpoTopo + 28, 5);
+    ctx.fillStyle = cor.creme; ctx.font = `700 ${f.h > 1500 ? 84 : 66}px ${COM_FONTE}`; comQuebrar(ctx, c.titulo, maxW).forEach((l, i) => comTexto(ctx, l, m, corpoTopo + 100 + i * 80, 2));
+    const gy = corpoTopo + 140, gap = 14, n = c.itens.length, rh = Math.min(170, (corpoBase - gy - gap * (n - 1)) / n);
+    c.itens.forEach((it, i) => {
+      const y = gy + i * (rh + gap);
+      ctx.fillStyle = 'rgba(235,233,223,0.05)'; ctx.fillRect(m, y, maxW, rh); ctx.fillStyle = cor.vermelho; ctx.fillRect(m, y, 8, rh);
+      let fd = Math.min(76, rh * 0.62); ctx.font = `700 ${fd}px ${COM_FONTE}`; const wd = ctx.measureText(it.delta).width;
+      ctx.fillStyle = cor.douradoClaro; comTexto(ctx, it.delta, m + maxW - 26, y + rh / 2 + fd * 0.34, 0, 'right');
+      const fl = Math.min(34, rh * 0.30); let fl2 = fl; ctx.font = `700 ${fl2}px ${COM_FONTE_TEXTO}`; while (ctx.measureText(it.rot.toUpperCase()).width > maxW - wd - 90 && fl2 > 16) { fl2 -= 2; ctx.font = `700 ${fl2}px ${COM_FONTE_TEXTO}`; }
+      ctx.fillStyle = cor.creme; comTexto(ctx, it.rot.toUpperCase(), m + 30, y + rh / 2 - 4, 1);
+      ctx.fillStyle = cor.cinza; ctx.font = `400 ${Math.min(27, rh * 0.23)}px ${COM_FONTE_TEXTO}`; comTexto(ctx, `${fmtBr(it.a, 0)} em 2026 × ${fmtBr(it.b, 0)} em 2025`, m + 30, y + rh / 2 + Math.min(27, rh * 0.23) + 8, 0);
     });
   } else {
     // kicker + número gigante + título + subtítulo, centralizados no corpo
