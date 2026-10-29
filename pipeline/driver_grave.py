@@ -1214,6 +1214,33 @@ def _dias_sem(datas, ref, inicio_ano, antes=None, inicio_base=None):
     return {'dias': atual, 'nenhum_no_ano': False, 'maior': maior, 'em_andamento': atual >= maior}
 
 
+_DROGA_RE = re.compile('MACONHA|COCAINA|CRACK|PAPELOTE|PINO|BUCHA|SKUNK|HAXIXE')
+
+
+def _efeitos_reds(r):
+    """Resultado de UM REDS: (tipos dos veículos recuperados, veículos apreendidos/removidos, porções de droga, foragido 0/1).
+    Mesma regra para o balanço do ano corrente e para o comparativo com 2025."""
+    recup, ret, droga = [], 0, 0
+    for e in (r.get('VEICULOS') or '').split('|'):
+        sit = re.search(r'situacaoPlacaDescricao:([^/]*)/', e)
+        if not sit:
+            continue
+        sit = sit.group(1).strip().upper()
+        if sit == 'RECUPERADO':
+            tp = re.search(r'tipoVeiculoDescricao:([^/]*)/', e)
+            recup.append(_sem_acento_up(tp.group(1)) if tp else '')
+        elif sit in ('APREENDIDO', 'REMOVIDO'):
+            ret += 1
+    for e in (r.get('MATERIAIS') or '').split('|'):
+        if 'unidadeMedidaDescricao:UNIDADE' in e:
+            up = _sem_acento_up(e)
+            if _DROGA_RE.search(up) and 'EQUIPAMENTOS' not in up:
+                q = re.search(r'quantidadeMaterial:([^/]*)/', e)
+                droga += int(q.group(1)) if q and q.group(1).isdigit() else 1
+    nats = _sem_acento_up(' '.join((r.get(k) or '') for k in ('DESCR_NATUREZA_PRINCIPAL', 'DESCR_NATUREZA_SECUNDARIA1', 'DESCR_NATUREZA_SECUNDARIA2', 'DESCR_NATUREZA_SECUNDARIA3')))
+    return recup, ret, droga, (1 if 'FORAGIDO DA JUSTICA' in nats else 0)
+
+
 def _ler_reds_2025():
     """B.O. (REDS) do ano anterior, da pasta entrada/2025 (mesmo formato do TODOS OS B.O). Sem o arquivo, a Comunicação usa só o ano corrente."""
     for f in sorted(glob.glob(os.path.join(BASE, '2025', '*.csv')), key=os.path.getmtime, reverse=True):
@@ -1286,6 +1313,19 @@ def run_comunicacao(data, rows_bo, report):
                     c[t]['ano'] += v
                     if d.month == corte.month:
                         c[t]['mes'] += v
+                c['BATALHAO'] = {'ano': sum(c[t]['ano'] for t in terr), 'mes': sum(c[t]['mes'] for t in terr)}
+                comp[k] = c
+            res = {k: {t: {'ano': 0, 'mes': 0} for t in terr} for k in ('drogas', 'foragidos', 'veic_recuperados', 'veic_retirados')}
+            for r in rows25:
+                t, d = _chave_terr(r.get('MUNICIPIO')), dia(r.get('DATA_FATO'))
+                if t not in terr or not d or d > corte:
+                    continue
+                recup, ret, droga, fg = _efeitos_reds(r)
+                for k, v in (('drogas', droga), ('foragidos', fg), ('veic_recuperados', len(recup)), ('veic_retirados', ret)):
+                    res[k][t]['ano'] += v
+                    if d.month == corte.month:
+                        res[k][t]['mes'] += v
+            for k, c in res.items():
                 c['BATALHAO'] = {'ano': sum(c[t]['ano'] for t in terr), 'mes': sum(c[t]['mes'] for t in terr)}
                 comp[k] = c
             saida['comparativo_2025'] = comp
@@ -1375,33 +1415,18 @@ def run_comunicacao(data, rows_bo, report):
         series.update({'visitas_tranq': soma_bat(vt), 'visitas_prev': soma_bat(vp), 'reunioes': soma_bat(ru), 'egressos': soma_bat(eg)})
     rec_v, ret_v, dro, forag, oco = nova(), nova(), nova(), nova(), nova()
     tipos = {t: collections.Counter() for t in terr}
-    DROGA = _re2.compile('MACONHA|COCAINA|CRACK|PAPELOTE|PINO|BUCHA|SKUNK|HAXIXE')
     for r in rows_bo:
         t, mm = _chave_terr(r.get('MUNICIPIO')), mes_de(r)
         if t not in rec_v or mm is None:
             continue
         oco[t][mm] += 1
-        for e in (r.get('VEICULOS') or '').split('|'):
-            sit = _re2.search(r'situacaoPlacaDescricao:([^/]*)/', e)
-            if not sit:
-                continue
-            sit = sit.group(1).strip().upper()
-            if sit == 'RECUPERADO':
-                rec_v[t][mm] += 1
-                tp = _re2.search(r'tipoVeiculoDescricao:([^/]*)/', e)
-                tp = _sem_acento_up(tp.group(1)) if tp else ''
-                tipos[t]['motos' if 'MOTO' in tp else ('automoveis' if ('AUTOMOVEL' in tp or 'CAMIONETA' in tp or 'CAMINHONETE' in tp) else ('caminhoes' if 'CAMINH' in tp else 'outros'))] += 1
-            elif sit in ('APREENDIDO', 'REMOVIDO'):
-                ret_v[t][mm] += 1
-        for e in (r.get('MATERIAIS') or '').split('|'):
-            if 'unidadeMedidaDescricao:UNIDADE' in e:
-                up = _sem_acento_up(e)
-                if DROGA.search(up) and 'EQUIPAMENTOS' not in up:
-                    q = _re2.search(r'quantidadeMaterial:([^/]*)/', e)
-                    dro[t][mm] += int(q.group(1)) if q and q.group(1).isdigit() else 1
-        nats = _sem_acento_up(' '.join((r.get(k) or '') for k in ('DESCR_NATUREZA_PRINCIPAL', 'DESCR_NATUREZA_SECUNDARIA1', 'DESCR_NATUREZA_SECUNDARIA2', 'DESCR_NATUREZA_SECUNDARIA3')))
-        if 'FORAGIDO DA JUSTICA' in nats:
-            forag[t][mm] += 1
+        recup, ret, droga, fg = _efeitos_reds(r)
+        rec_v[t][mm] += len(recup)
+        ret_v[t][mm] += ret
+        dro[t][mm] += droga
+        forag[t][mm] += fg
+        for tp in recup:
+            tipos[t]['motos' if 'MOTO' in tp else ('automoveis' if ('AUTOMOVEL' in tp or 'CAMIONETA' in tp or 'CAMINHONETE' in tp) else ('caminhoes' if 'CAMINH' in tp else 'outros'))] += 1
     series.update({'veic_recuperados': soma_bat(rec_v), 'veic_retirados': soma_bat(ret_v), 'drogas': soma_bat(dro), 'foragidos': soma_bat(forag), 'ocorrencias': soma_bat(oco)})
     tp_bat = collections.Counter()
     for t in terr:

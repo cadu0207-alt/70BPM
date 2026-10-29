@@ -31701,6 +31701,238 @@
           "ano": 151,
           "mes": 9
         }
+      },
+      "drogas": {
+        "ARACUAI": {
+          "ano": 392,
+          "mes": 13
+        },
+        "ITAOBIM": {
+          "ano": 2034,
+          "mes": 300
+        },
+        "PADRE PARAISO": {
+          "ano": 502,
+          "mes": 107
+        },
+        "MEDINA": {
+          "ano": 572,
+          "mes": 0
+        },
+        "COMERCINHO": {
+          "ano": 0,
+          "mes": 0
+        },
+        "CORONEL MURTA": {
+          "ano": 63,
+          "mes": 0
+        },
+        "ITINGA": {
+          "ano": 1717,
+          "mes": 0
+        },
+        "PONTO DOS VOLANTES": {
+          "ano": 74,
+          "mes": 58
+        },
+        "VIRGEM DA LAPA": {
+          "ano": 39,
+          "mes": 0
+        },
+        "PEDRA AZUL": {
+          "ano": 1475,
+          "mes": 102
+        },
+        "DIVISA ALEGRE": {
+          "ano": 34,
+          "mes": 0
+        },
+        "AGUAS VERMELHAS": {
+          "ano": 5,
+          "mes": 0
+        },
+        "CACHOEIRA DE PAJEU": {
+          "ano": 1074,
+          "mes": 0
+        },
+        "BATALHAO": {
+          "ano": 7981,
+          "mes": 580
+        }
+      },
+      "foragidos": {
+        "ARACUAI": {
+          "ano": 8,
+          "mes": 0
+        },
+        "ITAOBIM": {
+          "ano": 16,
+          "mes": 2
+        },
+        "PADRE PARAISO": {
+          "ano": 3,
+          "mes": 0
+        },
+        "MEDINA": {
+          "ano": 5,
+          "mes": 0
+        },
+        "COMERCINHO": {
+          "ano": 1,
+          "mes": 0
+        },
+        "CORONEL MURTA": {
+          "ano": 1,
+          "mes": 0
+        },
+        "ITINGA": {
+          "ano": 2,
+          "mes": 1
+        },
+        "PONTO DOS VOLANTES": {
+          "ano": 5,
+          "mes": 2
+        },
+        "VIRGEM DA LAPA": {
+          "ano": 0,
+          "mes": 0
+        },
+        "PEDRA AZUL": {
+          "ano": 4,
+          "mes": 0
+        },
+        "DIVISA ALEGRE": {
+          "ano": 2,
+          "mes": 1
+        },
+        "AGUAS VERMELHAS": {
+          "ano": 3,
+          "mes": 0
+        },
+        "CACHOEIRA DE PAJEU": {
+          "ano": 0,
+          "mes": 0
+        },
+        "BATALHAO": {
+          "ano": 50,
+          "mes": 6
+        }
+      },
+      "veic_recuperados": {
+        "ARACUAI": {
+          "ano": 9,
+          "mes": 0
+        },
+        "ITAOBIM": {
+          "ano": 6,
+          "mes": 0
+        },
+        "PADRE PARAISO": {
+          "ano": 5,
+          "mes": 1
+        },
+        "MEDINA": {
+          "ano": 10,
+          "mes": 1
+        },
+        "COMERCINHO": {
+          "ano": 1,
+          "mes": 0
+        },
+        "CORONEL MURTA": {
+          "ano": 1,
+          "mes": 0
+        },
+        "ITINGA": {
+          "ano": 2,
+          "mes": 0
+        },
+        "PONTO DOS VOLANTES": {
+          "ano": 3,
+          "mes": 0
+        },
+        "VIRGEM DA LAPA": {
+          "ano": 5,
+          "mes": 1
+        },
+        "PEDRA AZUL": {
+          "ano": 4,
+          "mes": 0
+        },
+        "DIVISA ALEGRE": {
+          "ano": 1,
+          "mes": 0
+        },
+        "AGUAS VERMELHAS": {
+          "ano": 3,
+          "mes": 0
+        },
+        "CACHOEIRA DE PAJEU": {
+          "ano": 5,
+          "mes": 2
+        },
+        "BATALHAO": {
+          "ano": 55,
+          "mes": 5
+        }
+      },
+      "veic_retirados": {
+        "ARACUAI": {
+          "ano": 312,
+          "mes": 40
+        },
+        "ITAOBIM": {
+          "ano": 140,
+          "mes": 17
+        },
+        "PADRE PARAISO": {
+          "ano": 104,
+          "mes": 9
+        },
+        "MEDINA": {
+          "ano": 66,
+          "mes": 8
+        },
+        "COMERCINHO": {
+          "ano": 35,
+          "mes": 3
+        },
+        "CORONEL MURTA": {
+          "ano": 43,
+          "mes": 3
+        },
+        "ITINGA": {
+          "ano": 78,
+          "mes": 5
+        },
+        "PONTO DOS VOLANTES": {
+          "ano": 20,
+          "mes": 0
+        },
+        "VIRGEM DA LAPA": {
+          "ano": 177,
+          "mes": 11
+        },
+        "PEDRA AZUL": {
+          "ano": 128,
+          "mes": 16
+        },
+        "DIVISA ALEGRE": {
+          "ano": 36,
+          "mes": 2
+        },
+        "AGUAS VERMELHAS": {
+          "ano": 46,
+          "mes": 7
+        },
+        "CACHOEIRA DE PAJEU": {
+          "ano": 49,
+          "mes": 3
+        },
+        "BATALHAO": {
+          "ano": 1234,
+          "mes": 124
+        }
       }
     },
     "presos": {

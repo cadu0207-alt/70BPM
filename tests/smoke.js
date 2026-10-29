@@ -2322,6 +2322,54 @@ function auditar() {
     await ctxA.close();
   }
 
+  // ---------- 50) Comunicação: selo "contra 2025" nos cartões atuais ----------
+  console.log('\n[50] Selo contra 2025');
+  {
+    const ctxS = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const ps = await ctxS.newPage();
+    const errosS = []; ps.on('pageerror', (e) => errosS.push(e.message));
+    await ps.goto(base);
+    await ps.waitForFunction(() => typeof goToPage === 'function');
+    const r = await ps.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, C = DATA.comunicacao, CP = C.comparativo_2025, terrs = Object.keys(C.dias_sem.mv);
+      try { localStorage.removeItem('comEstado'); } catch (e) {}
+      out.dados = { res: ['drogas', 'foragidos', 'veic_recuperados', 'veic_retirados'].every(k => Object.keys(CP[k]).length === 14 && Object.values(CP[k]).every(v => v.ano >= v.mes && v.mes >= 0) && terrs.filter(t => t !== 'BATALHAO').reduce((a, t) => a + CP[k][t].ano, 0) === CP[k].BATALHAO.ano) };
+      goToPage('comunicacao'); await esp(1200);
+      document.querySelector('#comPeriodo button[data-p="ano"]').click(); await esp(700);
+      const ate = (k) => k === 'BATALHAO' ? null : null;
+      const serie = (id) => ({ 'dias-mv': DATA.mv.total_mes, 'dias-cvpa': DATA.cvpa.total_mes, 'dias-cvpe': DATA.cvpe.total_mes, drogas: C.series.drogas.BATALHAO, foragidos: C.series.foragidos.BATALHAO, veic_recuperados: C.series.veic_recuperados.BATALHAO })[id];
+      const base25 = { 'dias-mv': CP.mv, 'dias-cvpa': CP.cvpa, 'dias-cvpe': CP.cvpe, drogas: CP.drogas, foragidos: CP.foragidos, veic_recuperados: CP.veic_recuperados };
+      const favor = { 'dias-mv': 'menos', 'dias-cvpa': 'menos', 'dias-cvpe': 'menos', drogas: 'mais', foragidos: 'mais', veic_recuperados: 'mais' };
+      const reg = Object.keys(favor).map(id => {
+        const c = COM_CARTOES.find(x => x.id === id), a = serie(id).slice(0, Math.min(MES_ATUAL_IDX, 11) + 1).reduce((p, q) => p + q, 0), b = base25[id].BATALHAO.ano;
+        const deveTer = favor[id] === 'menos' ? a < b : a > b;
+        const grande = (a < b ? '−' : '+') + fmtBr(Math.abs(a - b) / b * 100, 0) + '%';
+        return !!c && (deveTer ? (!!c.selo && c.selo.grande === grande && /em relação a 2025/.test(c.selo.pequeno) && /mesmo período de 2025/.test(c.legenda)) : !c.selo);
+      });
+      out.regra = reg.every(Boolean);
+      out.algum = COM_CARTOES.some(c => c.selo);
+      const comSelo = COM_CARTOES.find(c => c.selo), semSelo = COM_CARTOES.find(c => !c.selo && c.tipo === 'numero' && c.id.startsWith('dias-'));
+      const claras = (c) => { const cv = document.createElement('canvas'); comDesenhar(cv, c, COM_FORMATOS.feed, 0.5); const x = cv.getContext('2d'), W = cv.width; const d = x.getImageData(Math.round(W * 0.60), 90, Math.round(W * 0.33), 44).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - 158) < 18 && Math.abs(d[i + 1] - 140) < 18 && Math.abs(d[i + 2] - 92) < 18) n++; return n; };
+      await comPreparar();
+      out.arte = { com: !!comSelo && claras(comSelo) > 300, sem: !semSelo || claras(semSelo) < 30 };
+      out.formatos = ['feed', 'quadrado', 'stories'].every(f => { const cv = document.createElement('canvas'); comDesenhar(cv, comSelo, COM_FORMATOS[f], 1); return cv.width === COM_FORMATOS[f].w; });
+      document.querySelector('#comPeriodo button[data-p="mes"]').click(); await esp(600);
+      out.mes = COM_CARTOES.filter(c => c.selo).every(c => /contra|a menos|a mais|%/.test(c.selo.grande + c.selo.pequeno) && /mesmo período de 2025/.test(c.legenda));
+      const sel = document.getElementById('comTerr'); sel.value = 'ARACUAI'; sel.dispatchEvent(new Event('change')); await esp(600);
+      out.cidade = COM_CARTOES.every(c => c.terr === 'ARAÇUAÍ') && COM_CARTOES.filter(c => c.selo).every(c => c.selo.grande && c.selo.linha);
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.dados.res, 'dados × 2025 de resultados (droga, foragidos, veículos): 14 territórios e soma do Batalhão fecha', 'dados: ' + JSON.stringify(r.dados));
+    checa(r.regra && r.algum, 'selo só nos cartões que melhoraram (dias sem de crime = menos; droga, foragidos, veículos recuperados = mais) e o número confere', 'selo: ' + JSON.stringify([r.regra, r.algum]));
+    checa(r.arte.com && r.arte.sem && r.formatos, 'selo desenhado na arte (placa dourada) nos três formatos e ausente no cartão sem melhora', 'arte: ' + JSON.stringify([r.arte, r.formatos]));
+    checa(r.mes && r.cidade, 'selo acompanha o período (mês/ano) e a cidade escolhida', 'mês/cidade: ' + JSON.stringify([r.mes, r.cidade]));
+    checa(r.largura, 'selo no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosS.length === 0, 'selo sem erro de JavaScript', 'erros: ' + errosS.slice(0, 3).join(' | '));
+    await ctxS.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

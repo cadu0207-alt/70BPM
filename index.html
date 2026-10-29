@@ -3784,22 +3784,32 @@ function comCartoes(estado) {
   const mesNome = MESES[MES_ATUAL_IDX], periodoTxt = periodo === 'mes' ? `${mesNome}/2026 · até ${ref.slice(0, 5)}` : `Janeiro a ${mesNome}/2026 · até ${ref.slice(0, 5)}`;
   const periodoLeg = periodo === 'mes' ? `em ${mesNome.toLowerCase()} de 2026` : `em 2026 (de janeiro a ${mesNome.toLowerCase()})`;
   const base = { terr: nomeT, ref, periodoTxt };
+  // selo "contra 2025" nos cartões atuais: só aparece quando melhorou no mesmo período (menos crime ou mais resultado)
+  const CP = C.comparativo_2025, CRIMES_2025 = ['mv', 'cvpe', 'cvpa', 'furto'];
+  const serie26 = (k) => { if (!CRIMES_2025.includes(k)) return comSerieDe(terr, k); const m = DATA[k]; if (!m) return null; if (terr === 'BATALHAO') return m.total_mes; const x = (m.municipios || []).find(y => normMun(y.nome) === terr); return x ? x.realizado_mes : null; };
+  const seloDe = (k, favor, rotulo) => {
+    if (!CP || !CP[k]) return null;
+    const a = comSerieValor(serie26(k), periodo), b = ((CP[k] || {})[terr] || {})[periodo === 'mes' ? 'mes' : 'ano'];
+    if (a === null || a === undefined || b === null || b === undefined || a === b || (favor === 'menos' ? a > b : a < b)) return null;
+    const pct = b >= 10, dif = Math.abs(a - b), sinal = a < b ? '−' : '+', icone = favor === 'menos' ? '📉' : '📈';
+    const grande = pct ? `${sinal}${fmt(dif / b * 100)}%` : `${sinal}${fmt(dif)}`, pequeno = pct ? 'em relação a 2025' : (a < b ? 'a menos que em 2025' : 'a mais que em 2025');
+    const linha = pct ? `${icone} ${rotulo}: ${grande} em relação ao mesmo período de 2025 (${fmt(a)} contra ${fmt(b)}).` : `${icone} ${rotulo}: ${fmt(dif)} ${a < b ? 'a menos' : 'a mais'} que no mesmo período de 2025 (${fmt(a)} contra ${fmt(b)}).`;
+    return { grande, pequeno, linha };
+  };
   // 1) dias sem
   [['mv', 'HÁ', 'DIAS SEM MORTES VIOLENTAS', 'mortes violentas', 'Homicídio, latrocínio, lesão seguida de morte, feminicídio e outras mortes violentas'],
    ['cvpa', 'HÁ', 'DIAS SEM ROUBOS', 'roubos', 'Roubo e extorsão (crimes violentos contra o patrimônio)'],
    ['cvpe', 'HÁ', 'DIAS SEM CRIMES VIOLENTOS CONTRA A PESSOA', 'crimes violentos contra a pessoa', 'Tentativas de homicídio, sequestro, tortura e feminicídio tentado']].forEach(([k, kicker, titulo, descr, nota]) => {
     const d = ((C.dias_sem || {})[k] || {})[terr]; if (!d) return;
-    const destaque = d.dias >= min;
+    const destaque = d.dias >= min, selo = seloDe(k, 'menos', descr.charAt(0).toUpperCase() + descr.slice(1));
     const semReg = d.desde_inicio_base ? 'Nenhum registro desde jan/2025 (no mínimo)' : (d.ultimo_em_2025 ? 'Nenhum registro em 2026 · o último foi em 2025' : 'Nenhum registro em 2026');
     const sub = d.nenhum_no_ano ? semReg : (d.em_andamento ? 'Maior sequência do ano' : `Maior sequência do ano: ${fmt(d.maior)} dias`);
-    cartoes.push({ ...base, id: 'dias-' + k, tipo: 'numero', kicker, numero: fmt(d.dias), titulo, sub, nota, destaque, valor: d.dias,
+    cartoes.push({ ...base, id: 'dias-' + k, tipo: 'numero', kicker, numero: fmt(d.dias), titulo, sub, nota, destaque, valor: d.dias, selo,
       tagTxt: destaque ? `Pode publicar · ${fmt(d.dias)} dias` : `Abaixo de ${min} dias (${fmt(d.dias)})`, rodape: `Registros do SiGOp até ${ref}`,
-      legenda: `🛡️ ${fmt(d.dias)} dias sem ${descr} ${local}.${d.nenhum_no_ano ? (d.desde_inicio_base ? ' Nenhum registro desde janeiro de 2025 (no mínimo).' : (d.ultimo_em_2025 ? ' Nenhum registro em 2026; o último foi em 2025.' : ' Nenhum registro em 2026.')) : (d.em_andamento ? ' É a maior sequência do ano.' : '')}\n\nSegundo os registros do SiGOp até ${ref}. O 70º BPM segue presente, todos os dias, para proteger quem vive aqui.\n\n${hash}` });
+      legenda: `🛡️ ${fmt(d.dias)} dias sem ${descr} ${local}.${d.nenhum_no_ano ? (d.desde_inicio_base ? ' Nenhum registro desde janeiro de 2025 (no mínimo).' : (d.ultimo_em_2025 ? ' Nenhum registro em 2026; o último foi em 2025.' : ' Nenhum registro em 2026.')) : (d.em_andamento ? ' É a maior sequência do ano.' : '')}${selo ? '\n' + selo.linha : ''}\n\nSegundo os registros do SiGOp até ${ref}. O 70º BPM segue presente, todos os dias, para proteger quem vive aqui.\n\n${hash}` });
   });
   // 1b) crimes contra o MESMO PERÍODO de 2025 (corte no mesmo dia e mês do último fato de 2026; só o que melhorou fica em destaque)
-  const CP = C.comparativo_2025;
   if (CP) {
-    const serie26 = (k) => { const m = DATA[k]; if (!m) return null; if (terr === 'BATALHAO') return m.total_mes; const x = (m.municipios || []).find(y => normMun(y.nome) === terr); return x ? x.realizado_mes : null; };
     const ateTxt = comDataBr(CP.ate_2026).slice(0, 5);
     const cmp = periodo === 'mes' ? `${mesNome}/2026 contra ${mesNome}/2025 · até ${ateTxt}` : `Janeiro a ${mesNome} de 2026 contra 2025 · até ${ateTxt}`;
     [['mv', 'MORTES VIOLENTAS', 'mortes violentas (MV)'], ['cvpe', 'CRIMES VIOLENTOS CONTRA A PESSOA', 'crimes violentos contra a pessoa (CVPE)'],
@@ -3819,7 +3829,7 @@ function comCartoes(estado) {
   // 2) balanço do período
   const num = (bloco) => comSerieValor(comSerieDe(terr, bloco), periodo);
   const pres = num('presos'), armas = num('armas'), ops = num('ops'), motos = num('motos'), rol = num('rolezinho');
-  const bal = (id, kicker, titulo, valor, sub, texto) => { if (valor === null || valor === undefined) return; cartoes.push({ ...base, id, tipo: 'numero', kicker, numero: fmt(valor), titulo, sub: sub || periodoTxt, destaque: valor > 0, valor, tagTxt: periodoTxt, rodape: `Registros do SiGOp até ${ref}`, legenda: `${texto}\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` }); };
+  const bal = (id, kicker, titulo, valor, sub, texto, selo) => { if (valor === null || valor === undefined) return; cartoes.push({ ...base, id, tipo: 'numero', kicker, numero: fmt(valor), titulo, sub: sub || periodoTxt, destaque: valor > 0, valor, selo: selo || null, tagTxt: periodoTxt, rodape: `Registros do SiGOp até ${ref}`, legenda: `${texto}${selo ? '\n' + selo.linha : ''}\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` }); };
   bal('presos', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'PESSOAS PRESAS', pres, null, `🚔 ${fmt(pres || 0)} pessoas presas ${local} ${periodoLeg}. Trabalho diário do 70º BPM para tirar o crime das ruas.`);
   bal('armas', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'ARMAS DE FOGO APREENDIDAS', armas, null, `🔫 ${fmt(armas || 0)} armas de fogo apreendidas ${local} ${periodoLeg}. Cada arma a menos nas ruas é uma ameaça a menos.`);
   bal('ops', periodo === 'mes' ? 'NO MÊS' : 'EM 2026', 'OPERAÇÕES DE POLICIAMENTO', ops, 'Policiamento ostensivo geral (POG) · ' + periodoTxt, `🚓 ${fmt(ops || 0)} operações de policiamento ostensivo ${local} ${periodoLeg}. Presença da Polícia Militar onde o cidadão está.`);
@@ -3829,10 +3839,10 @@ function comCartoes(estado) {
   const nv = (b) => num(b), tipos = ((C.veic_recuperados_tipos || {})[terr]) || null;
   const tipoTxt = tipos && periodo === 'ano' ? [['motos', 'motos'], ['automoveis', 'automóveis'], ['caminhoes', 'caminhões']].filter(([k]) => tipos[k]).map(([k, n]) => `${tipos[k]} ${n}`).join(' · ') : '';
   const kick = periodo === 'mes' ? 'NO MÊS' : 'EM 2026';
-  bal('veic_recuperados', kick, 'VEÍCULOS RECUPERADOS', nv('veic_recuperados'), (tipoTxt ? tipoTxt + ' · ' : '') + periodoTxt, `🚗 ${fmt(nv('veic_recuperados') || 0)} veículos recuperados ${local} ${periodoLeg}. Patrimônio devolvido ao cidadão.`);
+  bal('veic_recuperados', kick, 'VEÍCULOS RECUPERADOS', nv('veic_recuperados'), (tipoTxt ? tipoTxt + ' · ' : '') + periodoTxt, `🚗 ${fmt(nv('veic_recuperados') || 0)} veículos recuperados ${local} ${periodoLeg}. Patrimônio devolvido ao cidadão.`, seloDe('veic_recuperados', 'mais', 'Veículos recuperados'));
   bal('veic_retirados', kick, 'VEÍCULOS APREENDIDOS E REMOVIDOS', nv('veic_retirados'), 'Irregularidades e infrações · ' + periodoTxt, `🚨 ${fmt(nv('veic_retirados') || 0)} veículos apreendidos ou removidos ${local} ${periodoLeg}, por irregularidades e infrações de trânsito.`);
-  bal('drogas', kick, 'PORÇÕES DE DROGA APREENDIDAS', nv('drogas'), 'Buchas, pedras, papelotes e pinos · ' + periodoTxt, `🚫 ${fmt(nv('drogas') || 0)} porções de droga apreendidas ${local} ${periodoLeg}. Menos droga nas ruas, mais segurança para as famílias.`);
-  bal('foragidos', kick, 'FORAGIDOS DA JUSTIÇA CAPTURADOS', nv('foragidos'), periodoTxt, `⚖️ ${fmt(nv('foragidos') || 0)} foragidos da Justiça capturados ${local} ${periodoLeg}.`);
+  bal('drogas', kick, 'PORÇÕES DE DROGA APREENDIDAS', nv('drogas'), 'Buchas, pedras, papelotes e pinos · ' + periodoTxt, `🚫 ${fmt(nv('drogas') || 0)} porções de droga apreendidas ${local} ${periodoLeg}. Menos droga nas ruas, mais segurança para as famílias.`, seloDe('drogas', 'mais', 'Porções de droga apreendidas'));
+  bal('foragidos', kick, 'FORAGIDOS DA JUSTIÇA CAPTURADOS', nv('foragidos'), periodoTxt, `⚖️ ${fmt(nv('foragidos') || 0)} foragidos da Justiça capturados ${local} ${periodoLeg}.`, seloDe('foragidos', 'mais', 'Foragidos capturados'));
   bal('pessoas_abordadas', kick, 'PESSOAS ABORDADAS', nv('pessoas_abordadas'), 'Abordagens policiais · ' + periodoTxt, `🛡️ ${fmt(nv('pessoas_abordadas') || 0)} pessoas abordadas ${local} ${periodoLeg}. Presença e prevenção todos os dias.`);
   bal('veic_fiscalizados', kick, 'VEÍCULOS FISCALIZADOS', nv('veic_fiscalizados'), 'Fiscalização e abordagens · ' + periodoTxt, `🚓 ${fmt(nv('veic_fiscalizados') || 0)} veículos fiscalizados ${local} ${periodoLeg}.`);
   bal('locais_fiscalizados', kick, 'LOCAIS FISCALIZADOS', nv('locais_fiscalizados'), 'Locais visitados nas operações · ' + periodoTxt, `📍 ${fmt(nv('locais_fiscalizados') || 0)} locais fiscalizados ${local} ${periodoLeg}.`);
@@ -3893,6 +3903,16 @@ function comDesenhar(canvas, c, f, escala) {
   ctx.font = `700 30px ${COM_FONTE}`; const tt = c.terr, tw = [...tt].reduce((a, ch) => a + ctx.measureText(ch).width + 3, 0) + 44;
   ctx.strokeStyle = cor.dourado; ctx.lineWidth = 2; ctx.strokeRect(W - m - tw, topo + 8, tw, 62);
   ctx.fillStyle = cor.douradoClaro; comTexto(ctx, tt, W - m - tw + 22, topo + 50, 3);
+  // selo "contra 2025" (quando o cartão tem): placa dourada abaixo do território, fora da área do número
+  if (c.selo && c.tipo !== 'grade') {
+    const sl = c.selo, py = topo + 92, ph = 84;
+    ctx.font = `700 56px ${COM_FONTE}`; const w1 = ctx.measureText(sl.grande).width;
+    ctx.font = `600 20px ${COM_FONTE_TEXTO}`; const ls = comQuebrar(ctx, sl.pequeno.toUpperCase(), 230), w2 = Math.max(...ls.map(l => ctx.measureText(l).width));
+    const pw = 28 + w1 + 22 + w2 + 28, px = W - m - pw;
+    ctx.fillStyle = cor.dourado; ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = '#0b0a08'; ctx.font = `700 56px ${COM_FONTE}`; comTexto(ctx, sl.grande, px + 28, py + 62, 0);
+    ctx.font = `600 20px ${COM_FONTE_TEXTO}`; ls.forEach((l, i) => comTexto(ctx, l, px + 28 + w1 + 22, py + (ls.length > 1 ? 34 : 49) + i * 26, 0));
+  }
   // corpo
   const corpoTopo = topo + 190, corpoBase = H - 250, area = corpoBase - corpoTopo, maxW = W - 2 * m;
   if (c.tipo === 'grade') {
