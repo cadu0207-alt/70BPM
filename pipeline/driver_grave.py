@@ -1501,6 +1501,24 @@ def run_comunicacao(data, rows_bo, report):
             i, v = melhor_mes(series[chave_s]['BATALHAO'], ult)
             if v:
                 rec.append({'id': rid, 'titulo': titulo_r, 'valor': v, 'unidade': unid, 'detalhe': meses[i].capitalize() + (' (em andamento)' if i == ult else '')})
+    # referência de 2025 para os recordes que têm a mesma fonte (B.O.): droga por mês e maior sequência sem morte violenta
+    if rows25 is not None:
+        ref25 = {}
+        dro25 = [0] * N_MESES
+        for r in rows25:
+            t, d = _chave_terr(r.get('MUNICIPIO')), dia(r.get('DATA_FATO'))
+            if t in terr and d and d.year == hoje.year - 1:
+                dro25[d.month - 1] += _efeitos_reds(r)[2]
+        if any(dro25):
+            i25 = max(range(N_MESES), key=lambda k: dro25[k])
+            ref25['drogas_mes'] = {'valor': dro25[i25], 'detalhe': meses[i25].capitalize() + '/' + str(hoje.year - 1)}
+        mv25 = sorted({d for t in terr for d in datas25['mv'][t]})
+        if mv25:
+            pts = [datetime.date(hoje.year - 1, 1, 1)] + mv25 + [datetime.date(hoje.year - 1, 12, 31)]
+            ref25['mv_sequencia'] = {'valor': max((pts[i + 1] - pts[i]).days for i in range(len(pts) - 1)), 'detalhe': 'em ' + str(hoje.year - 1)}
+        for x in rec:
+            if x['id'] in ref25:
+                x['ref25'] = ref25[x['id']]
     saida['recordes'] = rec
     data['comunicacao'] = saida
     report['comunicacao'] = {'base_2025': (os.path.basename(f25) if f25 else None), 'dias_sem_mv_batalhao': mv_b['dias'], 'recordes': len(rec), 'presos_ano': sum(pres['BATALHAO']), 'rolezinho': rol is not None}

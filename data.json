@@ -36189,7 +36189,11 @@
         "titulo": "Maior sequência sem morte violenta no Batalhão",
         "valor": 42,
         "unidade": "dias",
-        "detalhe": "no ano"
+        "detalhe": "no ano",
+        "ref25": {
+          "valor": 37,
+          "detalhe": "em 2025"
+        }
       },
       {
         "id": "visitas_mes",
@@ -36210,7 +36214,11 @@
         "titulo": "Mês com mais porções de droga apreendidas",
         "valor": 2895,
         "unidade": "porções de droga",
-        "detalhe": "Outubro (em andamento)"
+        "detalhe": "Outubro (em andamento)",
+        "ref25": {
+          "valor": 1485,
+          "detalhe": "Agosto/2025"
+        }
       },
       {
         "id": "horas_mes",

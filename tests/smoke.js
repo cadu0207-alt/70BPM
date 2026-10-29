@@ -2370,6 +2370,40 @@ function auditar() {
     await ctxS.close();
   }
 
+  // ---------- 51) Comunicação: recordes com dois anos ----------
+  console.log('\n[51] Recordes com dois anos');
+  {
+    const ctxR = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pr2 = await ctxR.newPage();
+    const errosR = []; pr2.on('pageerror', (e) => errosR.push(e.message));
+    await pr2.goto(base);
+    await pr2.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pr2.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, recs = DATA.comunicacao.recordes;
+      try { localStorage.removeItem('comEstado'); } catch (e) {}
+      const com = recs.filter(x => x.ref25);
+      out.dados = { alguns: com.length >= 1, so: com.every(x => ['drogas_mes', 'mv_sequencia'].includes(x.id) && x.ref25.valor > 0 && /2025/.test(x.ref25.detalhe)), semReds: !/\d{4}-\d{9}-\d{3}/.test(JSON.stringify(recs)) };
+      goToPage('comunicacao'); await esp(1200);
+      const cards = COM_CARTOES.filter(c => c.id.startsWith('recorde-'));
+      out.regra = recs.every(x => {
+        const c = cards.find(y => y.id === 'recorde-' + x.id); if (!c) return false;
+        if (!x.ref25) return c.kicker === 'RECORDE DE 2026' && c.destaque && !/2025/.test(c.sub);
+        const bateu = x.valor > x.ref25.valor;
+        return bateu ? (c.kicker === 'RECORDE DOS ÚLTIMOS 2 ANOS' && c.destaque && /melhor de 2025/.test(c.sub) && /últimos dois anos/.test(c.legenda))
+                     : (c.kicker === 'MELHOR DE 2026' && !c.destaque && /não chame de recorde/.test(c.tagTxt) && !/Recorde dos/.test(c.legenda));
+      });
+      out.arte = cards.every(c => { const cv = document.createElement('canvas'); comDesenhar(cv, c, COM_FORMATOS.feed, 0.5); return cv.width > 0; });
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(Object.values(r.dados).every(Boolean), 'recordes: referência de 2025 só em droga e sequência sem MV, sem REDS', 'dados: ' + JSON.stringify(r.dados));
+    checa(r.regra, 'recorde só vira "dos últimos 2 anos" se superou 2025; senão avisa para não chamar de recorde; os demais ficam como antes', 'regra: ' + r.regra);
+    checa(r.arte && r.largura, 'cartões de recorde desenham e a página não rola na horizontal no celular', 'arte/largura: ' + JSON.stringify([r.arte, r.largura]));
+    checa(errosR.length === 0, 'recordes sem erro de JavaScript', 'erros: ' + errosR.slice(0, 3).join(' | '));
+    await ctxR.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

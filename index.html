@@ -3858,9 +3858,15 @@ function comCartoes(estado) {
       legenda: `🛡️ O 70º BPM ${local} ${periodoLeg}:\n🚓 ${fmt(ops)} operações de policiamento\n🏍️ ${fmt(motos)} motos fiscalizadas\n🚔 ${fmt(pres)} pessoas presas\n🔫 ${fmt(armas)} armas de fogo apreendidas\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` });
   }
   // 3) recordes do ano (Batalhão)
+  // com a referência de 2025 (droga e sequência sem MV): vira "recorde dos últimos 2 anos" só se superou 2025; se não, é só o melhor de 2026 e não deve ser chamado de recorde
   if (terr === 'BATALHAO') (C.recordes || []).forEach(r => {
-    cartoes.push({ ...base, id: 'recorde-' + r.id, tipo: 'numero', kicker: 'RECORDE DE 2026', numero: fmt(r.valor), titulo: r.titulo.toUpperCase(), sub: `${r.unidade} · ${r.detalhe}`, destaque: true, valor: r.valor, tagTxt: 'Recorde do ano', rodape: `Registros do SiGOp até ${ref}`,
-      legenda: `🏆 Recorde de 2026 no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` });
+    const r25 = r.ref25, bateu = !r25 || r.valor > r25.valor, dois = !!r25 && bateu;
+    cartoes.push({ ...base, id: 'recorde-' + r.id, tipo: 'numero', kicker: dois ? 'RECORDE DOS ÚLTIMOS 2 ANOS' : (bateu ? 'RECORDE DE 2026' : 'MELHOR DE 2026'), numero: fmt(r.valor), titulo: r.titulo.toUpperCase(),
+      sub: `${r.unidade} · ${r.detalhe}` + (r25 ? ` · melhor de 2025: ${fmt(r25.valor)} (${r25.detalhe})` : ''), destaque: bateu, valor: r.valor,
+      tagTxt: dois ? 'Recorde de 2025 e 2026' : (bateu ? 'Recorde do ano' : 'Abaixo de 2025 — não chame de recorde'), rodape: `Registros do SiGOp até ${ref}`,
+      legenda: dois ? `🏆 Recorde dos últimos dois anos no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}), acima do melhor de 2025 (${fmt(r25.valor)}, ${r25.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}`
+        : (bateu ? `🏆 Recorde de 2026 no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}`
+          : `📊 Melhor resultado de 2026 no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}); o melhor de 2025 foi ${fmt(r25.valor)} (${r25.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}`) });
   });
   const GRUPO_DE = (id) => (id.startsWith('dias-') ? 'Dias sem ocorrência' : (id.startsWith('comp-') ? 'Comparativo com 2025' : (id.startsWith('recorde-') ? 'Recordes de 2026'
     : (['presos', 'armas', 'rolezinho', 'veic_recuperados', 'veic_retirados', 'drogas', 'foragidos'].includes(id) ? 'Resultados e apreensões'
