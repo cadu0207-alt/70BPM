@@ -2442,6 +2442,48 @@ function auditar() {
     await ctxB.close();
   }
 
+  // ---------- 53) Comunicação: seletor "Comparar com 2025" ----------
+  console.log('\n[53] Seletor Comparar com 2025');
+  {
+    const ctxC = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pc = await ctxC.newPage();
+    const errosC = []; pc.on('pageerror', (e) => errosC.push(e.message));
+    await pc.goto(base);
+    await pc.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pc.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, C = DATA.comunicacao;
+      try { localStorage.removeItem('comEstado'); } catch (e) {}
+      goToPage('comunicacao'); await esp(1200);
+      document.querySelector('#comPeriodo button[data-p="ano"]').click(); await esp(700);
+      const sel = document.getElementById('comComp'), muda = async (v) => { sel.value = v; sel.dispatchEvent(new Event('change')); await esp(600); };
+      out.opcoes = !!sel && [...sel.options].map(o => o.value).join() === 'melhorou,todos,nao' && sel.value === 'melhorou';
+      const nSelos = () => COM_CARTOES.filter(c => c.selo).length, temComp = () => COM_CARTOES.some(c => c.id.startsWith('comp-') || c.id === 'balanco-2025');
+      const padrao = { selos: nSelos(), comp: temComp(), balanco: COM_CARTOES.find(c => c.id === 'balanco-2025').itens.length, pioras: COM_CARTOES.filter(c => c.selo && c.selo.piorou).length };
+      await muda('todos');
+      const bt = COM_CARTOES.find(c => c.id === 'balanco-2025');
+      out.todos = { maisSelos: nSelos() >= padrao.selos, balancoMaior: bt.itens.length >= padrao.balanco, avisa: !bt.itens.some(i => i.piorou) || (!bt.destaque && /confira antes/.test(bt.tagTxt)),
+        piorouVermelho: COM_CARTOES.filter(c => c.selo && c.selo.piorou).every(c => /^[−+0]/.test(c.selo.grande)), semPioraNoPadrao: padrao.pioras === 0 };
+      const piorado = COM_CARTOES.find(c => c.selo && c.selo.piorou);
+      if (piorado) { const cv = document.createElement('canvas'); comDesenhar(cv, piorado, COM_FORMATOS.feed, 0.5); const x = cv.getContext('2d'), d = x.getImageData(Math.round(cv.width * 0.62), 100, Math.round(cv.width * 0.3), 40).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 150 && d[i + 1] < 70 && d[i + 2] < 80) n++; out.todos.placaVermelha = n > 200; }
+      await muda('nao');
+      out.nao = { semSelos: nSelos() === 0, semComp: !temComp(), recordeSo2026: COM_CARTOES.filter(c => c.id.startsWith('recorde-')).every(c => !/2 ANOS|MELHOR DE 2026/.test(c.kicker) && !/2025/.test(c.sub)), diasSem: COM_CARTOES.some(c => c.id === 'dias-mv') };
+      let guardado = null; try { guardado = JSON.parse(localStorage.getItem('comEstado')).comp; } catch (e) {}
+      out.guarda = guardado === 'nao';
+      await muda('melhorou');
+      out.volta = nSelos() === padrao.selos && temComp();
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.opcoes, 'seletor "Comparar com 2025" com 3 opções, padrão "Só o que melhorou"', 'opções: ' + r.opcoes);
+    checa(Object.values(r.todos).every(Boolean), '"Tudo": mostra também o que piorou (placa vermelha), balanço avisa para conferir; no padrão nada piorado aparece', 'todos: ' + JSON.stringify(r.todos));
+    checa(Object.values(r.nao).every(Boolean), '"Não comparar": sem selos, sem cartões de comparação, recordes só de 2026, dias sem continuam', 'não: ' + JSON.stringify(r.nao));
+    checa(r.guarda && r.volta, 'escolha fica salva no navegador e voltar a "Só o que melhorou" restaura os cartões', 'guarda/volta: ' + JSON.stringify([r.guarda, r.volta]));
+    checa(r.largura, 'seletor no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosC.length === 0, 'seletor sem erro de JavaScript', 'erros: ' + errosC.slice(0, 3).join(' | '));
+    await ctxC.close();
+  }
+
   await browser.close();
   servidor.close();
   console.log('\n' + (falhas.length ? `✖ ${falhas.length} FALHA(S)` : '✔ TUDO CERTO'));

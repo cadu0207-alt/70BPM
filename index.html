@@ -3744,7 +3744,7 @@ const COM_FORMATOS = { feed: { w: 1080, h: 1350, nome: 'Feed 4:5' }, quadrado: {
 const COM_FONTE = 'Rajdhani, "Arial Narrow", "Helvetica Neue", Arial, sans-serif';
 const COM_FONTE_TEXTO = '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif';
 let COM_IMG = null, COM_CARTOES = [];
-let COM_ESTADO = { terr: 'BATALHAO', periodo: 'mes', min: 30, soDestaque: false };
+let COM_ESTADO = { terr: 'BATALHAO', periodo: 'mes', min: 30, soDestaque: false, comp: 'melhorou' };
 
 function comCarregarImagem(src) { return new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; }); }
 async function comPreparar() {
@@ -3776,7 +3776,7 @@ function comSerieDe(chave, bloco) {
 }
 function comCartoes(estado) {
   const C = DATA.comunicacao; if (!C) return [];
-  const { terr, periodo, min } = estado, nomeT = comNomeTerr(terr), ref = comDataBr(C.referencia);
+  const { terr, periodo, min } = estado, modoComp = ['melhorou', 'todos', 'nao'].includes(estado.comp) ? estado.comp : 'melhorou', nomeT = comNomeTerr(terr), ref = comDataBr(C.referencia);
   const cartoes = [], fmt = (n) => fmtBr(n, 0);
   const local = terr === 'BATALHAO' ? 'na área do 70º BPM' : 'em ' + (MUNICIPIOS_CANON.find(m => normMun(m) === terr) || terr);
   const tag = terr === 'BATALHAO' ? '' : ' #' + (MUNICIPIOS_CANON.find(m => normMun(m) === terr) || terr).normalize('NFD').replace(/[^A-Za-z]/g, '');
@@ -3784,17 +3784,20 @@ function comCartoes(estado) {
   const mesNome = MESES[MES_ATUAL_IDX], periodoTxt = periodo === 'mes' ? `${mesNome}/2026 · até ${ref.slice(0, 5)}` : `Janeiro a ${mesNome}/2026 · até ${ref.slice(0, 5)}`;
   const periodoLeg = periodo === 'mes' ? `em ${mesNome.toLowerCase()} de 2026` : `em 2026 (de janeiro a ${mesNome.toLowerCase()})`;
   const base = { terr: nomeT, ref, periodoTxt };
-  // selo "contra 2025" nos cartões atuais: só aparece quando melhorou no mesmo período (menos crime ou mais resultado)
+  // selo "contra 2025" nos cartões atuais: por padrão só quando melhorou no mesmo período (menos crime ou mais resultado); o seletor "Comparar com 2025" pode mostrar tudo ou desligar
   const CP = C.comparativo_2025, CRIMES_2025 = ['mv', 'cvpe', 'cvpa', 'furto'];
   const serie26 = (k) => { if (!CRIMES_2025.includes(k)) return comSerieDe(terr, k); const m = DATA[k]; if (!m) return null; if (terr === 'BATALHAO') return m.total_mes; const x = (m.municipios || []).find(y => normMun(y.nome) === terr); return x ? x.realizado_mes : null; };
   const seloDe = (k, favor, rotulo) => {
-    if (!CP || !CP[k]) return null;
+    if (!CP || !CP[k] || modoComp === 'nao') return null;
     const a = comSerieValor(serie26(k), periodo), b = ((CP[k] || {})[terr] || {})[periodo === 'mes' ? 'mes' : 'ano'];
-    if (a === null || a === undefined || b === null || b === undefined || a === b || (favor === 'menos' ? a > b : a < b)) return null;
-    const pct = b >= 10, dif = Math.abs(a - b), sinal = a < b ? '−' : '+', icone = favor === 'menos' ? '📉' : '📈';
+    if (a === null || a === undefined || b === null || b === undefined) return null;
+    const melhorou = favor === 'menos' ? a < b : a > b;
+    if (!melhorou && modoComp !== 'todos') return null;
+    const pct = b >= 10, dif = Math.abs(a - b), sinal = a < b ? '−' : (a > b ? '+' : ''), icone = melhorou ? (favor === 'menos' ? '📉' : '📈') : '📊';
+    if (a === b) return { grande: pct ? '0%' : '0', pequeno: 'igual a 2025', linha: `${icone} ${rotulo}: igual ao mesmo período de 2025 (${fmt(a)}).`, a, b, piorou: true };
     const grande = pct ? `${sinal}${fmt(dif / b * 100)}%` : `${sinal}${fmt(dif)}`, pequeno = pct ? 'em relação a 2025' : (a < b ? 'a menos que em 2025' : 'a mais que em 2025');
     const linha = pct ? `${icone} ${rotulo}: ${grande} em relação ao mesmo período de 2025 (${fmt(a)} contra ${fmt(b)}).` : `${icone} ${rotulo}: ${fmt(dif)} ${a < b ? 'a menos' : 'a mais'} que no mesmo período de 2025 (${fmt(a)} contra ${fmt(b)}).`;
-    return { grande, pequeno, linha, a, b };
+    return { grande, pequeno, linha, a, b, piorou: !melhorou };
   };
   // 1) dias sem
   [['mv', 'HÁ', 'DIAS SEM MORTES VIOLENTAS', 'mortes violentas', 'Homicídio, latrocínio, lesão seguida de morte, feminicídio e outras mortes violentas'],
@@ -3809,7 +3812,7 @@ function comCartoes(estado) {
       legenda: `🛡️ ${fmt(d.dias)} dias sem ${descr} ${local}.${d.nenhum_no_ano ? (d.desde_inicio_base ? ' Nenhum registro desde janeiro de 2025 (no mínimo).' : (d.ultimo_em_2025 ? ' Nenhum registro em 2026; o último foi em 2025.' : ' Nenhum registro em 2026.')) : (d.em_andamento ? ' É a maior sequência do ano.' : '')}${selo ? '\n' + selo.linha : ''}\n\nSegundo os registros do SiGOp até ${ref}. O 70º BPM segue presente, todos os dias, para proteger quem vive aqui.\n\n${hash}` });
   });
   // 1b) crimes contra o MESMO PERÍODO de 2025 (corte no mesmo dia e mês do último fato de 2026; só o que melhorou fica em destaque)
-  if (CP) {
+  if (CP && modoComp !== 'nao') {
     const ateTxt = comDataBr(CP.ate_2026).slice(0, 5);
     const cmp = periodo === 'mes' ? `${mesNome}/2026 contra ${mesNome}/2025 · até ${ateTxt}` : `Janeiro a ${mesNome} de 2026 contra 2025 · até ${ateTxt}`;
     [['mv', 'MORTES VIOLENTAS', 'mortes violentas (MV)'], ['cvpe', 'CRIMES VIOLENTOS CONTRA A PESSOA', 'crimes violentos contra a pessoa (CVPE)'],
@@ -3860,7 +3863,7 @@ function comCartoes(estado) {
   // 3) recordes do ano (Batalhão)
   // com a referência de 2025 (droga e sequência sem MV): vira "recorde dos últimos 2 anos" só se superou 2025; se não, é só o melhor de 2026 e não deve ser chamado de recorde
   if (terr === 'BATALHAO') (C.recordes || []).forEach(r => {
-    const r25 = r.ref25, bateu = !r25 || r.valor > r25.valor, dois = !!r25 && bateu;
+    const r25 = modoComp === 'nao' ? null : r.ref25, bateu = !r25 || r.valor > r25.valor, dois = !!r25 && bateu;
     cartoes.push({ ...base, id: 'recorde-' + r.id, tipo: 'numero', kicker: dois ? 'RECORDE DOS ÚLTIMOS 2 ANOS' : (bateu ? 'RECORDE DE 2026' : 'MELHOR DE 2026'), numero: fmt(r.valor), titulo: r.titulo.toUpperCase(),
       sub: `${r.unidade} · ${r.detalhe}` + (r25 ? ` · melhor de 2025: ${fmt(r25.valor)} (${r25.detalhe})` : ''), destaque: bateu, valor: r.valor,
       tagTxt: dois ? 'Recorde de 2025 e 2026' : (bateu ? 'Recorde do ano' : 'Abaixo de 2025 — não chame de recorde'), rodape: `Registros do SiGOp até ${ref}`,
@@ -3872,8 +3875,8 @@ function comCartoes(estado) {
   {
     const itens = [['cvpa', 'menos', 'Roubos', 'Roubos'], ['cvpe', 'menos', 'Crimes violentos contra a pessoa', 'Crimes violentos (CVPE)'], ['mv', 'menos', 'Mortes violentas', 'Mortes violentas'], ['furto', 'menos', 'Furtos rurais', 'Furtos rurais'],
       ['drogas', 'mais', 'Porções de droga apreendidas', 'Porções de droga apreendidas'], ['foragidos', 'mais', 'Foragidos capturados', 'Foragidos capturados'], ['veic_recuperados', 'mais', 'Veículos recuperados', 'Veículos recuperados']]
-      .map(([k, favor, rotulo, curto]) => { const s = seloDe(k, favor, rotulo); return s ? { rot: curto, delta: s.grande, a: s.a, b: s.b, linha: s.linha } : null; }).filter(Boolean);
-    if (itens.length >= 2) cartoes.push({ ...base, id: 'balanco-2025', tipo: 'balanco', kicker: periodo === 'mes' ? `${mesNome.toUpperCase()} · 2026 × 2025` : `JANEIRO A ${mesNome.toUpperCase()} · 2026 × 2025`, titulo: 'BALANÇO 2026 × 2025', sub: periodoTxt, destaque: true, valor: itens.length, tagTxt: `Pode publicar · ${itens.length} melhoras`,
+      .map(([k, favor, rotulo, curto]) => { const s = seloDe(k, favor, rotulo); return s ? { rot: curto, delta: s.grande, a: s.a, b: s.b, linha: s.linha, piorou: !!s.piorou } : null; }).filter(Boolean);
+    if (itens.length >= 2) cartoes.push({ ...base, id: 'balanco-2025', tipo: 'balanco', kicker: periodo === 'mes' ? `${mesNome.toUpperCase()} · 2026 × 2025` : `JANEIRO A ${mesNome.toUpperCase()} · 2026 × 2025`, titulo: 'BALANÇO 2026 × 2025', sub: periodoTxt, destaque: !itens.some(i => i.piorou), valor: itens.length, tagTxt: itens.some(i => i.piorou) ? `${itens.filter(i => !i.piorou).length} melhoras e ${itens.filter(i => i.piorou).length} sem melhora — confira antes de publicar` : `Pode publicar · ${itens.length} melhoras`,
       rodape: `Registros do SiGOp até ${ref} · mesmo período de 2025`, itens,
       legenda: `📊 Balanço ${local} ${periodoLeg}, em relação ao mesmo período de 2025:\n${itens.map(i => i.linha).join('\n')}\n\nSegundo os registros do SiGOp até ${ref}. Prevenir e proteger é o nosso compromisso.\n\n${hash}` });
   }
@@ -3924,8 +3927,8 @@ function comDesenhar(canvas, c, f, escala) {
     ctx.font = `700 56px ${COM_FONTE}`; const w1 = ctx.measureText(sl.grande).width;
     ctx.font = `600 20px ${COM_FONTE_TEXTO}`; const ls = comQuebrar(ctx, sl.pequeno.toUpperCase(), 230), w2 = Math.max(...ls.map(l => ctx.measureText(l).width));
     const pw = 28 + w1 + 22 + w2 + 28, px = W - m - pw;
-    ctx.fillStyle = cor.dourado; ctx.fillRect(px, py, pw, ph);
-    ctx.fillStyle = '#0b0a08'; ctx.font = `700 56px ${COM_FONTE}`; comTexto(ctx, sl.grande, px + 28, py + 62, 0);
+    ctx.fillStyle = sl.piorou ? cor.vermelho : cor.dourado; ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = sl.piorou ? cor.creme : '#0b0a08'; ctx.font = `700 56px ${COM_FONTE}`; comTexto(ctx, sl.grande, px + 28, py + 62, 0);
     ctx.font = `600 20px ${COM_FONTE_TEXTO}`; ls.forEach((l, i) => comTexto(ctx, l, px + 28 + w1 + 22, py + (ls.length > 1 ? 34 : 49) + i * 26, 0));
   }
   // corpo
@@ -3950,7 +3953,7 @@ function comDesenhar(canvas, c, f, escala) {
       const y = gy + i * (rh + gap);
       ctx.fillStyle = 'rgba(235,233,223,0.05)'; ctx.fillRect(m, y, maxW, rh); ctx.fillStyle = cor.vermelho; ctx.fillRect(m, y, 8, rh);
       let fd = Math.min(76, rh * 0.62); ctx.font = `700 ${fd}px ${COM_FONTE}`; const wd = ctx.measureText(it.delta).width;
-      ctx.fillStyle = cor.douradoClaro; comTexto(ctx, it.delta, m + maxW - 26, y + rh / 2 + fd * 0.34, 0, 'right');
+      ctx.fillStyle = it.piorou ? '#E0565B' : cor.douradoClaro; comTexto(ctx, it.delta, m + maxW - 26, y + rh / 2 + fd * 0.34, 0, 'right');
       const fl = Math.min(34, rh * 0.30); let fl2 = fl; ctx.font = `700 ${fl2}px ${COM_FONTE_TEXTO}`; while (ctx.measureText(it.rot.toUpperCase()).width > maxW - wd - 90 && fl2 > 16) { fl2 -= 2; ctx.font = `700 ${fl2}px ${COM_FONTE_TEXTO}`; }
       ctx.fillStyle = cor.creme; comTexto(ctx, it.rot.toUpperCase(), m + 30, y + rh / 2 - 4, 1);
       ctx.fillStyle = cor.cinza; ctx.font = `400 ${Math.min(27, rh * 0.23)}px ${COM_FONTE_TEXTO}`; comTexto(ctx, `${fmtBr(it.a, 0)} em 2026 × ${fmtBr(it.b, 0)} em 2025`, m + 30, y + rh / 2 + Math.min(27, rh * 0.23) + 8, 0);
@@ -4015,6 +4018,7 @@ function renderComunicacaoPage() {
   html += `<div class="com-controles"><label>Território <select id="comTerr">${terrs.map(t => `<option value="${t}" ${t === COM_ESTADO.terr ? 'selected' : ''}>${comNomeTerr(t)}</option>`).join('')}</select></label>`;
   html += `<div class="pills-vd" id="comPeriodo" role="group" aria-label="Período"><button type="button" data-p="mes">Mês atual</button><button type="button" data-p="ano">Ano (2026)</button></div>`;
   html += `<label>Mínimo de dias para "dias sem" <input id="comMin" type="number" min="1" max="365" value="${COM_ESTADO.min}"></label>`;
+  html += `<label>Comparar com 2025 <select id="comComp">${[['melhorou', 'Só o que melhorou'], ['todos', 'Tudo, inclusive o que piorou'], ['nao', 'Não comparar']].map(([v, t]) => `<option value="${v}" ${v === (COM_ESTADO.comp || 'melhorou') ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`;
   html += `<label class="com-chk"><input id="comSo" type="checkbox" ${COM_ESTADO.soDestaque ? 'checked' : ''}> Só os que passam do mínimo</label></div>`;
   html += `<div class="com-grade" id="comGrade"><div class="def-box">Montando os cartões…</div></div>`;
   html += `<div class="vd-recorte">Cuidado ao publicar: os números vêm dos registros do SiGOp até a data indicada e podem mudar com lançamentos posteriores. "Dias sem" conta os dias desde o último registro; sem registro no ano, conta desde 1º de janeiro. Motos apreendidas e removidas = produtividade lançada nos RATs da Operação Rolezinho.</div>`;
@@ -4025,6 +4029,7 @@ function renderComunicacaoPage() {
   document.getElementById('comTerr').addEventListener('change', (e) => { COM_ESTADO.terr = e.target.value; salvar(); comMontarCartoes(); });
   document.getElementById('comPeriodo').addEventListener('click', (e) => { const b = e.target.closest('button[data-p]'); if (!b) return; COM_ESTADO.periodo = b.dataset.p; salvar(); marcar(); comMontarCartoes(); });
   document.getElementById('comMin').addEventListener('input', (e) => { COM_ESTADO.min = Math.max(1, parseInt(e.target.value) || 30); salvar(); comMontarCartoes(); });
+  document.getElementById('comComp').addEventListener('change', (e) => { COM_ESTADO.comp = e.target.value; salvar(); comMontarCartoes(); });
   document.getElementById('comSo').addEventListener('change', (e) => { COM_ESTADO.soDestaque = e.target.checked; salvar(); comMontarCartoes(); });
   document.getElementById('comGrade').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
