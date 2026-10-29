@@ -1193,10 +1193,18 @@ def _chave_terr(nome):
     return _sem_acento_up(nome)
 
 
-def _dias_sem(datas, ref, inicio_ano):
-    """dias desde a última ocorrência, maior sequência do ano e se a atual é a maior. Sem ocorrência no ano: conta desde 1º de janeiro."""
+def _dias_sem(datas, ref, inicio_ano, antes=None, inicio_base=None):
+    """dias desde a última ocorrência, maior sequência do ano e se a atual é a maior.
+    Sem ocorrência no ano: se há dados do ano anterior (`antes`), conta desde a última ocorrência de lá; se também não há,
+    conta desde o início da base (`inicio_base`, "no mínimo"); sem base nenhuma, conta desde 1º de janeiro."""
     ds = sorted(set(datas))
     if not ds:
+        if antes is not None and inicio_base is not None:
+            if antes:
+                d = (ref - max(antes)).days
+                return {'dias': d, 'nenhum_no_ano': True, 'maior': d, 'em_andamento': True, 'ultimo_em_2025': True}
+            d = (ref - inicio_base).days + 1
+            return {'dias': d, 'nenhum_no_ano': True, 'maior': d, 'em_andamento': True, 'desde_inicio_base': True}
         d = (ref - inicio_ano).days + 1
         return {'dias': d, 'nenhum_no_ano': True, 'maior': d, 'em_andamento': True}
     pontos = [inicio_ano] + ds + [ref]
@@ -1204,6 +1212,18 @@ def _dias_sem(datas, ref, inicio_ano):
     atual = (ref - ds[-1]).days
     maior = max(lacunas)
     return {'dias': atual, 'nenhum_no_ano': False, 'maior': maior, 'em_andamento': atual >= maior}
+
+
+def _ler_reds_2025():
+    """B.O. (REDS) do ano anterior, da pasta entrada/2025 (mesmo formato do TODOS OS B.O). Sem o arquivo, a Comunicação usa só o ano corrente."""
+    for f in sorted(glob.glob(os.path.join(BASE, '2025', '*.csv')), key=os.path.getmtime, reverse=True):
+        try:
+            rows = read_csv(f, encoding='utf-8')
+        except UnicodeDecodeError:
+            continue
+        if rows and 'NUMERO_REDS' in rows[0] and 'IMV_TOTAL' in rows[0]:
+            return f, rows
+    return None, None
 
 
 def run_comunicacao(data, rows_bo, report):
@@ -1218,6 +1238,20 @@ def run_comunicacao(data, rows_bo, report):
         except ValueError:
             return None
 
+    # B.O. de 2025: dias sem atravessando a virada do ano e comparativo de crimes no mesmo período (só contagens por cidade)
+    f25, rows25 = _ler_reds_2025()
+    INICIO_BASE = datetime.date(hoje.year - 1, 1, 1)
+    COL25 = {'mv': 'IMV_TOTAL', 'cvpa': 'ICVPA_TOTAL', 'cvpe': 'ICVPE_TOTAL'}
+    datas25 = {k: {t: [] for t in terr} for k in COL25}
+    if rows25 is not None:
+        for r in rows25:
+            t = _chave_terr(r.get('MUNICIPIO'))
+            d = dia(r.get('DATA_FATO'))
+            if t in datas25['mv'] and d:
+                for k, col in COL25.items():
+                    if int(_num(r.get(col))) > 0:
+                        datas25[k][t].append(d)
+
     # 1) dias sem morte violenta / roubo (CVPa) / CVPE, por cidade e para o Batalhão (a partir das listas restritas já montadas)
     ds = {}
     for chave in ('mv', 'cvpa', 'cvpe'):
@@ -1229,9 +1263,32 @@ def run_comunicacao(data, rows_bo, report):
                 d = dia(o.get('d'))
                 if d and t in por:
                     por[t].append(d)
-        ds[chave] = {t: _dias_sem(v, hoje, inicio) for t, v in por.items()}
-        ds[chave]['BATALHAO'] = _dias_sem([d for v in por.values() for d in v], hoje, inicio)
+        a25 = (lambda t: datas25[chave][t]) if rows25 is not None else (lambda t: None)
+        ds[chave] = {t: _dias_sem(v, hoje, inicio, a25(t), INICIO_BASE) for t, v in por.items()}
+        ds[chave]['BATALHAO'] = _dias_sem([d for v in por.values() for d in v], hoje, inicio,
+                                          [d for t in terr for d in datas25[chave][t]] if rows25 is not None else None, INICIO_BASE)
     saida['dias_sem'] = ds
+
+    # 1b) comparativo de crimes: 2026 contra o MESMO PERÍODO de 2025 (corte no mesmo dia e mês do último fato de 2026)
+    if rows25 is not None:
+        fatos = [x for x in (dia(r.get('DATA_FATO')) for r in rows_bo) if x]
+        if fatos:
+            ult_fato = max(fatos)
+            corte = datetime.date(ult_fato.year - 1, ult_fato.month, ult_fato.day)
+            comp = {'ate': corte.isoformat(), 'ate_2026': ult_fato.isoformat()}
+            for k, col in (('mv', 'IMV_TOTAL'), ('cvpe', 'ICVPE_TOTAL'), ('cvpa', 'ICVPA_TOTAL'), ('furto', 'IFZR')):
+                c = {t: {'ano': 0, 'mes': 0} for t in terr}
+                for r in rows25:
+                    t, d = _chave_terr(r.get('MUNICIPIO')), dia(r.get('DATA_FATO'))
+                    if t not in c or not d or d > corte:
+                        continue
+                    v = (1 if str(r.get(col) or '0').strip() not in ('', '0') else 0) if k == 'furto' else int(_num(r.get(col)))
+                    c[t]['ano'] += v
+                    if d.month == corte.month:
+                        c[t]['mes'] += v
+                c['BATALHAO'] = {'ano': sum(c[t]['ano'] for t in terr), 'mes': sum(c[t]['mes'] for t in terr)}
+                comp[k] = c
+            saida['comparativo_2025'] = comp
 
     # 2) presos (QTDE_PRISAO dos REDS) por cidade e mês
     pres = {t: [0] * N_MESES for t in terr}
@@ -1421,7 +1478,7 @@ def run_comunicacao(data, rows_bo, report):
                 rec.append({'id': rid, 'titulo': titulo_r, 'valor': v, 'unidade': unid, 'detalhe': meses[i].capitalize() + (' (em andamento)' if i == ult else '')})
     saida['recordes'] = rec
     data['comunicacao'] = saida
-    report['comunicacao'] = {'dias_sem_mv_batalhao': mv_b['dias'], 'recordes': len(rec), 'presos_ano': sum(pres['BATALHAO']), 'rolezinho': rol is not None}
+    report['comunicacao'] = {'base_2025': (os.path.basename(f25) if f25 else None), 'dias_sem_mv_batalhao': mv_b['dias'], 'recordes': len(rec), 'presos_ano': sum(pres['BATALHAO']), 'rolezinho': rol is not None}
 
 
 

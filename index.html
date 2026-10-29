@@ -3790,11 +3790,32 @@ function comCartoes(estado) {
    ['cvpe', 'HÁ', 'DIAS SEM CRIMES VIOLENTOS CONTRA A PESSOA', 'crimes violentos contra a pessoa', 'Tentativas de homicídio, sequestro, tortura e feminicídio tentado']].forEach(([k, kicker, titulo, descr, nota]) => {
     const d = ((C.dias_sem || {})[k] || {})[terr]; if (!d) return;
     const destaque = d.dias >= min;
-    const sub = d.nenhum_no_ano ? 'Nenhum registro em 2026' : (d.em_andamento ? 'Maior sequência do ano' : `Maior sequência do ano: ${fmt(d.maior)} dias`);
+    const semReg = d.desde_inicio_base ? 'Nenhum registro desde jan/2025 (no mínimo)' : (d.ultimo_em_2025 ? 'Nenhum registro em 2026 · o último foi em 2025' : 'Nenhum registro em 2026');
+    const sub = d.nenhum_no_ano ? semReg : (d.em_andamento ? 'Maior sequência do ano' : `Maior sequência do ano: ${fmt(d.maior)} dias`);
     cartoes.push({ ...base, id: 'dias-' + k, tipo: 'numero', kicker, numero: fmt(d.dias), titulo, sub, nota, destaque, valor: d.dias,
       tagTxt: destaque ? `Pode publicar · ${fmt(d.dias)} dias` : `Abaixo de ${min} dias (${fmt(d.dias)})`, rodape: `Registros do SiGOp até ${ref}`,
-      legenda: `🛡️ ${fmt(d.dias)} dias sem ${descr} ${local}.${d.nenhum_no_ano ? ' Nenhum registro em 2026.' : (d.em_andamento ? ' É a maior sequência do ano.' : '')}\n\nSegundo os registros do SiGOp até ${ref}. O 70º BPM segue presente, todos os dias, para proteger quem vive aqui.\n\n${hash}` });
+      legenda: `🛡️ ${fmt(d.dias)} dias sem ${descr} ${local}.${d.nenhum_no_ano ? (d.desde_inicio_base ? ' Nenhum registro desde janeiro de 2025 (no mínimo).' : (d.ultimo_em_2025 ? ' Nenhum registro em 2026; o último foi em 2025.' : ' Nenhum registro em 2026.')) : (d.em_andamento ? ' É a maior sequência do ano.' : '')}\n\nSegundo os registros do SiGOp até ${ref}. O 70º BPM segue presente, todos os dias, para proteger quem vive aqui.\n\n${hash}` });
   });
+  // 1b) crimes contra o MESMO PERÍODO de 2025 (corte no mesmo dia e mês do último fato de 2026; só o que melhorou fica em destaque)
+  const CP = C.comparativo_2025;
+  if (CP) {
+    const serie26 = (k) => { const m = DATA[k]; if (!m) return null; if (terr === 'BATALHAO') return m.total_mes; const x = (m.municipios || []).find(y => normMun(y.nome) === terr); return x ? x.realizado_mes : null; };
+    const ateTxt = comDataBr(CP.ate_2026).slice(0, 5);
+    const cmp = periodo === 'mes' ? `${mesNome}/2026 contra ${mesNome}/2025 · até ${ateTxt}` : `Janeiro a ${mesNome} de 2026 contra 2025 · até ${ateTxt}`;
+    [['mv', 'MORTES VIOLENTAS', 'mortes violentas (MV)'], ['cvpe', 'CRIMES VIOLENTOS CONTRA A PESSOA', 'crimes violentos contra a pessoa (CVPE)'],
+     ['cvpa', 'ROUBOS', 'roubos (CVPa)'], ['furto', 'FURTOS RURAIS', 'furtos rurais']].forEach(([k, tit, descr]) => {
+      const a = comSerieValor(serie26(k), periodo), b = ((CP[k] || {})[terr] || {})[periodo === 'mes' ? 'mes' : 'ano'];
+      if (a === null || a === undefined || b === null || b === undefined || (a === 0 && b === 0)) return;
+      const dif = a - b, melhorou = dif < 0, pct = b > 0 ? Math.abs(dif) / b * 100 : null, sinal = dif < 0 ? '−' : (dif > 0 ? '+' : '');
+      const grande = b >= 10 ? `${sinal}${fmt(pct)}%` : `${sinal}${fmt(Math.abs(dif))}`;
+      const titulo = melhorou ? (b >= 10 ? `REDUÇÃO DE ${tit}` : `MENOS ${tit}`) : `${tit} NO MESMO PERÍODO DE 2025`;
+      cartoes.push({ ...base, id: 'comp-' + k, tipo: 'numero', kicker: 'EM RELAÇÃO A 2025', numero: grande, titulo, sub: `${fmt(a)} em 2026 contra ${fmt(b)} em 2025 · ${cmp}`, destaque: melhorou, valor: Math.abs(dif),
+        tagTxt: melhorou ? `Pode publicar · ${grande}` : 'Não melhorou — evite divulgar', rodape: `Registros do SiGOp até ${ref}`,
+        legenda: melhorou
+          ? `📉 ${descr.charAt(0).toUpperCase() + descr.slice(1)} ${local}: ${fmt(a)} casos ${periodoLeg} contra ${fmt(b)} no mesmo período de 2025${b >= 10 ? ` — redução de ${fmt(pct)}%` : ''}.\n\nSegundo os registros do SiGOp até ${ref}. Prevenir e proteger é o nosso compromisso.\n\n${hash}`
+          : `📊 ${descr.charAt(0).toUpperCase() + descr.slice(1)} ${local}: ${fmt(a)} casos ${periodoLeg} e ${fmt(b)} no mesmo período de 2025.\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` });
+    });
+  }
   // 2) balanço do período
   const num = (bloco) => comSerieValor(comSerieDe(terr, bloco), periodo);
   const pres = num('presos'), armas = num('armas'), ops = num('ops'), motos = num('motos'), rol = num('rolezinho');
@@ -3831,9 +3852,9 @@ function comCartoes(estado) {
     cartoes.push({ ...base, id: 'recorde-' + r.id, tipo: 'numero', kicker: 'RECORDE DE 2026', numero: fmt(r.valor), titulo: r.titulo.toUpperCase(), sub: `${r.unidade} · ${r.detalhe}`, destaque: true, valor: r.valor, tagTxt: 'Recorde do ano', rodape: `Registros do SiGOp até ${ref}`,
       legenda: `🏆 Recorde de 2026 no 70º BPM: ${r.titulo.toLowerCase()} — ${fmt(r.valor)} ${r.unidade} (${r.detalhe}).\n\nSegundo os registros do SiGOp até ${ref}.\n\n${hash}` });
   });
-  const GRUPO_DE = (id) => (id.startsWith('dias-') ? 'Dias sem ocorrência' : (id.startsWith('recorde-') ? 'Recordes de 2026'
+  const GRUPO_DE = (id) => (id.startsWith('dias-') ? 'Dias sem ocorrência' : (id.startsWith('comp-') ? 'Comparativo com 2025' : (id.startsWith('recorde-') ? 'Recordes de 2026'
     : (['presos', 'armas', 'rolezinho', 'veic_recuperados', 'veic_retirados', 'drogas', 'foragidos'].includes(id) ? 'Resultados e apreensões'
-    : (['visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].includes(id) ? 'Proximidade e prevenção' : 'Policiamento e abordagem'))));
+    : (['visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].includes(id) ? 'Proximidade e prevenção' : 'Policiamento e abordagem')))));
   cartoes.forEach(c => { c.grupo = GRUPO_DE(c.id); });
   return cartoes;
 }
@@ -3927,7 +3948,7 @@ async function comMontarCartoes() {
   COM_CARTOES = comCartoes(COM_ESTADO);
   const lista = COM_CARTOES.map((c, i) => ({ c, i })).filter(x => !COM_ESTADO.soDestaque || x.c.destaque);
   const box = document.getElementById('comGrade'); if (!box) return;
-  const ORDEM = ['Dias sem ocorrência', 'Resultados e apreensões', 'Policiamento e abordagem', 'Proximidade e prevenção', 'Recordes de 2026'];
+  const ORDEM = ['Dias sem ocorrência', 'Comparativo com 2025', 'Resultados e apreensões', 'Policiamento e abordagem', 'Proximidade e prevenção', 'Recordes de 2026'];
   const cartaoHtml = ({ c, i }) => `<div class="com-card${c.destaque ? '' : ' dim'}" data-card="${i}"><canvas aria-label="${msgEsc(c.kicker + ' ' + c.numero + ' ' + c.titulo)}"></canvas>
       <div class="com-tag ${c.destaque ? 'ok' : ''}">${msgEsc(c.tagTxt)}</div>
       <div class="com-acoes"><button type="button" data-baixar="${i}" data-f="feed">Feed 4:5</button><button type="button" data-baixar="${i}" data-f="quadrado">Quadrado</button><button type="button" data-baixar="${i}" data-f="stories">Stories</button><button type="button" data-leg="${i}">Copiar legenda</button></div></div>`;

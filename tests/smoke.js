@@ -2189,7 +2189,7 @@ function auditar() {
       out.batalhao = { n: cards.length, titulo: /Comunicação organizacional/i.test(document.querySelector('.page-title').textContent), controles: !!document.getElementById('comTerr') && !!document.getElementById('comMin') && document.querySelectorAll('#comPeriodo button').length === 2,
         recordes: COM_CARTOES.filter(c => c.id.startsWith('recorde-')).length >= 5, dias: COM_CARTOES.filter(c => c.id.startsWith('dias-')).length === 3, balanco: ['presos', 'armas', 'ops', 'motos', 'rolezinho', 'resumo'].every(id => COM_CARTOES.some(c => c.id === id)),
         novos: ['veic_recuperados', 'veic_retirados', 'drogas', 'foragidos', 'pessoas_abordadas', 'veic_fiscalizados', 'locais_fiscalizados', 'horas_policiamento', 'ocorrencias', 'visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].every(id => COM_CARTOES.some(c => c.id === id)),
-        grupos: document.querySelectorAll('#comGrade h3.com-grupo').length === 5 };
+        grupos: document.querySelectorAll('#comGrade h3.com-grupo').length === 6 };
       const cv = cards[0].querySelector('canvas'), px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
       let claros = 0; for (let i = 0; i < px.length; i += 4) if (px[i] > 200 && px[i + 1] > 200 && px[i + 2] > 190) claros++;
       out.arte = { desenhada: claros > 500, dims: cv.width === 432 && cv.height === 540 };
@@ -2215,7 +2215,7 @@ function auditar() {
     });
     checa(Object.values(r.dados).every(Boolean), 'dados de comunicação: dias sem (3 indicadores × 14 territórios), presos, motos do Rolezinho e recordes — só números, sem REDS nem data de ocorrência', 'dados: ' + JSON.stringify(r.dados));
     checa(r.nav && r.batalhao.n >= 12 && r.batalhao.titulo && r.batalhao.controles, `página Comunicação na Visão geral, com ${r.batalhao.n} cartões e os controles (território, período, mínimo de dias)`, 'página: ' + JSON.stringify([r.nav, r.batalhao]));
-    checa(r.batalhao.novos && r.batalhao.grupos, 'cartões novos (veículos recuperados e retirados, droga, foragidos, abordagens, fiscalizações, horas, ocorrências, visitas, reuniões, egressos) em 5 grupos', 'novos cartões: ' + JSON.stringify(r.batalhao));
+    checa(r.batalhao.novos && r.batalhao.grupos, 'cartões novos (veículos recuperados e retirados, droga, foragidos, abordagens, fiscalizações, horas, ocorrências, visitas, reuniões, egressos) em 6 grupos', 'novos cartões: ' + JSON.stringify(r.batalhao));
     checa(r.batalhao.recordes && r.batalhao.dias && r.batalhao.balanco, 'cartões: dias sem (morte violenta, roubo, CVPE), balanço (presos, armas, operações, motos, Rolezinho, resumo) e recordes do ano', 'cartões: ' + JSON.stringify(r.batalhao));
     checa(r.arte.desenhada && r.arte.dims && r.formatos === '1080,1350,true|1080,1080,true|1080,1920,true', 'arte desenhada de verdade e exportável em Feed 4:5, Quadrado e Stories (1080 px de largura, PNG)', 'arte: ' + JSON.stringify([r.arte, r.formatos]));
     checa(r.legenda.numero && r.legenda.texto, 'legenda pronta com o número, a data dos registros do SiGOp e as hashtags', 'legenda: ' + JSON.stringify(r.legenda));
@@ -2270,6 +2270,56 @@ function auditar() {
     checa(r.largura, 'Rolezinho no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
     checa(errosR.length === 0, 'Rolezinho sem erro de JavaScript', 'erros: ' + errosR.slice(0, 3).join(' | '));
     await ctxR.close();
+  }
+
+  // ---------- 49) Comunicação × 2025: dias sem atravessando a virada do ano e comparativo de crimes no mesmo período ----------
+  console.log('\n[49] Comunicação × 2025');
+  {
+    const ctxA = await novoContexto(browser, { viewport: { width: 390, height: 900 } });
+    const pa = await ctxA.newPage();
+    const errosA = []; pa.on('pageerror', (e) => errosA.push(e.message));
+    await pa.goto(base);
+    await pa.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pa.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, C = DATA.comunicacao, CP = C.comparativo_2025, terrs = Object.keys(C.dias_sem.mv), KS = ['mv', 'cvpe', 'cvpa', 'furto'];
+      try { localStorage.removeItem('comEstado'); } catch (e) {}
+      out.dados = { terr: KS.every(k => Object.keys(CP[k]).length === 14), anoMes: KS.every(k => Object.values(CP[k]).every(v => v.ano >= v.mes && v.mes >= 0)),
+        soma: KS.every(k => terrs.filter(t => t !== 'BATALHAO').reduce((a, t) => a + CP[k][t].ano, 0) === CP[k].BATALHAO.ano), corte: /^2025-\d\d-\d\d$/.test(CP.ate) && CP.ate.slice(5) === CP.ate_2026.slice(5),
+        semRegistro: !/\d{4}-\d{9}-\d{3}/.test(JSON.stringify(CP)),
+        diasSem: ['mv', 'cvpa', 'cvpe'].every(k => terrs.every(t => { const v = C.dias_sem[k][t]; return v.maior >= v.dias && (!v.nenhum_no_ano || v.ultimo_em_2025 || v.desde_inicio_base); })) };
+      goToPage('comunicacao'); await esp(1200);
+      document.querySelector('#comPeriodo button[data-p="ano"]').click(); await esp(700);
+      const serie26 = (k, t) => t === 'BATALHAO' ? DATA[k].total_mes : DATA[k].municipios.find(m => normMun(m.nome) === t).realizado_mes;
+      const soma26 = (k, t) => serie26(k, t).slice(0, Math.min(MES_ATUAL_IDX, 11) + 1).reduce((a, b) => a + b, 0);
+      const comps = COM_CARTOES.filter(c => c.id.startsWith('comp-'));
+      out.cartoes = { n: comps.length >= 3, grupo: [...document.querySelectorAll('#comGrade .com-grupo')].some(h => /Comparativo com 2025/.test(h.textContent)),
+        regra: comps.every(c => { const k = c.id.slice(5), a = soma26(k, 'BATALHAO'), b = CP[k].BATALHAO.ano; return c.destaque === (a < b); }),
+        numero: comps.every(c => { const k = c.id.slice(5), a = soma26(k, 'BATALHAO'), b = CP[k].BATALHAO.ano, esperado = a === b ? '0%' : ((a < b ? '−' : '+') + fmtBr(b >= 10 ? Math.abs(a - b) / b * 100 : Math.abs(a - b), 0) + (b >= 10 ? '%' : '')); return c.numero === esperado; }),
+        piorouDim: comps.filter(c => !c.destaque).every(c => /Não melhorou/.test(c.tagTxt)), legenda: comps.every(c => /SiGOp/.test(c.legenda) && /#PMMG/.test(c.legenda)) };
+      // cidade que não teve crime em 2026: a contagem de dias vem de 2025
+      const alvo = ['mv', 'cvpa', 'cvpe'].map(k => terrs.filter(t => C.dias_sem[k][t].ultimo_em_2025).map(t => [k, t])[0]).filter(Boolean)[0];
+      const base0 = ['mv', 'cvpa', 'cvpe'].map(k => terrs.filter(t => C.dias_sem[k][t].desde_inicio_base).map(t => [k, t])[0]).filter(Boolean)[0];
+      const sel = document.getElementById('comTerr');
+      if (alvo) { sel.value = alvo[1]; sel.dispatchEvent(new Event('change')); await esp(600); const c = COM_CARTOES.find(x => x.id === 'dias-' + alvo[0]); out.ultimo25 = { numero: c.numero === fmtBr(C.dias_sem[alvo[0]][alvo[1]].dias, 0), sub: /o último foi em 2025/.test(c.sub), legenda: /o último foi em 2025/.test(c.legenda) }; }
+      if (base0) { sel.value = base0[1]; sel.dispatchEvent(new Event('change')); await esp(600); const c = COM_CARTOES.find(x => x.id === 'dias-' + base0[0]); out.base = { sub: /desde jan\/2025 \(no mínimo\)/.test(c.sub), legenda: /desde janeiro de 2025/.test(c.legenda) }; }
+      sel.value = 'ARACUAI'; sel.dispatchEvent(new Event('change')); await esp(600);
+      const ca = COM_CARTOES.filter(c => c.id.startsWith('comp-')), mv = ca.find(c => c.id === 'comp-mv');
+      out.cidade = { cartoes: ca.length >= 1, numero: !mv || /^[−+]?\d/.test(mv.numero), tudoAracuai: ca.every(c => c.terr === 'ARAÇUAÍ') };
+      document.querySelector('#comPeriodo button[data-p="mes"]').click(); await esp(600);
+      out.mes = COM_CARTOES.filter(c => c.id.startsWith('comp-')).every(c => /contra/.test(c.sub));
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(Object.values(r.dados).every(Boolean), 'dados × 2025: comparativo de MV/CVPE/CVPa/Furto por 14 territórios, soma do Batalhão, corte no mesmo dia e mês, sem REDS; dias sem coerentes', 'dados: ' + JSON.stringify(r.dados));
+    checa(r.cartoes.n && r.cartoes.grupo && r.cartoes.regra && r.cartoes.numero, 'cartões "em relação a 2025": só o que melhorou fica em destaque e o número (% ou diferença) confere com o painel', 'cartões: ' + JSON.stringify(r.cartoes));
+    checa(r.cartoes.piorouDim && r.cartoes.legenda, 'cartão que não melhorou avisa "evite divulgar"; legendas com a fonte e as hashtags', 'cartões: ' + JSON.stringify(r.cartoes));
+    checa(!r.ultimo25 || Object.values(r.ultimo25).every(Boolean), 'dias sem de cidade sem ocorrência em 2026 contam desde o último caso de 2025 e dizem isso', 'último 2025: ' + JSON.stringify(r.ultimo25));
+    checa(!r.base || Object.values(r.base).every(Boolean), 'cidade sem ocorrência nos dois anos mostra "no mínimo" desde jan/2025', 'base: ' + JSON.stringify(r.base));
+    checa(r.cidade.cartoes && r.cidade.numero && r.cidade.tudoAracuai && r.mes, 'comparativo por cidade e por mês (mês atual contra o mesmo mês de 2025)', 'cidade/mês: ' + JSON.stringify([r.cidade, r.mes]));
+    checa(r.largura, 'Comunicação × 2025 no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosA.length === 0, 'Comunicação × 2025 sem erro de JavaScript', 'erros: ' + errosA.slice(0, 3).join(' | '));
+    await ctxA.close();
   }
 
   await browser.close();
