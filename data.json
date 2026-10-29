@@ -4553,7 +4553,7 @@
           30,
           30,
           32,
-          24,
+          27,
           0,
           0
         ],
@@ -4581,9 +4581,9 @@
           190,
           220,
           252,
-          276,
-          276,
-          276
+          279,
+          279,
+          279
         ],
         "meta_acum": [
           20,
@@ -4671,7 +4671,7 @@
           29,
           31,
           30,
-          26,
+          28,
           0,
           0
         ],
@@ -4699,9 +4699,9 @@
           183,
           214,
           244,
-          270,
-          270,
-          270
+          272,
+          272,
+          272
         ],
         "meta_acum": [
           17,
@@ -5025,7 +5025,7 @@
           32,
           32,
           32,
-          27,
+          29,
           0,
           0
         ],
@@ -5053,9 +5053,9 @@
           239,
           271,
           303,
-          330,
-          330,
-          330
+          332,
+          332,
+          332
         ],
         "meta_acum": [
           40,
@@ -5084,7 +5084,7 @@
           33,
           31,
           31,
-          33,
+          34,
           0,
           0
         ],
@@ -5112,9 +5112,9 @@
           243,
           274,
           305,
-          338,
-          338,
-          338
+          339,
+          339,
+          339
         ],
         "meta_acum": [
           40,
@@ -5143,7 +5143,7 @@
           41,
           37,
           42,
-          21,
+          24,
           0,
           0
         ],
@@ -5171,9 +5171,9 @@
           327,
           364,
           406,
-          427,
-          427,
-          427
+          430,
+          430,
+          430
         ],
         "meta_acum": [
           52,
@@ -5202,7 +5202,7 @@
           30,
           27,
           30,
-          28,
+          29,
           0,
           0
         ],
@@ -5230,9 +5230,9 @@
           186,
           213,
           243,
-          271,
-          271,
-          271
+          272,
+          272,
+          272
         ],
         "meta_acum": [
           17,
@@ -5319,7 +5319,7 @@
       442,
       433,
       438,
-      390,
+      402,
       0,
       0
     ],
@@ -5347,9 +5347,9 @@
       3263,
       3696,
       4134,
-      4524,
-      4524,
-      4524
+      4536,
+      4536,
+      4536
     ],
     "total_meta_acum": [
       478,
@@ -5370,7 +5370,7 @@
   "pog_bairros": [
     [
       "CENTRO",
-      1859
+      1860
     ],
     [
       "(sem bairro)",
@@ -5378,19 +5378,19 @@
     ],
     [
       "BELA VISTA",
-      152
+      153
+    ],
+    [
+      "VILA VIEIRA",
+      106
     ],
     [
       "ALTO MERCADO",
       105
     ],
     [
-      "VILA VIEIRA",
-      105
-    ],
-    [
       "PLANALTO",
-      90
+      91
     ],
     [
       "GREBETHANIA",
@@ -5426,29 +5426,29 @@
     ],
     [
       "POVOADO AGUAS ALTAS",
-      51
+      52
     ],
     [
       "OUTROS BAIRROS",
-      1354
+      1361
     ]
   ],
   "pog_natureza": [
     [
       "OPERACAO PRESENCA",
-      2167
+      2169
     ],
     [
       "OPERACAO DE BATIDA POLICIAL",
-      1585
+      1593
     ],
     [
       "OPERACAO TRANSITO SEGURO",
-      418
+      419
     ],
     [
       "OPERACAO DE INCURSAO EM ZONA QUENTE DE CRIMINALIDADE",
-      316
+      317
     ],
     [
       "CUMPRIMENTO DE BUSCA E APREENSAO DE OBJETOS, PES ..",
@@ -7762,7 +7762,7 @@
             4,
             5,
             5,
-            0,
+            1,
             0,
             0
           ],
@@ -7790,9 +7790,9 @@
             23,
             28,
             33,
-            33,
-            33,
-            33
+            34,
+            34,
+            34
           ],
           "meta_acum": [
             7,
@@ -7938,7 +7938,7 @@
         25,
         32,
         34,
-        24,
+        25,
         0,
         0
       ],
@@ -7966,9 +7966,9 @@
         219,
         251,
         285,
-        309,
-        309,
-        309
+        310,
+        310,
+        310
       ],
       "total_meta_acum": [
         35,
@@ -8130,7 +8130,7 @@
           78,
           93,
           72,
-          65,
+          68,
           0,
           0
         ],
@@ -8186,9 +8186,9 @@
           222,
           315,
           387,
-          452,
-          452,
-          452
+          455,
+          455,
+          455
         ],
         "mv_acum": [
           0,
@@ -8820,7 +8820,7 @@
           10,
           11,
           7,
-          9,
+          10,
           0,
           0
         ],
@@ -8876,9 +8876,9 @@
           62,
           73,
           80,
-          89,
-          89,
-          89
+          90,
+          90,
+          90
         ],
         "mv_acum": [
           0,
@@ -8935,7 +8935,7 @@
           22,
           19,
           13,
-          8,
+          9,
           0,
           0
         ],
@@ -8991,9 +8991,9 @@
           174,
           193,
           206,
-          214,
-          214,
-          214
+          215,
+          215,
+          215
         ],
         "mv_acum": [
           0,
@@ -9509,7 +9509,7 @@
       267,
       308,
       248,
-      178,
+      183,
       0,
       0
     ],
@@ -9523,9 +9523,9 @@
       1457,
       1765,
       2013,
-      2191,
-      2191,
-      2191
+      2196,
+      2196,
+      2196
     ],
     "total_mv_acum": [
       0,
@@ -10542,7 +10542,7 @@
           11,
           7,
           1,
-          8,
+          9,
           0,
           0
         ],
@@ -10570,9 +10570,9 @@
           57,
           64,
           65,
-          73,
-          73,
-          73
+          74,
+          74,
+          74
         ],
         "vit_acum": [
           0,
@@ -11014,7 +11014,7 @@
           2,
           2,
           0,
-          2,
+          3,
           0,
           0
         ],
@@ -11042,9 +11042,9 @@
           11,
           13,
           13,
-          15,
-          15,
-          15
+          16,
+          16,
+          16
         ],
         "vit_acum": [
           0,
@@ -11249,7 +11249,7 @@
       37,
       29,
       25,
-      34,
+      36,
       0,
       0
     ],
@@ -11263,9 +11263,9 @@
       190,
       219,
       244,
-      278,
-      278,
-      278
+      280,
+      280,
+      280
     ],
     "total_vit_mes": [
       1,
@@ -11370,7 +11370,7 @@
           69,
           96,
           76,
-          66,
+          68,
           0,
           0
         ],
@@ -11398,9 +11398,9 @@
           195,
           291,
           367,
-          433,
-          433,
-          433
+          435,
+          435,
+          435
         ],
         "meta_acum": [
           15,
@@ -11547,7 +11547,7 @@
           18,
           21,
           20,
-          19,
+          20,
           0,
           0
         ],
@@ -11575,9 +11575,9 @@
           111,
           132,
           152,
-          171,
-          171,
-          171
+          172,
+          172,
+          172
         ],
         "meta_acum": [
           4,
@@ -11665,7 +11665,7 @@
           50,
           65,
           51,
-          46,
+          47,
           0,
           0
         ],
@@ -11693,9 +11693,9 @@
           192,
           257,
           308,
-          354,
-          354,
-          354
+          355,
+          355,
+          355
         ],
         "meta_acum": [
           15,
@@ -11724,7 +11724,7 @@
           25,
           24,
           29,
-          37,
+          40,
           0,
           0
         ],
@@ -11752,9 +11752,9 @@
           138,
           162,
           191,
-          228,
-          228,
-          228
+          231,
+          231,
+          231
         ],
         "meta_acum": [
           8,
@@ -11901,7 +11901,7 @@
           23,
           17,
           12,
-          20,
+          22,
           0,
           0
         ],
@@ -11929,9 +11929,9 @@
           174,
           191,
           203,
-          223,
-          223,
-          223
+          225,
+          225,
+          225
         ],
         "meta_acum": [
           15,
@@ -12077,7 +12077,7 @@
       284,
       333,
       299,
-      288,
+      297,
       0,
       0
     ],
@@ -12105,9 +12105,9 @@
       1405,
       1738,
       2037,
-      2325,
-      2325,
-      2325
+      2334,
+      2334,
+      2334
     ],
     "total_meta_acum": [
       101,
@@ -18985,9 +18985,9 @@
         1191,
         1037,
         1271,
-        1353,
+        1354,
         1233,
-        1272,
+        1314,
         0,
         0
       ],
@@ -19001,7 +19001,7 @@
         187,
         204,
         213,
-        233,
+        240,
         0,
         0
       ],
@@ -19043,7 +19043,7 @@
         185,
         201,
         179,
-        173,
+        182,
         0,
         0
       ],
@@ -19057,7 +19057,7 @@
         62,
         73,
         77,
-        95,
+        97,
         0,
         0
       ],
@@ -19216,9 +19216,9 @@
           326,
           275,
           313,
-          333,
+          334,
           285,
-          292,
+          303,
           0,
           0
         ],
@@ -19232,7 +19232,7 @@
           34,
           44,
           43,
-          45,
+          47,
           0,
           0
         ],
@@ -19274,7 +19274,7 @@
           38,
           41,
           33,
-          47,
+          49,
           0,
           0
         ],
@@ -19563,7 +19563,7 @@
           48,
           54,
           45,
-          53,
+          57,
           0,
           0
         ],
@@ -19678,7 +19678,7 @@
           45,
           48,
           41,
-          54,
+          55,
           0,
           0
         ],
@@ -19793,7 +19793,7 @@
           174,
           151,
           185,
-          179,
+          185,
           0,
           0
         ],
@@ -19807,7 +19807,7 @@
           31,
           22,
           38,
-          29,
+          30,
           0,
           0
         ],
@@ -19849,7 +19849,7 @@
           32,
           29,
           27,
-          22,
+          25,
           0,
           0
         ],
@@ -19863,7 +19863,7 @@
           10,
           13,
           23,
-          13,
+          14,
           0,
           0
         ],
@@ -19908,7 +19908,7 @@
           89,
           113,
           84,
-          77,
+          78,
           0,
           0
         ],
@@ -20023,7 +20023,7 @@
           131,
           148,
           105,
-          160,
+          164,
           0,
           0
         ],
@@ -20037,7 +20037,7 @@
           21,
           26,
           17,
-          22,
+          24,
           0,
           0
         ],
@@ -20079,7 +20079,7 @@
           29,
           30,
           29,
-          25,
+          26,
           0,
           0
         ],
@@ -20093,7 +20093,7 @@
           10,
           10,
           7,
-          12,
+          13,
           0,
           0
         ],
@@ -20138,7 +20138,7 @@
           97,
           114,
           99,
-          88,
+          92,
           0,
           0
         ],
@@ -20152,7 +20152,7 @@
           13,
           17,
           13,
-          12,
+          13,
           0,
           0
         ],
@@ -20194,7 +20194,7 @@
           10,
           14,
           4,
-          9,
+          11,
           0,
           0
         ],
@@ -20253,7 +20253,7 @@
           166,
           143,
           150,
-          165,
+          170,
           0,
           0
         ],
@@ -20267,7 +20267,7 @@
           29,
           23,
           27,
-          44,
+          45,
           0,
           0
         ],
@@ -20309,7 +20309,7 @@
           27,
           28,
           33,
-          26,
+          27,
           0,
           0
         ],
@@ -20368,7 +20368,7 @@
           42,
           47,
           48,
-          48,
+          50,
           0,
           0
         ],
@@ -20483,7 +20483,7 @@
           41,
           81,
           68,
-          47,
+          51,
           0,
           0
         ],
@@ -20620,7 +20620,7 @@
           69,
           96,
           76,
-          66,
+          68,
           0,
           0
         ],
@@ -20634,7 +20634,7 @@
           165,
           242,
           183,
-          156,
+          160,
           0,
           0
         ],
@@ -20648,7 +20648,7 @@
           88,
           123,
           103,
-          88,
+          90,
           0,
           0
         ],
@@ -20662,7 +20662,7 @@
           11,
           22,
           2,
-          2,
+          3,
           0,
           0
         ],
@@ -20676,7 +20676,7 @@
           678,
           1024,
           730,
-          618,
+          640,
           0,
           0
         ],
@@ -20690,7 +20690,7 @@
           380,
           376,
           258,
-          245,
+          257,
           0,
           0
         ],
@@ -20704,7 +20704,7 @@
           73,
           118,
           48,
-          36,
+          39,
           0,
           0
         ],
@@ -20732,7 +20732,7 @@
           31,
           77,
           14,
-          21,
+          23,
           0,
           0
         ],
@@ -20746,7 +20746,7 @@
           16,
           20,
           2,
-          5,
+          6,
           0,
           0
         ],
@@ -20760,7 +20760,7 @@
           11,
           29,
           3,
-          24,
+          26,
           0,
           0
         ],
@@ -20774,7 +20774,7 @@
           40,
           34,
           30,
-          33,
+          34,
           0,
           0
         ]
@@ -20791,7 +20791,7 @@
           50,
           65,
           51,
-          46,
+          47,
           0,
           0
         ],
@@ -20805,7 +20805,7 @@
           100,
           138,
           104,
-          93,
+          95,
           0,
           0
         ],
@@ -20819,7 +20819,7 @@
           50,
           70,
           52,
-          47,
+          48,
           0,
           0
         ],
@@ -20847,7 +20847,7 @@
           536,
           699,
           535,
-          494,
+          504,
           0,
           0
         ],
@@ -20861,7 +20861,7 @@
           298,
           481,
           296,
-          216,
+          229,
           0,
           0
         ],
@@ -21475,7 +21475,7 @@
           18,
           21,
           20,
-          19,
+          20,
           0,
           0
         ],
@@ -21489,7 +21489,7 @@
           45,
           52,
           44,
-          43,
+          45,
           0,
           0
         ],
@@ -21503,7 +21503,7 @@
           20,
           29,
           21,
-          19,
+          20,
           0,
           0
         ],
@@ -21531,7 +21531,7 @@
           187,
           148,
           163,
-          155,
+          165,
           0,
           0
         ],
@@ -21545,7 +21545,7 @@
           179,
           123,
           181,
-          135,
+          145,
           0,
           0
         ],
@@ -21646,7 +21646,7 @@
           25,
           24,
           29,
-          37,
+          40,
           0,
           0
         ],
@@ -21660,7 +21660,7 @@
           58,
           58,
           66,
-          75,
+          81,
           0,
           0
         ],
@@ -21674,7 +21674,7 @@
           26,
           25,
           29,
-          36,
+          39,
           0,
           0
         ],
@@ -21702,7 +21702,7 @@
           283,
           256,
           306,
-          371,
+          401,
           0,
           0
         ],
@@ -22159,7 +22159,7 @@
           23,
           17,
           12,
-          20,
+          22,
           0,
           0
         ],
@@ -22173,7 +22173,7 @@
           53,
           42,
           27,
-          44,
+          48,
           0,
           0
         ],
@@ -22187,7 +22187,7 @@
           22,
           17,
           12,
-          20,
+          22,
           0,
           0
         ],
@@ -22215,7 +22215,7 @@
           230,
           153,
           89,
-          186,
+          205,
           0,
           0
         ],
@@ -22229,7 +22229,7 @@
           146,
           99,
           35,
-          134,
+          136,
           0,
           0
         ],
@@ -22843,7 +22843,7 @@
         284,
         333,
         299,
-        288,
+        297,
         0,
         0
       ],
@@ -22857,7 +22857,7 @@
         644,
         785,
         682,
-        638,
+        656,
         0,
         0
       ],
@@ -22871,7 +22871,7 @@
         307,
         375,
         330,
-        311,
+        320,
         0,
         0
       ],
@@ -22885,7 +22885,7 @@
         18,
         39,
         13,
-        15,
+        16,
         0,
         0
       ],
@@ -22899,7 +22899,7 @@
         2908,
         3467,
         2930,
-        2825,
+        2916,
         0,
         0
       ],
@@ -22913,7 +22913,7 @@
         2059,
         2362,
         2099,
-        1836,
+        1873,
         0,
         0
       ],
@@ -22927,7 +22927,7 @@
         128,
         169,
         125,
-        89,
+        92,
         0,
         0
       ],
@@ -22955,7 +22955,7 @@
         68,
         103,
         61,
-        42,
+        44,
         0,
         0
       ],
@@ -22969,7 +22969,7 @@
         24,
         39,
         13,
-        20,
+        21,
         0,
         0
       ],
@@ -22983,7 +22983,7 @@
         85,
         86,
         50,
-        55,
+        57,
         0,
         0
       ],
@@ -23006,7 +23006,7 @@
       {
         "codigo": "T10161",
         "descricao": "APLICACAO  MEDIDAS ADM PREVISTAS NO ARTIGO 269 DO CTB",
-        "qtd": 167
+        "qtd": 168
       },
       {
         "codigo": "E08034",
@@ -23124,7 +23124,7 @@
         83,
         104,
         98,
-        125,
+        127,
         0,
         0
       ],
@@ -23171,7 +23171,7 @@
           16,
           15,
           29,
-          15,
+          16,
           0,
           0
         ],
@@ -23185,12 +23185,12 @@
           100,
           115,
           144,
-          159,
-          159,
-          159
+          160,
+          160,
+          160
         ],
-        "total_periodo": 159,
-        "taxa_100k": 821.5355998759946,
+        "total_periodo": 160,
+        "taxa_100k": 826.7024904412525,
         "enderecos_reincidentes": 22
       },
       {
@@ -23416,7 +23416,7 @@
           10,
           12,
           7,
-          16,
+          17,
           0,
           0
         ],
@@ -23430,12 +23430,12 @@
           63,
           75,
           82,
-          98,
-          98,
-          98
+          99,
+          99,
+          99
         ],
-        "total_periodo": 98,
-        "taxa_100k": 478.2354089400742,
+        "total_periodo": 99,
+        "taxa_100k": 483.115362092524,
         "enderecos_reincidentes": 8
       },
       {
@@ -23619,8 +23619,8 @@
       "ITINGA",
       "ARACUAI",
       "DIVISA ALEGRE",
-      "CORONEL MURTA",
       "MEDINA",
+      "CORONEL MURTA",
       "PEDRA AZUL",
       "PADRE PARAISO",
       "PONTO DOS VOLANTES",
@@ -24114,7 +24114,7 @@
     ],
     "periodo_dados": "jan-out/2026",
     "panorama": {
-      "total_enderecos": 214
+      "total_enderecos": 215
     },
     "municipios": [
       {
@@ -24130,7 +24130,7 @@
       {
         "nome": "ARACUAI",
         "pop": 35250,
-        "enderecos_reincidentes": 46
+        "enderecos_reincidentes": 47
       },
       {
         "nome": "PEDRA AZUL",
@@ -24290,7 +24290,7 @@
           78,
           93,
           72,
-          65,
+          68,
           0,
           0
         ],
@@ -24318,9 +24318,9 @@
           222,
           315,
           387,
-          452,
-          452,
-          452
+          455,
+          455,
+          455
         ],
         "meta_acum": [
           3,
@@ -24650,7 +24650,7 @@
           10,
           11,
           7,
-          9,
+          10,
           0,
           0
         ],
@@ -24678,9 +24678,9 @@
           62,
           73,
           80,
-          89,
-          89,
-          89
+          90,
+          90,
+          90
         ],
         "meta_acum": [
           2,
@@ -24710,7 +24710,7 @@
           22,
           19,
           13,
-          8,
+          9,
           0,
           0
         ],
@@ -24738,9 +24738,9 @@
           174,
           193,
           206,
-          214,
-          214,
-          214
+          215,
+          215,
+          215
         ],
         "meta_acum": [
           2,
@@ -25008,7 +25008,7 @@
       267,
       308,
       248,
-      178,
+      183,
       0,
       0
     ],
@@ -25036,9 +25036,9 @@
       1457,
       1765,
       2013,
-      2191,
-      2191,
-      2191
+      2196,
+      2196,
+      2196
     ],
     "total_meta_acum": [
       23,
@@ -25591,11 +25591,11 @@
     ]
   },
   "pog_detalhe": {
-    "total": 4524,
+    "total": 4536,
     "bairro": [
       [
         "CENTRO",
-        1859
+        1860
       ],
       [
         "(sem bairro)",
@@ -25603,19 +25603,19 @@
       ],
       [
         "BELA VISTA",
-        152
+        153
+      ],
+      [
+        "VILA VIEIRA",
+        106
       ],
       [
         "ALTO MERCADO",
         105
       ],
       [
-        "VILA VIEIRA",
-        105
-      ],
-      [
         "PLANALTO",
-        90
+        91
       ],
       [
         "GREBETHANIA",
@@ -25651,11 +25651,11 @@
       ],
       [
         "POVOADO AGUAS ALTAS",
-        51
+        52
       ],
       [
         "OUTROS BAIRROS",
-        1354
+        1361
       ]
     ],
     "bairro_municipio": {
@@ -25692,7 +25692,7 @@
       "PADRE PARAISO": [
         [
           "VILA VIEIRA",
-          105
+          106
         ],
         [
           "CENTRO",
@@ -25738,7 +25738,7 @@
         ],
         [
           "BEIRA RIO",
-          24
+          25
         ],
         [
           "SAUDADE",
@@ -25746,7 +25746,7 @@
         ],
         [
           "VARZEA GRANDE",
-          19
+          20
         ],
         [
           "SANTA MAURA",
@@ -25830,7 +25830,7 @@
         ],
         [
           "PLANALTO",
-          24
+          25
         ],
         [
           "(sem bairro)",
@@ -25838,7 +25838,7 @@
         ],
         [
           "OUTROS BAIRROS",
-          60
+          62
         ]
       ],
       "ITAOBIM": [
@@ -25962,7 +25962,7 @@
         ],
         [
           "POVOADO AGUAS ALTAS",
-          51
+          52
         ],
         [
           "DERALDO DANTAS",
@@ -25970,7 +25970,7 @@
         ],
         [
           "ALTO DOS REIS",
-          35
+          36
         ],
         [
           "POVOADO TANCREDO NEVES",
@@ -26064,7 +26064,7 @@
       "PONTO DOS VOLANTES": [
         [
           "CENTRO",
-          232
+          233
         ],
         [
           "(sem bairro)",
@@ -26086,7 +26086,7 @@
         ],
         [
           "RECREIO DA VISTA",
-          39
+          40
         ],
         [
           "(sem bairro)",
@@ -26110,7 +26110,7 @@
         ],
         [
           "OUTROS BAIRROS",
-          25
+          27
         ]
       ]
     },
@@ -26133,25 +26133,25 @@
       "matriz": [
         [
           46,
-          81,
+          82,
           141,
-          392
+          393
         ],
         [
           39,
           91,
           158,
-          358
+          359
         ],
         [
           52,
-          90,
-          138,
-          385
+          92,
+          142,
+          387
         ],
         [
           52,
-          103,
+          104,
           167,
           403
         ],
@@ -26179,12 +26179,12 @@
       "municipios": [
         {
           "nome": "AGUAS VERMELHAS",
-          "ops": 276,
-          "dur_media_min": 70.9,
+          "ops": 279,
+          "dur_media_min": 71.1,
           "dur_mediana_min": 60,
-          "efetivo_medio": 2.15,
+          "efetivo_medio": 2.14,
           "vtr_media": 1.02,
-          "horas_policial": 698.1
+          "horas_policial": 706.9
         },
         {
           "nome": "ARACUAI",
@@ -26197,12 +26197,12 @@
         },
         {
           "nome": "CACHOEIRA DE PAJEU",
-          "ops": 270,
+          "ops": 272,
           "dur_media_min": 63.7,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.44,
           "vtr_media": 1.01,
-          "horas_policial": 691.0
+          "horas_policial": 695.0
         },
         {
           "nome": "COMERCINHO",
@@ -26236,9 +26236,9 @@
           "ops": 436,
           "dur_media_min": 67.1,
           "dur_mediana_min": 60,
-          "efetivo_medio": 2.12,
+          "efetivo_medio": 2.13,
           "vtr_media": 1.01,
-          "horas_policial": 1023.3
+          "horas_policial": 1024.8
         },
         {
           "nome": "ITINGA",
@@ -26247,43 +26247,43 @@
           "dur_mediana_min": 60,
           "efetivo_medio": 2.39,
           "vtr_media": 1.0,
-          "horas_policial": 856.2
+          "horas_policial": 856.3
         },
         {
           "nome": "MEDINA",
-          "ops": 330,
-          "dur_media_min": 63.2,
+          "ops": 332,
+          "dur_media_min": 63.1,
           "dur_mediana_min": 60,
-          "efetivo_medio": 2.27,
+          "efetivo_medio": 2.26,
           "vtr_media": 1.02,
-          "horas_policial": 778.9
+          "horas_policial": 782.3
         },
         {
           "nome": "PADRE PARAISO",
-          "ops": 338,
-          "dur_media_min": 70.8,
+          "ops": 339,
+          "dur_media_min": 71.2,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.26,
           "vtr_media": 1.0,
-          "horas_policial": 924.3
+          "horas_policial": 933.3
         },
         {
           "nome": "PEDRA AZUL",
-          "ops": 427,
-          "dur_media_min": 62.5,
+          "ops": 430,
+          "dur_media_min": 62.4,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.28,
           "vtr_media": 1.0,
-          "horas_policial": 904.6
+          "horas_policial": 912.3
         },
         {
           "nome": "PONTO DOS VOLANTES",
-          "ops": 271,
-          "dur_media_min": 55.0,
+          "ops": 272,
+          "dur_media_min": 54.9,
           "dur_mediana_min": 60,
-          "efetivo_medio": 2.18,
+          "efetivo_medio": 2.2,
           "vtr_media": 1.01,
-          "horas_policial": 534.0
+          "horas_policial": 537.0
         },
         {
           "nome": "VIRGEM DA LAPA",
@@ -26296,12 +26296,12 @@
         }
       ],
       "total": {
-        "ops": 4524,
-        "dur_media_min": 59.0,
+        "ops": 4536,
+        "dur_media_min": 59.1,
         "dur_mediana_min": 60,
         "efetivo_medio": 2.29,
         "vtr_media": 1.01,
-        "horas_policial": 9932.6
+        "horas_policial": 9970.0
       },
       "duracao_suspeita": 24,
       "sem_duracao": 16,
@@ -26328,15 +26328,15 @@
       "AGUAS VERMELHAS": {
         "ALVORADA": 47,
         "CENTRO": 45,
-        "RECREIO DA VISTA": 39,
+        "RECREIO DA VISTA": 40,
         "(sem bairro)": 32,
         "NOVO PROGRESSO": 29,
         "DISTRITO DE MACHADO MINEIRO": 25,
         "IPANEMA": 22,
         "PANORAMA": 12,
-        "IBRA": 8,
+        "IBRA": 9,
         "MORRINHOS": 5,
-        "POVOADO ABACAXI": 4,
+        "POVOADO ABACAXI": 5,
         "POVOADO DO MOCO": 3,
         "CAMPO NOVO": 2,
         "POVOADO DO ABACAXI - AGUAS VERMELHAS": 2,
@@ -26376,9 +26376,9 @@
       },
       "CACHOEIRA DE PAJEU": {
         "CENTRO": 99,
-        "POVOADO AGUAS ALTAS": 51,
+        "POVOADO AGUAS ALTAS": 52,
         "DERALDO DANTAS": 38,
-        "ALTO DOS REIS": 35,
+        "ALTO DOS REIS": 36,
         "POVOADO TANCREDO NEVES": 23,
         "(sem bairro)": 10,
         "PAQUETA": 6,
@@ -26449,9 +26449,9 @@
       "MEDINA": {
         "CENTRO": 179,
         "SERRA AZUL": 32,
-        "BEIRA RIO": 24,
+        "BEIRA RIO": 25,
         "SAUDADE": 21,
-        "VARZEA GRANDE": 19,
+        "VARZEA GRANDE": 20,
         "SANTA MAURA": 13,
         "ALIANCA": 9,
         "SANTO ANTONIO": 9,
@@ -26462,7 +26462,7 @@
         "LOCALIDADE GENERAL DUTRA": 1
       },
       "PADRE PARAISO": {
-        "VILA VIEIRA": 105,
+        "VILA VIEIRA": 106,
         "CENTRO": 77,
         "BELA VISTA": 54,
         "(sem bairro)": 45,
@@ -26484,21 +26484,21 @@
         "JOAO PESSOA": 39,
         "BONFIM": 31,
         "PLATAFORMA": 31,
-        "PLANALTO": 24,
+        "PLANALTO": 25,
         "(sem bairro)": 22,
         "PAINEIRAS": 21,
         "INCONFIDENTES": 11,
         "JOÃO PESSOA": 7,
+        "BELA VISTA": 5,
         "MANOEL GUSMÃO": 5,
-        "BELA VISTA": 4,
-        "NOVA CIDADE": 4,
+        "NOVA CIDADE": 5,
         "POVOADO JISSARA": 4,
         "CRUZEIRO": 2,
         "NOVO BELVEDERE": 1,
         "RAQUEL OLIVEIRA": 1
       },
       "PONTO DOS VOLANTES": {
-        "CENTRO": 232,
+        "CENTRO": 233,
         "(sem bairro)": 23,
         "SANTANA DO ARACUAI": 16
       },
@@ -26518,19 +26518,19 @@
     "natureza": [
       [
         "OPERACAO PRESENCA",
-        2167
+        2169
       ],
       [
         "OPERACAO DE BATIDA POLICIAL",
-        1585
+        1593
       ],
       [
         "OPERACAO TRANSITO SEGURO",
-        418
+        419
       ],
       [
         "OPERACAO DE INCURSAO EM ZONA QUENTE DE CRIMINALIDADE",
-        316
+        317
       ],
       [
         "CUMPRIMENTO DE BUSCA E APREENSAO DE OBJETOS, PES ..",
@@ -27377,16 +27377,6 @@
             1
           ]
         ],
-        "COMERCINHO": [
-          [
-            "CENTRO",
-            2
-          ],
-          [
-            "(sem bairro)",
-            1
-          ]
-        ],
         "ITINGA": [
           [
             "CENTRO",
@@ -27394,6 +27384,16 @@
           ],
           [
             "PLANALTO",
+            1
+          ]
+        ],
+        "COMERCINHO": [
+          [
+            "CENTRO",
+            2
+          ],
+          [
+            "(sem bairro)",
             1
           ]
         ],
@@ -27615,17 +27615,17 @@
           "ARACUAI": 4,
           "PONTO DOS VOLANTES": 1,
           "AGUAS VERMELHAS": 3,
-          "CORONEL MURTA": 1,
-          "COMERCINHO": 1
+          "COMERCINHO": 1,
+          "CORONEL MURTA": 1
         }
       }
     },
     "y07014": {
-      "total": 309,
+      "total": 310,
       "bairro": [
         [
           "(sem bairro)",
-          296
+          297
         ],
         [
           "CENTRO",
@@ -27678,7 +27678,7 @@
         "PEDRA AZUL": [
           [
             "(sem bairro)",
-            25
+            26
           ],
           [
             "CENTRO",
@@ -27780,7 +27780,7 @@
           [
             0,
             16,
-            13,
+            14,
             3
           ],
           [
@@ -27915,12 +27915,12 @@
           },
           {
             "nome": "PEDRA AZUL",
-            "ops": 33,
-            "dur_media_min": 57.5,
+            "ops": 34,
+            "dur_media_min": 58.1,
             "dur_mediana_min": 60,
             "efetivo_medio": 2.18,
             "vtr_media": 1.0,
-            "horas_policial": 69.0
+            "horas_policial": 71.6
           },
           {
             "nome": "PONTO DOS VOLANTES",
@@ -27942,24 +27942,24 @@
           }
         ],
         "total": {
-          "ops": 309,
-          "dur_media_min": 61.4,
+          "ops": 310,
+          "dur_media_min": 61.5,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.25,
           "vtr_media": 1.04,
-          "horas_policial": 715.7
+          "horas_policial": 718.3
         },
         "duracao_suspeita": 3,
         "sem_duracao": 2,
         "sem_efetivo": 6
       },
       "qualidade": {
-        "sem_bairro": 296,
+        "sem_bairro": 297,
         "por_municipio": {
           "PADRE PARAISO": 22,
           "MEDINA": 31,
           "COMERCINHO": 21,
-          "PEDRA AZUL": 25,
+          "PEDRA AZUL": 26,
           "ARACUAI": 50,
           "CORONEL MURTA": 18,
           "VIRGEM DA LAPA": 9,
@@ -27974,11 +27974,11 @@
     }
   },
   "idob_detalhe": {
-    "total": 2191,
+    "total": 2196,
     "bairro": [
       [
         "CENTRO",
-        768
+        770
       ],
       [
         "(sem bairro)",
@@ -27990,7 +27990,7 @@
       ],
       [
         "BELA VISTA",
-        88
+        89
       ],
       [
         "ESPERANCA",
@@ -28014,7 +28014,7 @@
       ],
       [
         "CIDADE NOVA",
-        41
+        42
       ],
       [
         "ALTO DO CEMITERIO",
@@ -28038,7 +28038,7 @@
       ],
       [
         "OUTROS BAIRROS",
-        541
+        542
       ]
     ],
     "bairro_municipio": {
@@ -28075,7 +28075,7 @@
         ],
         [
           "BELA VISTA",
-          44
+          45
         ],
         [
           "BONFIM",
@@ -28233,7 +28233,7 @@
         ],
         [
           "CENTRO",
-          75
+          77
         ],
         [
           "ALTO MERCADO",
@@ -28252,11 +28252,11 @@
           21
         ],
         [
-          "(sem bairro)",
-          12
+          "VILA MAGNOLIA",
+          13
         ],
         [
-          "JUPARANA",
+          "(sem bairro)",
           12
         ],
         [
@@ -28369,7 +28369,7 @@
         ],
         [
           "CIDADE NOVA",
-          18
+          19
         ],
         [
           "(sem bairro)",
@@ -28488,9 +28488,9 @@
         ],
         [
           24,
-          2,
-          15,
-          133
+          3,
+          16,
+          136
         ],
         [
           24,
@@ -28531,12 +28531,12 @@
         },
         {
           "nome": "ARACUAI",
-          "ops": 452,
+          "ops": 455,
           "dur_media_min": 34.9,
           "dur_mediana_min": 30,
-          "efetivo_medio": 2.6,
+          "efetivo_medio": 2.59,
           "vtr_media": 1.27,
-          "horas_policial": 657.7
+          "horas_policial": 661.2
         },
         {
           "nome": "CACHOEIRA DE PAJEU",
@@ -28585,21 +28585,21 @@
         },
         {
           "nome": "ITINGA",
-          "ops": 89,
-          "dur_media_min": 63.2,
+          "ops": 90,
+          "dur_media_min": 63.1,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.53,
           "vtr_media": 1.01,
-          "horas_policial": 233.1
+          "horas_policial": 235.1
         },
         {
           "nome": "MEDINA",
-          "ops": 214,
+          "ops": 215,
           "dur_media_min": 55.2,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.58,
           "vtr_media": 1.07,
-          "horas_policial": 483.7
+          "horas_policial": 485.7
         },
         {
           "nome": "PADRE PARAISO",
@@ -28639,12 +28639,12 @@
         }
       ],
       "total": {
-        "ops": 2191,
+        "ops": 2196,
         "dur_media_min": 57.3,
         "dur_mediana_min": 60,
         "efetivo_medio": 2.4,
         "vtr_media": 1.07,
-        "horas_policial": 4826.2
+        "horas_policial": 4833.8
       },
       "duracao_suspeita": 5,
       "sem_duracao": 4,
@@ -28686,14 +28686,14 @@
       },
       "ARACUAI": {
         "NOVA ESPERANCA": 113,
-        "CENTRO": 75,
+        "CENTRO": 77,
         "ALTO MERCADO": 71,
         "CANOEIRO JOSE ALVES DE CARVALHO": 30,
         "ESPLANADA": 29,
         "ALTO SANTUARIO": 21,
+        "VILA MAGNOLIA": 13,
         "(sem bairro)": 12,
         "JUPARANA": 12,
-        "VILA MAGNOLIA": 12,
         "GREBETHANIA": 9,
         "BELA VISTA": 8,
         "SANTA TEREZA": 8,
@@ -28774,14 +28774,14 @@
       },
       "ITINGA": {
         "CENTRO": 51,
-        "CIDADE NOVA": 18,
+        "CIDADE NOVA": 19,
         "(sem bairro)": 8,
         "PORTO ALEGRE": 7,
         "PLANALTO": 5
       },
       "MEDINA": {
         "CENTRO": 60,
-        "BELA VISTA": 44,
+        "BELA VISTA": 45,
         "BONFIM": 40,
         "SERRA AZUL": 25,
         "SAUDADE": 12,
@@ -28841,12 +28841,12 @@
       }
     },
     "local": {
-      "em_bar": 2039,
+      "em_bar": 2044,
       "fora_bar": 152,
       "lista": [
         [
           "BAR / LANCHONETE / RESTAURANTE / SIMILAR",
-          2039
+          2044
         ],
         [
           "VIA DE ACESSO PUBLICA",
@@ -29507,7 +29507,7 @@
           1
         ]
       },
-      "ate": "27/10/2026"
+      "ate": "28/10/2026"
     }
   },
   "idob_dia_faixa": {
@@ -29572,11 +29572,11 @@
     ]
   },
   "cavaloaco_detalhe": {
-    "total": 2325,
+    "total": 2334,
     "bairro": [
       [
         "CENTRO",
-        963
+        965
       ],
       [
         "GREBETHANIA",
@@ -29592,7 +29592,7 @@
       ],
       [
         "PORTO ALEGRE",
-        65
+        67
       ],
       [
         "ITAPORE VELHO",
@@ -29615,12 +29615,12 @@
         39
       ],
       [
-        "PLANALTO",
+        "CIDADE NOVA",
         38
       ],
       [
-        "CIDADE NOVA",
-        37
+        "PLANALTO",
+        38
       ],
       [
         "ESPLANADA",
@@ -29628,7 +29628,7 @@
       ],
       [
         "BONFIM",
-        31
+        32
       ],
       [
         "SERRA AZUL",
@@ -29636,7 +29636,7 @@
       ],
       [
         "OUTROS BAIRROS",
-        564
+        567
       ]
     ],
     "bairro_municipio": {
@@ -29771,7 +29771,7 @@
         ],
         [
           "CENTRO",
-          83
+          84
         ],
         [
           "ESPLANADA",
@@ -29799,7 +29799,7 @@
         ],
         [
           "OUTROS BAIRROS",
-          87
+          88
         ]
       ],
       "PEDRA AZUL": [
@@ -29809,7 +29809,7 @@
         ],
         [
           "BONFIM",
-          30
+          31
         ],
         [
           "PAINEIRAS",
@@ -29837,13 +29837,13 @@
         ],
         [
           "OUTROS BAIRROS",
-          29
+          30
         ]
       ],
       "CORONEL MURTA": [
         [
           "CENTRO",
-          65
+          66
         ],
         [
           "ITAPORE VELHO",
@@ -29885,7 +29885,7 @@
         ],
         [
           "PORTO ALEGRE",
-          65
+          67
         ],
         [
           "PLANALTO",
@@ -29893,7 +29893,7 @@
         ],
         [
           "CIDADE NOVA",
-          14
+          15
         ],
         [
           "(sem bairro)",
@@ -30033,7 +30033,7 @@
         ],
         [
           "OUTROS BAIRROS",
-          32
+          33
         ]
       ],
       "DIVISA ALEGRE": [
@@ -30102,19 +30102,19 @@
           4,
           32,
           59,
-          138
+          140
         ],
         [
           4,
           32,
-          64,
-          127
+          67,
+          129
         ],
         [
           4,
           49,
           77,
-          176
+          177
         ],
         [
           2,
@@ -30130,7 +30130,7 @@
         ],
         [
           8,
-          41,
+          42,
           237,
           196
         ]
@@ -30149,12 +30149,12 @@
         },
         {
           "nome": "ARACUAI",
-          "ops": 433,
-          "dur_media_min": 46.5,
+          "ops": 435,
+          "dur_media_min": 46.4,
           "dur_mediana_min": 36,
-          "efetivo_medio": 2.59,
+          "efetivo_medio": 2.58,
           "vtr_media": 1.32,
-          "horas_policial": 834.6
+          "horas_policial": 836.9
         },
         {
           "nome": "CACHOEIRA DE PAJEU",
@@ -30176,12 +30176,12 @@
         },
         {
           "nome": "CORONEL MURTA",
-          "ops": 171,
-          "dur_media_min": 61.5,
+          "ops": 172,
+          "dur_media_min": 61.3,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.58,
           "vtr_media": 1.09,
-          "horas_policial": 450.0
+          "horas_policial": 451.0
         },
         {
           "nome": "DIVISA ALEGRE",
@@ -30194,21 +30194,21 @@
         },
         {
           "nome": "ITAOBIM",
-          "ops": 354,
-          "dur_media_min": 174.1,
+          "ops": 355,
+          "dur_media_min": 175.1,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.07,
           "vtr_media": 1.03,
-          "horas_policial": 2091.2
+          "horas_policial": 2108.2
         },
         {
           "nome": "ITINGA",
-          "ops": 228,
-          "dur_media_min": 84.0,
+          "ops": 231,
+          "dur_media_min": 83.7,
           "dur_mediana_min": 60,
-          "efetivo_medio": 2.55,
+          "efetivo_medio": 2.54,
           "vtr_media": 1.02,
-          "horas_policial": 810.5
+          "horas_policial": 816.5
         },
         {
           "nome": "MEDINA",
@@ -30230,12 +30230,12 @@
         },
         {
           "nome": "PEDRA AZUL",
-          "ops": 223,
-          "dur_media_min": 62.2,
+          "ops": 225,
+          "dur_media_min": 62.0,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.34,
           "vtr_media": 1.0,
-          "horas_policial": 496.6
+          "horas_policial": 499.6
         },
         {
           "nome": "PONTO DOS VOLANTES",
@@ -30257,12 +30257,12 @@
         }
       ],
       "total": {
-        "ops": 2325,
+        "ops": 2334,
         "dur_media_min": 98.3,
         "dur_mediana_min": 60,
         "efetivo_medio": 2.4,
         "vtr_media": 1.08,
-        "horas_policial": 8691.6
+        "horas_policial": 8720.8
       },
       "duracao_suspeita": 9,
       "sem_duracao": 0,
@@ -30303,7 +30303,7 @@
       },
       "ARACUAI": {
         "GREBETHANIA": 124,
-        "CENTRO": 83,
+        "CENTRO": 84,
         "ESPLANADA": 37,
         "NOVA TERRA": 27,
         "BELA VISTA": 25,
@@ -30313,7 +30313,7 @@
         "SITIO SENHOR MARINHO": 13,
         "ALTO PARAISO": 12,
         "ARRAIAL": 11,
-        "CORREDOR": 9,
+        "CORREDOR": 10,
         "VILA MAGNOLIA": 9,
         "SAO FRANCISCO": 8,
         "(sem bairro)": 6,
@@ -30346,7 +30346,7 @@
         "SAO JUDAS": 1
       },
       "CORONEL MURTA": {
-        "CENTRO": 65,
+        "CENTRO": 66,
         "ITAPORE VELHO": 60,
         "VILA PALMEIRAS": 16,
         "ACARI": 14,
@@ -30379,7 +30379,7 @@
         "ALVORADA": 9,
         "GUADALUPE": 9,
         "SAO CRISTOVAO": 7,
-        "AMANDIO VENTURA": 3,
+        "AMANDIO VENTURA": 4,
         "ESTACAO DA LUZ": 1,
         "LOTEAMENTO": 1,
         "SANTO ANTONIO II": 1,
@@ -30387,9 +30387,9 @@
       },
       "ITINGA": {
         "CENTRO": 102,
-        "PORTO ALEGRE": 65,
+        "PORTO ALEGRE": 67,
         "PLANALTO": 36,
-        "CIDADE NOVA": 14,
+        "CIDADE NOVA": 15,
         "(sem bairro)": 7,
         "LOCALIDADE PONTE DO PASMADO": 2,
         "LOCALIDADE DE PASMADO": 1,
@@ -30417,17 +30417,17 @@
       },
       "PEDRA AZUL": {
         "CENTRO": 85,
-        "BONFIM": 30,
+        "BONFIM": 31,
         "PAINEIRAS": 27,
         "(sem bairro)": 13,
         "MANOEL GUSMAO": 13,
         "JOAO PESSOA": 10,
         "SEBASTIAO FARIAS": 10,
         "MANOEL GUSMÃO": 6,
+        "NOVA CIDADE": 5,
         "BELVEDERE": 4,
         "INCONFIDENTES": 4,
         "JOÃO PESSOA": 4,
-        "NOVA CIDADE": 4,
         "NOVO BELVEDERE": 3,
         "PLATAFORMA": 3,
         "BELA VISTA": 2,
@@ -30455,11 +30455,11 @@
       "lista": [
         [
           "VIA DE ACESSO PUBLICA",
-          2247
+          2255
         ],
         [
           "MOTOCICLETA",
-          68
+          69
         ],
         [
           "VIA DE ACESSO PARTICULAR/PRIVADA",
@@ -31018,8 +31018,8 @@
           4,
           2,
           9,
-          3,
-          6
+          4,
+          7
         ],
         "PONTO DOS VOLANTES": [
           0,
@@ -31112,7 +31112,7 @@
           2
         ]
       },
-      "ate": "27/10/2026",
+      "ate": "28/10/2026",
       "meta_semanal": {
         "AGUAS VERMELHAS": 1,
         "ARACUAI": 4,
