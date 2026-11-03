@@ -1056,7 +1056,7 @@ function auditar() {
     checa(r.filtro.valor.length > 0 && r.filtro.destaque && r.filtroLimpo, 'clicar numa cidade da tabela liga o filtro (com destaque) e clicar de novo desliga', 'filtro: ' + JSON.stringify([r.filtro, r.filtroLimpo]));
     checa(r.mes.marcado === '1' && r.mes.lembrado === '1', 'botão de mês troca o mês e lembra a escolha', 'mês: ' + JSON.stringify(r.mes));
     checa(r.avisoTeto === false && r.avisoMeta === true && r.avisoTetoDesatualizado !== false, 'aviso de "sem lançamento": não aparece em teto com zero (rotina rodou), aparece em meta zerada e em teto desatualizado', 'avisos: ' + JSON.stringify([r.avisoTeto, r.avisoMeta, r.avisoTetoDesatualizado]));
-    checa(/\/ 6$/.test(r.proporcional.armas) && /\/ 2$/.test(r.proporcional.mv), 'meta de piso proporcional aos dias fechados no mês em andamento (20 → 6 em 10 de 30 dias); teto segue cheio', 'proporcional: ' + JSON.stringify(r.proporcional));
+    checa(/\/ 6meta do mês 20$/.test(r.proporcional.armas) && /\/ 2$/.test(r.proporcional.mv), 'meta de piso proporcional aos dias fechados no mês em andamento (20 → 6 em 10 de 30 dias); teto segue cheio', 'proporcional: ' + JSON.stringify(r.proporcional));
     checa(errosI.length === 0, 'páginas de indicador sem erro de JavaScript', 'erros: ' + errosI.slice(0, 3).join(' | '));
     await ctxI.close();
   }
@@ -1079,7 +1079,7 @@ function auditar() {
       goToPage('imv'); await esp(600);
       const main = document.getElementById('main'), ult = Math.min(MES_ATUAL_IDX, DATA.mv.meses.length - 1);
       const esperadoProj = Math.round(DATA.mv.total_acum[ult] / (ult + 1) * DATA.mv.total_meta_acum.length);
-      out.ano = { svg: !!main.querySelector('svg.ano-svg polyline.an-real'), proj: (main.querySelector('.kpi-card:nth-child(2) .val') || {}).textContent, esperadoProj, legenda: !!main.querySelector('.ano-leg') };
+      out.ano = { svg: !!main.querySelector('svg.ano-svg polyline.an-real'), proj: ([...main.querySelectorAll('.kpi-card')].find(k => /Projeção/.test(k.textContent)).querySelector('.val') || {}).textContent, esperadoProj, legenda: !!main.querySelector('.ano-leg') };
       const q = main.querySelector('#indQuadro');
       out.quadro = { linhas: q ? q.querySelectorAll('tbody tr').length : 0, colunas: q ? q.querySelectorAll('thead th').length : 0, total: q ? q.querySelector('tbody tr:last-child td.col-divider').textContent.trim() : '', esperado: String(DATA.mv.total_acum[ult]) };
       const barras = [...main.querySelectorAll('.barras')];
@@ -1097,7 +1097,7 @@ function auditar() {
       // piso: projeção usa a fração fechada do mês corrente
       goToPage('armas'); await esp(600);
       const a = DATA.armas, f = 10 / 30, esperadoArmas = Math.round(a.total_acum[ult] / (ult + f) * a.total_meta_acum.length);
-      out.armas = { proj: (document.querySelector('#main .kpi-card:nth-child(2) .val') || {}).textContent, esperado: esperadoArmas };
+      out.armas = { proj: ([...document.querySelectorAll('#main .kpi-card')].find(k => /Projeção/.test(k.textContent)).querySelector('.val') || {}).textContent, esperado: esperadoArmas };
       setMunFiltro('');
       return out;
     });
@@ -2482,6 +2482,39 @@ function auditar() {
     checa(r.largura, 'seletor no celular sem rolagem horizontal da página', 'a página passou da largura da tela');
     checa(errosC.length === 0, 'seletor sem erro de JavaScript', 'erros: ' + errosC.slice(0, 3).join(' | '));
     await ctxC.close();
+  }
+
+  // ---------- 54) Meta do mês cheia ao lado da proporcional ----------
+  console.log('\n[54] Meta do mês visível');
+  {
+    const ctxM = await novoContexto(browser, { viewport: { width: 1280, height: 900 } });
+    const pm = await ctxM.newPage();
+    const errosM = []; pm.on('pageerror', (e) => errosM.push(e.message));
+    await pm.goto(base);
+    await pm.waitForFunction(() => typeof goToPage === 'function');
+    const r = await pm.evaluate(async () => {
+      const esp = (ms) => new Promise(ok => setTimeout(ok, ms));
+      const out = {}, emAndamento = fatorMesEmAndamento(DATA.pog, MES_ATUAL_IDX) < 1;
+      out.helper = metaCheiaLinha(6, 20) .includes('meta do mês') && metaCheiaLinha(20, 20) === '' && /faltam 15/.test(planoMesTxt(DATA.pog, 5, 20)) && /já cumprida/.test(planoMesTxt(DATA.pog, 25, 20));
+      out.paginas = {};
+      for (const pg of ['armas', 'pog', 'cavaloaco', 'rolezinho', 'idob', 'ppag']) {
+        try { goToPage(pg); await esp(900); } catch (e) { out.paginas[pg] = 'erro'; continue; }
+        const main = document.getElementById('main') || document.body;
+        const temCheia = main.querySelectorAll('.ind-cheia').length > 0, temKpi = /meta do mês/.test(main.textContent);
+        out.paginas[pg] = emAndamento ? (temCheia || temKpi) : true;
+      }
+      goToPage('armas'); await esp(900);
+      const card = [...document.querySelectorAll('#main .kpi-card')].find(k => /em andamento/.test(k.textContent));
+      out.cartao = !emAndamento || (!!card && /meta do mês: \d+/.test(card.textContent) && /até hoje: \d+/.test(card.textContent) && /(faltam|já cumprida)/.test(card.textContent));
+      out.largura = document.documentElement.scrollWidth <= window.innerWidth + 1;
+      return out;
+    });
+    checa(r.helper, 'ajudantes: meta cheia só aparece quando difere da proporcional; plano diz quanto falta', 'helper: ' + r.helper);
+    checa(Object.values(r.paginas).every(v => v === true), 'meta do mês cheia visível nas abas com meta proporcional (Armas, POG, Cavalo, Rolezinho, IDOB, PPAG)', 'páginas: ' + JSON.stringify(r.paginas));
+    checa(r.cartao, 'cartão do mês em andamento mostra meta do mês, meta até hoje e o que falta', 'cartão: ' + r.cartao);
+    checa(r.largura, 'meta do mês sem rolagem horizontal da página', 'a página passou da largura da tela');
+    checa(errosM.length === 0, 'meta do mês sem erro de JavaScript', 'erros: ' + errosM.slice(0, 3).join(' | '));
+    await ctxM.close();
   }
 
   await browser.close();

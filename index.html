@@ -338,6 +338,7 @@
   .link-sigop:hover { border-color:var(--amber); } .link-sigop:focus-visible { outline:2px solid var(--amber); outline-offset:2px; }
   tr.rank-clic.sel td:first-child { color:var(--amber); font-weight:700; }
   .ind-lim { color:#a9bccd; font-weight:400; }
+  .ind-cheia { color:#cfdbe6; font-size:12px; white-space:nowrap; } .ind-cheia b { color:#fff; }
   .ind-tab .par { white-space:nowrap; }
   /* Páginas de indicador — onda 2 (2026-10-13): quadro mês a mês, ano vs limite, painel da cidade, barras e detalhamento */
   .hm2 td.hm2-n { font-weight:700; } .hm2 td, .hm2 th { padding:7px 8px; }
@@ -1266,6 +1267,18 @@ function fatorMesEmAndamento(dataObj, mi) {
   const r = diasCorridosAteOntem(dataAtualizacaoIndicador(dataObj));
   return r.diasNoMes ? (r.diasDecorridos / r.diasNoMes) : 1;
 }
+// A meta do mês em andamento é proporcional aos dias fechados (a cor usa ela), mas quem planeja precisa enxergar a meta do MÊS CHEIO
+// ao lado, sempre: metaCheiaLinha põe a meta cheia embaixo do número quando a proporcional for diferente; planoMesTxt diz quanto falta
+// e quanto por dia ainda é preciso (pedido do comando, 2026-11-03).
+function metaCheiaLinha(lim, cheia, rot) {
+  if (cheia === undefined || cheia === null || Math.abs(cheia - lim) < 1e-9) return '';
+  return `<br><span class="ind-cheia">${rot || 'meta do mês'} <b>${opNum(cheia)}</b></span>`;
+}
+function planoMesTxt(dataObj, real, metaCheia) {
+  const r = diasCorridosAteOntem(dataAtualizacaoIndicador(dataObj)), rest = Math.max(0, r.diasNoMes - r.diasDecorridos), falta = Math.max(0, Math.ceil(metaCheia - real - 1e-9));
+  if (!falta) return 'meta do mês já cumprida';
+  return rest > 0 ? `faltam ${falta} para a meta do mês (≈ ${opNum(falta / rest)} por dia nos ${rest} dias que restam)` : `faltam ${falta} para a meta do mês`;
+}
 function metaPisoEfetiva(m, sufixo, mi, fator, arredondar = true) {
   const meta = m['meta' + sufixo][mi] - m.meta_mes[mi] * (1 - fator);
   return arredondar ? Math.floor(meta + 1e-9) : meta;
@@ -1678,8 +1691,8 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
       const lMes = limMes(m.meta_mes[mi], f), lAcum = limAcum(m.meta_acum[mi], m.meta_mes[mi], f);
       rows += `<tr class="rank-clic${normMun(m.nome) === munFiltro ? ' sel' : ''}" data-mun="${m.nome}" title="Filtrar por ${m.nome}">
         <td style="text-align:left">${m.nome}</td>
-        <td>${par(m.realizado_mes[mi], lMes)}${!higherIsBetter && mi === MES_ATUAL_IDX && m.meta_mes[mi] > 0 && fRitmo < 1 ? `<br><span class="ind-lim">esperado até hoje ${fmtBr(m.meta_mes[mi] * fRitmo, 1)}</span>` : ''}</td>
-        <td class="col-divider">${par(m.realizado_acum[mi], lAcum)}</td>
+        <td>${par(m.realizado_mes[mi], lMes)}${higherIsBetter ? metaCheiaLinha(lMes, m.meta_mes[mi]) : ''}${!higherIsBetter && mi === MES_ATUAL_IDX && m.meta_mes[mi] > 0 && fRitmo < 1 ? `<br><span class="ind-lim">esperado até hoje ${fmtBr(m.meta_mes[mi] * fRitmo, 1)}</span>` : ''}</td>
+        <td class="col-divider">${par(m.realizado_acum[mi], lAcum)}${higherIsBetter ? metaCheiaLinha(lAcum, m.meta_acum[mi], 'meta no fim do mês') : ''}</td>
         <td>${comTaxa ? taxa(m.realizado_acum[mi], pop) : pctMeta(m.realizado_acum[mi], lAcum)}</td>
         <td style="text-align:left">${situacao(m.realizado_acum[mi], lAcum)}</td>
       </tr>`;
@@ -1687,8 +1700,8 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     const totRealAcum = d.total_acum[mi], totMetaAcum = limAcum(d.total_meta_acum[mi], d.total_meta_mes[mi], f);
     rows += `<tr style="font-weight:700;background:rgba(255,255,255,0.08)">
         <td style="text-align:left">TOTAL</td>
-        <td>${par(d.total_mes[mi], limMes(d.total_meta_mes[mi], f))}</td>
-        <td class="col-divider">${par(totRealAcum, totMetaAcum)}</td>
+        <td>${par(d.total_mes[mi], limMes(d.total_meta_mes[mi], f))}${higherIsBetter ? metaCheiaLinha(limMes(d.total_meta_mes[mi], f), d.total_meta_mes[mi]) : ''}</td>
+        <td class="col-divider">${par(totRealAcum, totMetaAcum)}${higherIsBetter ? metaCheiaLinha(totMetaAcum, d.total_meta_acum[mi], 'meta no fim do mês') : ''}</td>
         <td>${comTaxa ? taxa(totRealAcum, popTotal) : pctMeta(totRealAcum, totMetaAcum)}</td>
         <td style="text-align:left">${situacao(totRealAcum, totMetaAcum)}</td>
       </tr>`;
@@ -1706,6 +1719,10 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     let h = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">O ano contra o ${rotLim.toLowerCase()} — 70º BPM</h3>`;
     h += `<div class="kpi-grid">`;
     h += `<div class="kpi-card ${(higherIsBetter ? reais[ultimoIdx] >= lAte : reais[ultimoIdx] <= lAte) ? 'kpi-green' : 'kpi-red'}"><div class="val">${reais[ultimoIdx]}</div><div class="lbl">Acumulado até ${mesesLocais[ultimoIdx]}${unidade ? ' (' + unidade + ')' : ''}</div><div class="sub">${rotLim.toLowerCase()} até aqui: ${lAte} · ${situacao(reais[ultimoIdx], lAte)}</div></div>`;
+    if (higherIsBetter && fMesAtual < 1) {
+      const rM = d.total_mes[ultimoIdx], mCheia = d.total_meta_mes[ultimoIdx], mHoje = limMes(mCheia, fMesAtual);
+      h += `<div class="kpi-card ${rM >= mHoje ? 'kpi-green' : 'kpi-red'}"><div class="val">${rM}</div><div class="lbl">${mesesLocais[ultimoIdx]} (em andamento)</div><div class="sub"><b>meta do mês: ${mCheia}</b> · até hoje: ${mHoje} · ${planoMesTxt(d, rM, mCheia)}</div></div>`;
+    }
     h += `<div class="kpi-card ${ruim ? 'kpi-red' : 'kpi-green'}"><div class="val">${proj === null ? '—' : fmtBr(proj, 0)}</div><div class="lbl">Projeção para o ano (ritmo atual)</div><div class="sub">${rotLim.toLowerCase()} do ano: ${anual}${proj === null ? '' : ' · ' + (ruim ? (higherIsBetter ? 'abaixo da meta' : 'acima do teto') : (higherIsBetter ? 'meta alcançada no ritmo atual' : 'dentro do teto no ritmo atual'))}</div></div>`;
     if (comTaxa) { const pt = d.municipios.reduce((a, m) => a + popMunicipio(m.nome), 0); h += `<div class="kpi-card kpi-neutral"><div class="val">${taxa(reais[ultimoIdx], pt)}</div><div class="lbl">Taxa por 100 mil hab. (acumulado)</div></div>`; }
     if (redsMes) { const nR = somaA(redsMes, ultimoIdx); h += `<div class="kpi-card kpi-neutral"><div class="val">${nR}</div><div class="lbl">Ocorrências (REDS)</div><div class="sub">${reais[ultimoIdx]} ${unidade}${nR && reais[ultimoIdx] !== nR ? ' — algumas ocorrências têm mais de uma' : ''}</div></div>`; }
@@ -1913,7 +1930,7 @@ function renderIndicatorPage(key, title, localKey, faixaKey, higherIsBetter=fals
     html += bannerAcompanhamentoDiario([{ label: title, meta: d.total_meta_mes[MES_ATUAL_IDX], realizado: d.total_mes[MES_ATUAL_IDX], higherIsBetter, dataAtualizacao: dataAtualizacaoIndicador(d) }]);
   }
   html += `<div class="pills-vd" id="indMeses" role="group" aria-label="Mês">` + mesesLocais.slice(0, ultimoIdx + 1).map((m, i) => `<button type="button" data-p="${i}">${m}</button>`).join('') + `</div>`;
-  html += `<div class="vd-recorte">Mês e acumulado mostram realizado / ${rotLim.toLowerCase()}${unidade ? ', contados em ' + unidade + (redsMes ? ' (uma ocorrência pode ter mais de uma)' : '') : ''}; a situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). ${higherIsBetter ? 'Meta: quanto mais, melhor; no mês em andamento a meta é proporcional aos dias já fechados.' : 'Teto: quanto menos, melhor — o realizado não deve passar do teto.'}</div>`;
+  html += `<div class="vd-recorte">Mês e acumulado mostram realizado / ${rotLim.toLowerCase()}${unidade ? ', contados em ' + unidade + (redsMes ? ' (uma ocorrência pode ter mais de uma)' : '') : ''}; a situação é a do acumulado. Clique numa cidade para filtrar o painel inteiro por ela (de novo para limpar). ${higherIsBetter ? 'Meta: quanto mais, melhor; no mês em andamento a cor e a situação usam a meta proporcional aos dias já fechados, e a meta do mês cheia aparece embaixo de cada número.' : 'Teto: quanto menos, melhor — o realizado não deve passar do teto.'}</div>`;
   if (!higherIsBetter) {
     const acima = d.municipios.filter(m => m.realizado_acum[ultimoIdx] > m.meta_acum[ultimoIdx]);
     const topAlvo = (m) => { const am = DATA.cvpa_alvo_municipio || {}, k = Object.keys(am).find(x => normMun(x) === normMun(m.nome)); return key === 'cvpa' && k && am[k].length ? ' · mais: ' + am[k][0][0].toLowerCase() + ' (' + am[k][0][1] + ')' : ''; };
@@ -2050,7 +2067,7 @@ function opBlocosHtml(d, cfg, ctx) {
   const mesLim = L.mes(d.total_meta_mes[ultimoIdx], fU), mesReal = d.total_mes[ultimoIdx];
   let ano = `<div class="ind-sec"><h3 class="ind-tit page-title" style="font-size:16px">O ano contra a meta — 70º BPM${sufRot}</h3><div class="kpi-grid">`;
   ano += `<div class="kpi-card ${kpi(cfg.status(reais[ultimoIdx], lAte))}"><div class="val">${reais[ultimoIdx]}</div><div class="lbl">Acumulado até ${mesesLocais[ultimoIdx]}</div><div class="sub">meta até aqui: ${opNum(lAte)} · ${cfg.situacao(reais[ultimoIdx], lAte)}</div></div>`;
-  ano += `<div class="kpi-card ${kpi(cfg.status(mesReal, mesLim))}"><div class="val">${mesReal}</div><div class="lbl">${mesesLocais[ultimoIdx]}${fU < 1 ? ' (em andamento)' : ''}</div><div class="sub">meta${fU < 1 ? ' proporcional' : ''}: ${opNum(mesLim)}${fU < 1 ? ' (de ' + d.total_meta_mes[ultimoIdx] + '/mês)' : ''} · ${cfg.situacao(mesReal, mesLim)}</div></div>`;
+  ano += `<div class="kpi-card ${kpi(cfg.status(mesReal, mesLim))}"><div class="val">${mesReal}</div><div class="lbl">${mesesLocais[ultimoIdx]}${fU < 1 ? ' (em andamento)' : ''}</div><div class="sub"><b>meta do mês: ${opNum(d.total_meta_mes[ultimoIdx])}</b>${fU < 1 ? ' · até hoje: ' + opNum(mesLim) : ''} · ${cfg.situacao(mesReal, mesLim)}${fU < 1 ? '<br>' + planoMesTxt(d, mesReal, d.total_meta_mes[ultimoIdx]) : ''}</div></div>`;
   ano += `<div class="kpi-card ${proj === null ? 'kpi-neutral' : kpi(cfg.status(proj, anual))}"><div class="val">${proj === null ? '—' : fmtBr(proj, 0)}</div><div class="lbl">Projeção para o ano (ritmo atual)</div><div class="sub">meta do ano: ${anual}${proj === null ? '' : ' · ' + cfg.textoProj(proj, anual)}</div></div>`;
   ano += `</div>` + svgAcumuladoAno(reais, d.total_meta_acum.slice(), proj, `Acumulado do ano contra a meta${sufRot}, com projeção até dezembro`) + leg + `</div>`;
 
@@ -2260,8 +2277,8 @@ function renderPOGPage() {
   function linha(nome, rMes, mMes, rAc, mAc, f, atr, extraCls) {
     const lMes = L.mes(mMes, f), lAc = L.acum(mAc, mMes, f), vMes = lMes ? rMes / lMes * 100 : 100, vAc = lAc ? rAc / lAc * 100 : 100;
     return `<tr${atr}${extraCls ? ' class="' + extraCls + '"' : ''}><td style="text-align:left">${nome}</td>
-      <td>${par(rMes, lMes)}<br><span class="ind-lim" style="color:${opCorBanda(statusPog(vMes))}">${lMes ? fmtBr(vMes, 1) + '%' : '—'}</span></td>
-      <td class="col-divider">${par(rAc, lAc)}</td>${pogCell(vAc).replace('</td>', '<br><small style="font-weight:400">' + opSituacaoPogTxt(rAc, lAc) + '</small></td>')}</tr>`;
+      <td>${par(rMes, lMes)}${metaCheiaLinha(lMes, mMes)}<br><span class="ind-lim" style="color:${opCorBanda(statusPog(vMes))}">${lMes ? fmtBr(vMes, 1) + '%' : '—'}</span></td>
+      <td class="col-divider">${par(rAc, lAc)}${metaCheiaLinha(lAc, mAc, 'meta no fim do mês')}</td>${pogCell(vAc).replace('</td>', '<br><small style="font-weight:400">' + opSituacaoPogTxt(rAc, lAc) + '</small></td>')}</tr>`;
   }
   function table(i) {
     const f = fatorMesEmAndamento(d, i);
@@ -2337,7 +2354,7 @@ function renderPPAGPage() {
   function celula(d, m, p) {
     const v = valores(d, m, p), saldo = v.real - v.lim;
     const tip = v.f < 1 ? `Meta proporcional aos dias já fechados: ${v.lim} (de ${v.cheia} no período)` : `Meta do período: ${v.lim}`;
-    return semaforoCell(statusPpag(v.real, v.lim), `<span style="white-space:nowrap"><b>${v.real}</b> <span style="opacity:.75">/ ${v.lim}</span></span><br><small>${saldo > 0 ? saldo + ' a mais' : (saldo === 0 ? 'na meta' : 'faltam ' + (-saldo))}</small>`, tip);
+    return semaforoCell(statusPpag(v.real, v.lim), `<span style="white-space:nowrap"><b>${v.real}</b> <span style="opacity:.75">/ ${v.lim}</span></span>${metaCheiaLinha(v.lim, v.cheia, p === 'acum' ? 'meta no fim do mês' : 'meta do mês')}<br><small>${saldo > 0 ? saldo + ' a mais' : (saldo === 0 ? 'na meta' : 'faltam ' + (-saldo))}</small>`, tip);
   }
   function table(p) {
     const linhaDe = (nome, objs, atr, cls) => `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td>${subs.map((s, si) => celula(DATA.ppag[s.key], objs[si], p)).join('')}</tr>`;
@@ -2566,7 +2583,7 @@ function renderIDOBPage() {
   // ---- meta de operações Boemia (contagem x meta fixa por fração; no mês em andamento a meta é proporcional aos dias fechados) ----
   function linhaMeta(nome, rM, mM, rA, mA, f, atr, cls) {
     const lM = LM.mes(mM, f), lA = LM.acum(mA, mM, f);
-    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
+    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}${metaCheiaLinha(lM, mM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}${metaCheiaLinha(lA, mA, 'meta no fim do mês')}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
   }
   function tabelaMeta(i) {
     const f = fatorMesEmAndamento(bm, i), rotuloTier = (t) => (t === 3 ? 'Cia' : (t === 2 ? 'Pel' : 'Dest'));
@@ -2760,7 +2777,7 @@ function renderCavaloAcoPage() {
   // ---- meta de operações (no mês em andamento a meta é proporcional aos dias já fechados; piso, arredonda para baixo) ----
   function linhaMeta(nome, rM, mM, rA, mA, f, atr, cls) {
     const lM = LM.mes(mM, f), lA = LM.acum(mA, mM, f);
-    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
+    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}${metaCheiaLinha(lM, mM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}${metaCheiaLinha(lA, mA, 'meta no fim do mês')}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
   }
   function tabelaMeta(i) {
     const f = fatorMesEmAndamento(d, i);
@@ -2885,7 +2902,7 @@ function renderRolezinhoPage() {
   // no mês em andamento a meta é proporcional aos dias já fechados (piso, arredonda para baixo)
   function linhaMeta(nome, rM, mM, rA, mA, f, atr, cls) {
     const lM = LM.mes(mM, f), lA = LM.acum(mA, mM, f);
-    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
+    return `<tr${atr}${cls ? ' class="' + cls + '"' : ''}><td style="text-align:left">${nome}</td><td>${par(rM, lM)}${metaCheiaLinha(lM, mM)}<br>${opSituacaoPiso(rM, lM)}</td><td class="col-divider">${par(rA, lA)}${metaCheiaLinha(lA, mA, 'meta no fim do mês')}</td><td>${lA ? fmtBr(rA / lA * 100, 0) + '%' : '—'}</td><td style="text-align:left">${opSituacaoPiso(rA, lA)}</td></tr>`;
   }
   function tabelaMeta(i) {
     const f = fatorMesEmAndamento(d, i);
