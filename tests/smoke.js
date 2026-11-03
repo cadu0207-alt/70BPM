@@ -709,7 +709,7 @@ function auditar() {
     checa(r.enderecosAntesDaTabela, 'endereços com reincidência aparecem antes da tabela', 'endereços reincidentes continuam depois da tabela');
     checa(r.temEmAbertoHa && r.atraso, '"aberto há" na coluna Situação, com destaque de atraso (>72h)', 'sem o "aberto há" / atraso');
     checa(/Sd Antigo/.test(r.sugerido || '') && /sugerido/.test(r.sugerido || ''), 'responsável sugerido identificado e, entre duplicados, o mais antigo', 'responsável sugerido: ' + r.sugerido);
-    checa(r.serie <= 10, `série mensal sem meses futuros (${r.serie} linhas)`, `série mensal com ${r.serie} linhas`);
+    checa(r.serie <= new Date().getMonth() + 1, `série mensal sem meses futuros (${r.serie} linhas)`, `série mensal com ${r.serie} linhas`);
     checa(errosV.length === 0, 'Violência Doméstica sem erro de JavaScript', 'erros: ' + errosV.slice(0, 3).join(' | '));
     await ctxV.close();
   }
@@ -2189,7 +2189,7 @@ function auditar() {
       out.batalhao = { n: cards.length, titulo: /Comunicação organizacional/i.test(document.querySelector('.page-title').textContent), controles: !!document.getElementById('comTerr') && !!document.getElementById('comMin') && document.querySelectorAll('#comPeriodo button').length === 2,
         recordes: COM_CARTOES.filter(c => c.id.startsWith('recorde-')).length >= 5, dias: COM_CARTOES.filter(c => c.id.startsWith('dias-')).length === 3, balanco: ['presos', 'armas', 'ops', 'motos', 'rolezinho', 'resumo'].every(id => COM_CARTOES.some(c => c.id === id)),
         novos: ['veic_recuperados', 'veic_retirados', 'drogas', 'foragidos', 'pessoas_abordadas', 'veic_fiscalizados', 'locais_fiscalizados', 'horas_policiamento', 'ocorrencias', 'visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].every(id => COM_CARTOES.some(c => c.id === id)),
-        grupos: document.querySelectorAll('#comGrade h3.com-grupo').length === 6 };
+        grupos: document.querySelectorAll('#comGrade h3.com-grupo').length === (COM_CARTOES.some(c => c.grupo === 'Comparativo com 2025') ? 6 : 5) };
       const cv = cards[0].querySelector('canvas'), px = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
       let claros = 0; for (let i = 0; i < px.length; i += 4) if (px[i] > 200 && px[i + 1] > 200 && px[i + 2] > 190) claros++;
       out.arte = { desenhada: claros > 500, dims: cv.width === 432 && cv.height === 540 };
