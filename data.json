@@ -839,7 +839,7 @@
       25,
       27
     ],
-    "atualizado_em": "2026-11-03",
+    "atualizado_em": "2026-11-04",
     "reds_mes": [
       3,
       5,
@@ -1719,7 +1719,7 @@
       30,
       33
     ],
-    "atualizado_em": "2026-11-03",
+    "atualizado_em": "2026-11-04",
     "reds_mes": [
       1,
       1,
@@ -2599,7 +2599,7 @@
       61,
       66
     ],
-    "atualizado_em": "2026-11-03",
+    "atualizado_em": "2026-11-04",
     "reds_mes": [
       5,
       5,
@@ -3619,7 +3619,7 @@
       215,
       235
     ],
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "furto": {
     "meses": [
@@ -4461,7 +4461,7 @@
       151,
       165
     ],
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "furto_causa": [
     [
@@ -5365,7 +5365,7 @@
       4966,
       5399
     ],
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "pog_bairros": [
     [
@@ -6300,7 +6300,7 @@
         435,
         474
       ],
-      "atualizado_em": "2026-11-03"
+      "atualizado_em": "2026-11-04"
     },
     "y07012": {
       "meses": [
@@ -7142,7 +7142,7 @@
         129,
         140
       ],
-      "atualizado_em": "2026-11-03"
+      "atualizado_em": "2026-11-04"
     },
     "y07014": {
       "meses": [
@@ -7984,7 +7984,7 @@
         322,
         349
       ],
-      "atualizado_em": "2026-11-03"
+      "atualizado_em": "2026-11-04"
     }
   },
   "idob": {
@@ -9701,7 +9701,7 @@
           36,
           84,
           77,
-          0,
+          7,
           0
         ],
         "meta_mes": [
@@ -9729,8 +9729,8 @@
           355,
           439,
           516,
-          516,
-          516
+          523,
+          523
         ],
         "meta_acum": [
           0,
@@ -9759,8 +9759,8 @@
           27,
           20,
           32,
-          24,
-          0,
+          30,
+          2,
           0
         ],
         "meta_mes": [
@@ -9787,9 +9787,9 @@
           157,
           177,
           209,
-          233,
-          233,
-          233
+          239,
+          241,
+          241
         ],
         "meta_acum": [
           0,
@@ -9819,7 +9819,7 @@
           31,
           27,
           24,
-          0,
+          2,
           0
         ],
         "meta_mes": [
@@ -9847,8 +9847,8 @@
           159,
           186,
           210,
-          210,
-          210
+          212,
+          212
         ],
         "meta_acum": [
           0,
@@ -9878,7 +9878,7 @@
           33,
           40,
           38,
-          0,
+          1,
           0
         ],
         "meta_mes": [
@@ -9906,8 +9906,8 @@
           226,
           266,
           304,
-          304,
-          304
+          305,
+          305
         ],
         "meta_acum": [
           0,
@@ -9996,7 +9996,7 @@
           58,
           82,
           84,
-          2,
+          8,
           0
         ],
         "meta_mes": [
@@ -10024,8 +10024,8 @@
           304,
           386,
           470,
-          472,
-          472
+          478,
+          478
         ],
         "meta_acum": [
           0,
@@ -10114,7 +10114,7 @@
           37,
           45,
           49,
-          0,
+          3,
           0
         ],
         "meta_mes": [
@@ -10142,8 +10142,8 @@
           226,
           271,
           320,
-          320,
-          320
+          323,
+          323
         ],
         "meta_acum": [
           0,
@@ -10291,7 +10291,7 @@
           27,
           36,
           27,
-          0,
+          4,
           0
         ],
         "meta_mes": [
@@ -10319,8 +10319,8 @@
           185,
           221,
           248,
-          248,
-          248
+          252,
+          252
         ],
         "meta_acum": [
           0,
@@ -10350,7 +10350,7 @@
           34,
           34,
           32,
-          0,
+          3,
           0
         ],
         "meta_mes": [
@@ -10378,8 +10378,8 @@
           235,
           269,
           301,
-          301,
-          301
+          304,
+          304
         ],
         "meta_acum": [
           0,
@@ -10407,8 +10407,8 @@
       251,
       357,
       536,
-      471,
-      2,
+      477,
+      30,
       0
     ],
     "total_meta_mes": [
@@ -10435,9 +10435,9 @@
       2158,
       2515,
       3051,
-      3522,
-      3524,
-      3524
+      3528,
+      3558,
+      3558
     ],
     "total_meta_acum": [
       0,
@@ -10453,7 +10453,7 @@
       3488,
       3924
     ],
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "itvd": {
     "meses": [
@@ -11371,7 +11371,7 @@
           96,
           76,
           75,
-          5,
+          9,
           0
         ],
         "meta_mes": [
@@ -11399,8 +11399,8 @@
           291,
           367,
           442,
-          447,
-          447
+          451,
+          451
         ],
         "meta_acum": [
           15,
@@ -11429,7 +11429,7 @@
           4,
           7,
           5,
-          3,
+          4,
           1,
           0
         ],
@@ -11457,9 +11457,9 @@
           31,
           38,
           43,
-          46,
           47,
-          47
+          48,
+          48
         ],
         "meta_acum": [
           4,
@@ -11548,7 +11548,7 @@
           21,
           20,
           22,
-          1,
+          2,
           0
         ],
         "meta_mes": [
@@ -11576,8 +11576,8 @@
           132,
           152,
           174,
-          175,
-          175
+          176,
+          176
         ],
         "meta_acum": [
           4,
@@ -11666,7 +11666,7 @@
           65,
           51,
           66,
-          4,
+          6,
           0
         ],
         "meta_mes": [
@@ -11694,8 +11694,8 @@
           257,
           308,
           374,
-          378,
-          378
+          380,
+          380
         ],
         "meta_acum": [
           15,
@@ -11724,8 +11724,8 @@
           25,
           24,
           29,
-          46,
-          3,
+          44,
+          4,
           0
         ],
         "meta_mes": [
@@ -11752,9 +11752,9 @@
           138,
           162,
           191,
-          237,
-          240,
-          240
+          235,
+          239,
+          239
         ],
         "meta_acum": [
           8,
@@ -11784,7 +11784,7 @@
           25,
           28,
           24,
-          1,
+          2,
           0
         ],
         "meta_mes": [
@@ -11812,8 +11812,8 @@
           180,
           208,
           232,
-          233,
-          233
+          234,
+          234
         ],
         "meta_acum": [
           8,
@@ -11961,7 +11961,7 @@
           11,
           17,
           18,
-          2,
+          3,
           0
         ],
         "meta_mes": [
@@ -11989,8 +11989,8 @@
           86,
           103,
           121,
-          123,
-          123
+          124,
+          124
         ],
         "meta_acum": [
           4,
@@ -12077,8 +12077,8 @@
       284,
       333,
       299,
-      342,
-      27,
+      341,
+      37,
       0
     ],
     "total_meta_mes": [
@@ -12105,9 +12105,9 @@
       1405,
       1738,
       2037,
-      2379,
-      2406,
-      2406
+      2378,
+      2415,
+      2415
     ],
     "total_meta_acum": [
       101,
@@ -12137,7 +12137,7 @@
       "Novembro",
       "Dezembro"
     ],
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "rolezinho": {
     "meses": [
@@ -12285,7 +12285,7 @@
           4,
           6,
           4,
-          3,
+          4,
           1,
           0
         ],
@@ -12313,9 +12313,9 @@
           4,
           10,
           14,
-          17,
           18,
-          18
+          19,
+          19
         ],
         "meta_acum": [
           4,
@@ -12522,7 +12522,7 @@
           8,
           4,
           7,
-          0,
+          1,
           0
         ],
         "meta_mes": [
@@ -12550,8 +12550,8 @@
           17,
           21,
           28,
-          28,
-          28
+          29,
+          29
         ],
         "meta_acum": [
           4,
@@ -12580,7 +12580,7 @@
           4,
           6,
           5,
-          5,
+          4,
           2,
           0
         ],
@@ -12608,9 +12608,9 @@
           8,
           14,
           19,
-          24,
-          26,
-          26
+          23,
+          25,
+          25
         ],
         "meta_acum": [
           4,
@@ -12934,7 +12934,7 @@
       113,
       97,
       88,
-      17,
+      18,
       0
     ],
     "total_acum": [
@@ -12948,8 +12948,8 @@
       288,
       385,
       473,
-      490,
-      490
+      491,
+      491
     ],
     "total_meta_mes": [
       52,
@@ -12979,7 +12979,7 @@
       624,
       676
     ],
-    "atualizado_em": "2026-11-03",
+    "atualizado_em": "2026-11-04",
     "semanas": {
       "rotulos": [
         "29/12",
@@ -13164,7 +13164,7 @@
           1,
           1,
           0,
-          2
+          3
         ],
         "COMERCINHO": [
           0,
@@ -13393,7 +13393,7 @@
           1,
           1,
           1,
-          2,
+          1,
           2
         ],
         "MEDINA": [
@@ -13627,7 +13627,7 @@
           1
         ]
       },
-      "ate": "02/11/2026",
+      "ate": "03/11/2026",
       "meta_semanal": {
         "AGUAS VERMELHAS": 1,
         "ARACUAI": 1,
@@ -15763,7 +15763,7 @@
       "outros": 0,
       "total": 19
     },
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "mv_detalhado": {
     "periodo": "Acumulado - Janeiro a Novembro",
@@ -17237,7 +17237,7 @@
       "outros": 0,
       "total": 25
     },
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "cvpa_detalhado": {
     "periodo": "Acumulado - Janeiro a Novembro",
@@ -18123,7 +18123,7 @@
       "outros": 0,
       "total": 43
     },
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "saque_seguro": {
     "meses": [
@@ -18154,7 +18154,7 @@
           8,
           6,
           8,
-          0,
+          1,
           0
         ],
         "meta_mes": [
@@ -18182,8 +18182,8 @@
           56,
           62,
           70,
-          70,
-          70
+          71,
+          71
         ],
         "meta_acum": [
           4,
@@ -18213,7 +18213,7 @@
           34,
           24,
           11,
-          1,
+          2,
           0
         ],
         "meta_mes": [
@@ -18241,8 +18241,8 @@
           155,
           179,
           190,
-          191,
-          191
+          192,
+          192
         ],
         "meta_acum": [
           16,
@@ -18331,7 +18331,7 @@
           11,
           11,
           4,
-          0,
+          1,
           0
         ],
         "meta_mes": [
@@ -18359,8 +18359,8 @@
           73,
           84,
           88,
-          88,
-          88
+          89,
+          89
         ],
         "meta_acum": [
           4,
@@ -18449,7 +18449,7 @@
           10,
           9,
           12,
-          0,
+          1,
           0
         ],
         "meta_mes": [
@@ -18477,8 +18477,8 @@
           49,
           58,
           70,
-          70,
-          70
+          71,
+          71
         ],
         "meta_acum": [
           8,
@@ -18508,7 +18508,7 @@
           31,
           27,
           18,
-          1,
+          2,
           0
         ],
         "meta_mes": [
@@ -18536,8 +18536,8 @@
           130,
           157,
           175,
-          176,
-          176
+          177,
+          177
         ],
         "meta_acum": [
           16,
@@ -18567,7 +18567,7 @@
           11,
           11,
           14,
-          1,
+          2,
           0
         ],
         "meta_mes": [
@@ -18595,8 +18595,8 @@
           54,
           65,
           79,
-          80,
-          80
+          81,
+          81
         ],
         "meta_acum": [
           8,
@@ -18626,7 +18626,7 @@
           11,
           14,
           13,
-          0,
+          2,
           0
         ],
         "meta_mes": [
@@ -18654,8 +18654,8 @@
           84,
           98,
           111,
-          111,
-          111
+          113,
+          113
         ],
         "meta_acum": [
           8,
@@ -18685,7 +18685,7 @@
           7,
           8,
           6,
-          0,
+          1,
           0
         ],
         "meta_mes": [
@@ -18713,8 +18713,8 @@
           56,
           64,
           70,
-          70,
-          70
+          71,
+          71
         ],
         "meta_acum": [
           4,
@@ -18744,7 +18744,7 @@
           17,
           53,
           8,
-          0,
+          1,
           0
         ],
         "meta_mes": [
@@ -18772,8 +18772,8 @@
           95,
           148,
           156,
-          156,
-          156
+          157,
+          157
         ],
         "meta_acum": [
           16,
@@ -18803,7 +18803,7 @@
           9,
           9,
           12,
-          0,
+          1,
           0
         ],
         "meta_mes": [
@@ -18831,8 +18831,8 @@
           53,
           62,
           74,
-          74,
-          74
+          75,
+          75
         ],
         "meta_acum": [
           4,
@@ -18920,7 +18920,7 @@
       168,
       189,
       129,
-      3,
+      14,
       0
     ],
     "total_meta_mes": [
@@ -18948,8 +18948,8 @@
       955,
       1144,
       1273,
-      1276,
-      1276
+      1287,
+      1287
     ],
     "total_meta_acum": [
       100,
@@ -18965,7 +18965,7 @@
       1100,
       1200
     ],
-    "atualizado_em": "2026-11-03"
+    "atualizado_em": "2026-11-04"
   },
   "analise_preditiva": {
     "meses": [
@@ -20635,7 +20635,7 @@
           96,
           76,
           75,
-          5,
+          9,
           0
         ],
         "efetivo_sum": [
@@ -20649,7 +20649,7 @@
           242,
           183,
           179,
-          13,
+          23,
           0
         ],
         "viaturas_sum": [
@@ -20663,7 +20663,7 @@
           123,
           103,
           103,
-          7,
+          13,
           0
         ],
         "reds_gerado": [
@@ -20691,7 +20691,7 @@
           1024,
           730,
           705,
-          53,
+          93,
           0
         ],
         "veic_fisc": [
@@ -20705,7 +20705,7 @@
           376,
           258,
           312,
-          23,
+          33,
           0
         ],
         "motos_autu": [
@@ -20719,7 +20719,7 @@
           118,
           48,
           39,
-          1,
+          2,
           0
         ],
         "inabilitados": [
@@ -20733,7 +20733,7 @@
           72,
           23,
           19,
-          0,
+          1,
           0
         ],
         "veic_retidos": [
@@ -20806,7 +20806,7 @@
           65,
           51,
           66,
-          4,
+          6,
           0
         ],
         "efetivo_sum": [
@@ -20820,7 +20820,7 @@
           138,
           104,
           135,
-          8,
+          12,
           0
         ],
         "viaturas_sum": [
@@ -20834,7 +20834,7 @@
           70,
           52,
           67,
-          4,
+          6,
           0
         ],
         "reds_gerado": [
@@ -20862,7 +20862,7 @@
           699,
           535,
           701,
-          42,
+          65,
           0
         ],
         "veic_fisc": [
@@ -20876,7 +20876,7 @@
           481,
           296,
           330,
-          9,
+          26,
           0
         ],
         "motos_autu": [
@@ -21148,7 +21148,7 @@
           25,
           28,
           24,
-          1,
+          2,
           0
         ],
         "efetivo_sum": [
@@ -21162,7 +21162,7 @@
           54,
           66,
           51,
-          2,
+          4,
           0
         ],
         "viaturas_sum": [
@@ -21176,7 +21176,7 @@
           26,
           31,
           25,
-          1,
+          2,
           0
         ],
         "reds_gerado": [
@@ -21218,7 +21218,7 @@
           253,
           272,
           221,
-          10,
+          21,
           0
         ],
         "motos_autu": [
@@ -21490,7 +21490,7 @@
           21,
           20,
           22,
-          1,
+          2,
           0
         ],
         "efetivo_sum": [
@@ -21504,7 +21504,7 @@
           52,
           44,
           49,
-          2,
+          4,
           0
         ],
         "viaturas_sum": [
@@ -21518,7 +21518,7 @@
           29,
           21,
           22,
-          1,
+          2,
           0
         ],
         "reds_gerado": [
@@ -21546,7 +21546,7 @@
           148,
           163,
           182,
-          11,
+          21,
           0
         ],
         "veic_fisc": [
@@ -21660,8 +21660,8 @@
           25,
           24,
           29,
-          46,
-          3,
+          44,
+          4,
           0
         ],
         "efetivo_sum": [
@@ -21674,8 +21674,8 @@
           58,
           58,
           66,
-          94,
-          7,
+          90,
+          9,
           0
         ],
         "viaturas_sum": [
@@ -21688,8 +21688,8 @@
           26,
           25,
           29,
-          45,
-          3,
+          43,
+          4,
           0
         ],
         "reds_gerado": [
@@ -21716,8 +21716,8 @@
           283,
           256,
           306,
-          469,
-          33,
+          449,
+          48,
           0
         ],
         "veic_fisc": [
@@ -21744,7 +21744,7 @@
           9,
           9,
           16,
-          3,
+          0,
           0,
           0
         ],
@@ -21832,7 +21832,7 @@
           11,
           17,
           18,
-          2,
+          3,
           0
         ],
         "efetivo_sum": [
@@ -21846,7 +21846,7 @@
           33,
           41,
           41,
-          4,
+          6,
           0
         ],
         "viaturas_sum": [
@@ -21860,7 +21860,7 @@
           11,
           17,
           18,
-          2,
+          3,
           0
         ],
         "reds_gerado": [
@@ -21888,7 +21888,7 @@
           114,
           171,
           163,
-          20,
+          30,
           0
         ],
         "veic_fisc": [
@@ -21902,7 +21902,7 @@
           110,
           180,
           121,
-          10,
+          20,
           0
         ],
         "motos_autu": [
@@ -21986,7 +21986,7 @@
           60,
           60,
           60,
-          50,
+          60,
           0
         ]
       },
@@ -22686,7 +22686,7 @@
           4,
           7,
           5,
-          3,
+          4,
           1,
           0
         ],
@@ -22700,7 +22700,7 @@
           11,
           17,
           10,
-          7,
+          9,
           2,
           0
         ],
@@ -22714,7 +22714,7 @@
           4,
           7,
           5,
-          3,
+          4,
           1,
           0
         ],
@@ -22742,7 +22742,7 @@
           35,
           71,
           50,
-          31,
+          39,
           10,
           0
         ],
@@ -22756,7 +22756,7 @@
           41,
           74,
           56,
-          38,
+          43,
           10,
           0
         ],
@@ -22840,7 +22840,7 @@
           60,
           60,
           60,
-          120,
+          105,
           60,
           0
         ]
@@ -22857,8 +22857,8 @@
         284,
         333,
         299,
-        342,
-        27,
+        341,
+        37,
         0
       ],
       "efetivo_sum": [
@@ -22871,8 +22871,8 @@
         644,
         785,
         682,
-        755,
-        58,
+        753,
+        80,
         0
       ],
       "viaturas_sum": [
@@ -22885,8 +22885,8 @@
         307,
         375,
         330,
-        371,
-        29,
+        370,
+        41,
         0
       ],
       "reds_gerado": [
@@ -22913,8 +22913,8 @@
         2908,
         3467,
         2930,
-        3381,
-        267,
+        3369,
+        365,
         0
       ],
       "veic_fisc": [
@@ -22927,8 +22927,8 @@
         2059,
         2362,
         2099,
-        2180,
-        192,
+        2185,
+        240,
         0
       ],
       "motos_autu": [
@@ -22941,8 +22941,8 @@
         128,
         169,
         125,
-        95,
-        11,
+        92,
+        12,
         0
       ],
       "inabilitados": [
@@ -22956,7 +22956,7 @@
         107,
         79,
         47,
-        3,
+        4,
         0
       ],
       "veic_retidos": [
@@ -23108,7 +23108,7 @@
         "qtd": 1
       }
     ],
-    "atualizado_em": "2026-11-03",
+    "atualizado_em": "2026-11-04",
     "universo": "oficial"
   },
   "violencia_domestica": {
@@ -29602,19 +29602,19 @@
     ]
   },
   "cavaloaco_detalhe": {
-    "total": 2406,
+    "total": 2415,
     "bairro": [
       [
         "CENTRO",
-        990
+        992
       ],
       [
         "GREBETHANIA",
-        128
+        129
       ],
       [
         "(sem bairro)",
-        126
+        128
       ],
       [
         "BELA VISTA",
@@ -29637,12 +29637,12 @@
         42
       ],
       [
-        "CIDADE NOVA",
-        42
-      ],
-      [
         "VILA VIEIRA",
         41
+      ],
+      [
+        "CIDADE NOVA",
+        40
       ],
       [
         "SANTO ANTONIO",
@@ -29666,14 +29666,14 @@
       ],
       [
         "OUTROS BAIRROS",
-        591
+        597
       ]
     ],
     "bairro_municipio": {
       "MEDINA": [
         [
           "CENTRO",
-          137
+          138
         ],
         [
           "SERRA AZUL",
@@ -29797,7 +29797,7 @@
       "ARACUAI": [
         [
           "GREBETHANIA",
-          128
+          129
         ],
         [
           "CENTRO",
@@ -29817,7 +29817,7 @@
         ],
         [
           "ALTO MERCADO",
-          22
+          23
         ],
         [
           "CANOEIRO JOSE ALVES DE CARVALHO",
@@ -29825,11 +29825,11 @@
         ],
         [
           "SANTA TEREZA",
-          14
+          15
         ],
         [
           "OUTROS BAIRROS",
-          92
+          93
         ]
       ],
       "PEDRA AZUL": [
@@ -29885,7 +29885,7 @@
         ],
         [
           "ACARI",
-          14
+          15
         ],
         [
           "MARIA DA GLORIA",
@@ -29911,7 +29911,7 @@
       "ITINGA": [
         [
           "CENTRO",
-          106
+          107
         ],
         [
           "PORTO ALEGRE",
@@ -29923,7 +29923,7 @@
         ],
         [
           "CIDADE NOVA",
-          19
+          17
         ],
         [
           "(sem bairro)",
@@ -29949,7 +29949,7 @@
         ],
         [
           "DERALDO DANTAS",
-          16
+          17
         ],
         [
           "POVOADO AGUAS ALTAS",
@@ -30021,7 +30021,7 @@
         ],
         [
           "(sem bairro)",
-          5
+          6
         ],
         [
           "SANTANA DO ARACUAI",
@@ -30039,7 +30039,7 @@
         ],
         [
           "(sem bairro)",
-          36
+          37
         ],
         [
           "VILA NOVA",
@@ -30059,7 +30059,7 @@
         ],
         [
           "SAO JOAO GRANDE",
-          16
+          17
         ],
         [
           "OUTROS BAIRROS",
@@ -30126,19 +30126,19 @@
           7,
           39,
           84,
-          121
+          122
         ],
         [
           4,
           32,
-          59,
-          140
+          62,
+          146
         ],
         [
           5,
           32,
-          67,
-          133
+          66,
+          134
         ],
         [
           4,
@@ -30161,7 +30161,7 @@
         [
           11,
           44,
-          247,
+          246,
           202
         ]
       ]
@@ -30179,21 +30179,21 @@
         },
         {
           "nome": "ARACUAI",
-          "ops": 447,
-          "dur_media_min": 46.1,
+          "ops": 451,
+          "dur_media_min": 46.0,
           "dur_mediana_min": 36,
           "efetivo_medio": 2.59,
           "vtr_media": 1.33,
-          "horas_policial": 855.9
+          "horas_policial": 861.1
         },
         {
           "nome": "CACHOEIRA DE PAJEU",
-          "ops": 47,
-          "dur_media_min": 84.7,
+          "ops": 48,
+          "dur_media_min": 84.8,
           "dur_mediana_min": 60,
-          "efetivo_medio": 2.36,
+          "efetivo_medio": 2.35,
           "vtr_media": 1.0,
-          "horas_policial": 154.7
+          "horas_policial": 157.7
         },
         {
           "nome": "COMERCINHO",
@@ -30206,12 +30206,12 @@
         },
         {
           "nome": "CORONEL MURTA",
-          "ops": 175,
+          "ops": 176,
           "dur_media_min": 61.1,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.57,
           "vtr_media": 1.09,
-          "horas_policial": 456.0
+          "horas_policial": 458.0
         },
         {
           "nome": "DIVISA ALEGRE",
@@ -30224,30 +30224,30 @@
         },
         {
           "nome": "ITAOBIM",
-          "ops": 378,
-          "dur_media_min": 173.8,
+          "ops": 380,
+          "dur_media_min": 174.5,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.07,
           "vtr_media": 1.03,
-          "horas_policial": 2233.9
+          "horas_policial": 2253.9
         },
         {
           "nome": "ITINGA",
-          "ops": 240,
-          "dur_media_min": 84.6,
+          "ops": 239,
+          "dur_media_min": 84.7,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.53,
           "vtr_media": 1.02,
-          "horas_policial": 850.8
+          "horas_policial": 848.8
         },
         {
           "nome": "MEDINA",
-          "ops": 233,
-          "dur_media_min": 202.5,
+          "ops": 234,
+          "dur_media_min": 201.9,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.46,
           "vtr_media": 1.07,
-          "horas_policial": 1861.0
+          "horas_policial": 1863.0
         },
         {
           "nome": "PADRE PARAISO",
@@ -30269,12 +30269,12 @@
         },
         {
           "nome": "PONTO DOS VOLANTES",
-          "ops": 123,
-          "dur_media_min": 82.0,
+          "ops": 124,
+          "dur_media_min": 81.8,
           "dur_mediana_min": 60,
           "efetivo_medio": 2.27,
           "vtr_media": 1.0,
-          "horas_policial": 375.7
+          "horas_policial": 377.7
         },
         {
           "nome": "VIRGEM DA LAPA",
@@ -30287,35 +30287,35 @@
         }
       ],
       "total": {
-        "ops": 2406,
+        "ops": 2415,
         "dur_media_min": 98.3,
         "dur_mediana_min": 60,
         "efetivo_medio": 2.39,
         "vtr_media": 1.08,
-        "horas_policial": 8966.0
+        "horas_policial": 8998.2
       },
       "duracao_suspeita": 9,
       "sem_duracao": 0,
       "sem_efetivo": 34
     },
     "qualidade": {
-      "sem_bairro": 126,
+      "sem_bairro": 128,
       "por_municipio": {
         "MEDINA": 6,
         "COMERCINHO": 19,
         "PADRE PARAISO": 25,
         "PEDRA AZUL": 14,
-        "ITAOBIM": 36,
+        "ITAOBIM": 37,
         "ITINGA": 7,
         "VIRGEM DA LAPA": 1,
         "AGUAS VERMELHAS": 1,
         "CORONEL MURTA": 2,
         "ARACUAI": 9,
-        "PONTO DOS VOLANTES": 5,
+        "PONTO DOS VOLANTES": 6,
         "CACHOEIRA DE PAJEU": 1
       },
       "localizacao_erro": 16,
-      "zona_rural": 113
+      "zona_rural": 116
     },
     "bairro_completo": {
       "AGUAS VERMELHAS": {
@@ -30332,15 +30332,15 @@
         "PANORAMA": 1
       },
       "ARACUAI": {
-        "GREBETHANIA": 128,
+        "GREBETHANIA": 129,
         "CENTRO": 87,
         "ESPLANADA": 37,
         "NOVA TERRA": 27,
         "BELA VISTA": 25,
-        "ALTO MERCADO": 22,
+        "ALTO MERCADO": 23,
         "CANOEIRO JOSE ALVES DE CARVALHO": 15,
-        "SANTA TEREZA": 14,
-        "ALTO PARAISO": 13,
+        "SANTA TEREZA": 15,
+        "ALTO PARAISO": 14,
         "SITIO SENHOR MARINHO": 13,
         "ARRAIAL": 11,
         "CORREDOR": 10,
@@ -30359,7 +30359,7 @@
       },
       "CACHOEIRA DE PAJEU": {
         "CENTRO": 17,
-        "DERALDO DANTAS": 16,
+        "DERALDO DANTAS": 17,
         "POVOADO AGUAS ALTAS": 5,
         "ALTO DOS REIS": 4,
         "PAQUETA": 2,
@@ -30379,7 +30379,7 @@
         "CENTRO": 69,
         "ITAPORE VELHO": 60,
         "VILA PALMEIRAS": 16,
-        "ACARI": 14,
+        "ACARI": 15,
         "MARIA DA GLORIA": 10,
         "(sem bairro)": 2,
         "JOSE CAIRES": 2,
@@ -30400,12 +30400,12 @@
       "ITAOBIM": {
         "CENTRO": 164,
         "SANTO ANTONIO": 39,
-        "(sem bairro)": 36,
+        "(sem bairro)": 37,
         "VILA NOVA": 24,
         "SAO JORGE": 23,
         "VILA RICA": 22,
         "ESPERANCA": 17,
-        "SAO JOAO GRANDE": 16,
+        "SAO JOAO GRANDE": 17,
         "ALVORADA": 11,
         "GUADALUPE": 9,
         "SAO CRISTOVAO": 7,
@@ -30416,17 +30416,17 @@
         "SÃO JOÃO GRANDE": 1
       },
       "ITINGA": {
-        "CENTRO": 106,
+        "CENTRO": 107,
         "PORTO ALEGRE": 68,
         "PLANALTO": 36,
-        "CIDADE NOVA": 19,
+        "CIDADE NOVA": 17,
         "(sem bairro)": 7,
         "LOCALIDADE PONTE DO PASMADO": 2,
         "LOCALIDADE DE PASMADO": 1,
         "LOCALIDADE DE TAQUARAL": 1
       },
       "MEDINA": {
-        "CENTRO": 137,
+        "CENTRO": 138,
         "SERRA AZUL": 31,
         "VARZEA GRANDE": 27,
         "ALIANCA": 16,
@@ -30467,7 +30467,7 @@
       },
       "PONTO DOS VOLANTES": {
         "CENTRO": 114,
-        "(sem bairro)": 5,
+        "(sem bairro)": 6,
         "SANTANA DO ARACUAI": 4
       },
       "VIRGEM DA LAPA": {
@@ -30485,11 +30485,11 @@
       "lista": [
         [
           "VIA DE ACESSO PUBLICA",
-          2321
+          2329
         ],
         [
           "MOTOCICLETA",
-          75
+          76
         ],
         [
           "VIA DE ACESSO PARTICULAR/PRIVADA",
@@ -30693,7 +30693,7 @@
           1,
           1,
           0,
-          2
+          3
         ],
         "COMERCINHO": [
           0,
@@ -30922,8 +30922,8 @@
           7,
           7,
           8,
-          15,
-          14
+          14,
+          13
         ],
         "MEDINA": [
           9,
@@ -31156,7 +31156,7 @@
           1
         ]
       },
-      "ate": "02/11/2026",
+      "ate": "03/11/2026",
       "meta_semanal": {
         "AGUAS VERMELHAS": 1,
         "ARACUAI": 4,
