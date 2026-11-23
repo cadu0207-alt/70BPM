@@ -692,9 +692,14 @@ body { background:var(--bg-0); color:var(--ink); }
 .tend-ig { color:var(--muted); } .data-table td.z0 { color:var(--muted); }
 .data-table tr.cia-sub td, .aud-linha.tot { background:rgba(15,13,5,.04); } .barras .fio { background:rgba(15,13,5,.08); }
 /* faixa superior (como a barra cinza do site da PMMG) */
-.topbar { background:#474648; border-bottom:0; padding:9px 30px; }
-.topbar-title, .topbar-title b, .topbar-status { color:#fff; font-weight:500; letter-spacing:.04em; text-transform:none; font-size:12.5px; }
-.topbar-title b { font-weight:700; } .topbar-status { color:#e9e5d8; }
+.topbar { background:#fff; border-bottom:1px solid #E4E0D2; box-shadow:inset 0 -3px 0 #A08F63; padding:10px 30px 13px; gap:10px 20px; align-items:center; }
+.topbar-title, .topbar-title b, .topbar-status { color:var(--ink); font-weight:500; letter-spacing:.02em; text-transform:none; font-size:12.5px; }
+.topbar-title { flex:1 1 auto; min-width:0; } .topbar-title b { font-weight:700; }
+.topbar-status { color:var(--muted); flex:0 1 auto; flex-wrap:wrap; justify-content:flex-end; gap:8px 14px; }
+.topbar-status > span, .topbar-status .status-dados { white-space:nowrap; }
+#ppvdAuthWidget { display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px 8px; }
+#ppvdAuthWidget > span { color:var(--ink) !important; font-weight:700; background:#EFECE2; border-radius:24px; padding:5px 12px; }
+#ppvdAuthWidget .ppvd-btn { padding:5px 13px; font-size:12px; }
 .topbar .btn, .topbar button { font-family:var(--sans); }
 .main { background:var(--bg-0); }
 /* títulos: barra cáqui no lugar do "//" */
@@ -717,7 +722,9 @@ body { background:var(--bg-0); color:var(--ink); }
   .topbar { padding:9px 14px; }
 }
 /* logotipo novo da PMMG no topo do menu */
-.brand .logo-pmmg { display:block; height:34px; width:auto; margin:0 0 10px; }
+.brand { display:flex; align-items:center; gap:14px; }
+.brand .logo-pmmg { display:block; height:58px; width:auto; margin:0; flex:none; }
+.brand .brand-txt { min-width:0; } .brand .sub { margin-top:4px; line-height:1.35; font-size:10px; letter-spacing:.04em; }
 .brand .unit { font-size:19px; }
 /* atalhos da Home */
 .home-barra { background:rgba(255,255,255,.96); border-bottom:1px solid var(--panel-border); }
@@ -746,9 +753,9 @@ select.month-select, .mun-filtro-select { background:#fff; color:var(--ink); bor
 <div class="nav-backdrop" id="navBackdrop"></div>
 <nav class="sidebar" id="sidebar" aria-label="Menu principal">
   <div class="brand">
-    <img class="logo-pmmg" src="assets/brand/logotipo-pmmg.png" alt="PMMG">
-    <div class="unit">70&ordm; BPM</div>
-    <div class="sub">Painel de Indicadores &middot; 15&ordm; RPM</div>
+    <img class="logo-pmmg" src="assets/comunicacao/escudo-pmmg.png" alt="Brasão da PMMG">
+    <div class="brand-txt"><div class="unit">70&ordm; BPM</div>
+    <div class="sub">Painel de Indicadores &middot; 15&ordm; RPM</div></div>
   </div>
   <div class="menu-busca"><span aria-hidden="true">🔍</span><input id="menuBusca" type="search" placeholder="Buscar indicador ou página…" aria-label="Buscar no menu" autocomplete="off"></div>
   <div class="nav-scroll" id="navScroll">
@@ -6263,8 +6270,8 @@ function ppvdRenderAuthWidget() {
     poe(`<span style="color:var(--text)">${ppvdPerfil.nome} (${ppvdPerfil.cargo})</span> ` +
       (ppvdPerfil.is_admin ? `<button class="ppvd-btn" onclick="ppvdOpenAprovacoes()">Aprovações RPPM</button> ` : '') +
       `<button class="ppvd-btn" onclick="ppvdOpenMilitares()">Militares Responsáveis</button> ` +
-      `<button class="ppvd-btn" onclick="goToPage('mensagens')">✉ Mensagens<span id="msgBadge"></span></button> ` +
-      `<button class="ppvd-btn" onclick="goToPage('notificacoes')">🔔 Avisos</button> ` +
+      `<button class="ppvd-btn" onclick="goToPage('mensagens')">Mensagens<span id="msgBadge"></span></button> ` +
+      `<button class="ppvd-btn" onclick="goToPage('notificacoes')">Avisos</button> ` +
       `<button class="ppvd-btn" onclick="ppvdSignOut()">Sair</button>`);
     ppvdAtualizarBadgeMensagens();
   }
