@@ -351,6 +351,33 @@ def main():
     recompute_totals(data['saque_seguro'])
     report['saque_seguro'] = {'file': f, 'n_matched': matched, 'changes': ch, 'drops': dr}
 
+    # Polícia, Cidadão e Empresa (decisão do Eduardo, 23/11/2026): meta = NO MÍNIMO 1 reunião por cidade por mês (Fração = município),
+    # de março a dezembro. Naturezas contadas: A19.000, A19.001, A19.004 e A19.099 (export pré-filtrado pelo SiGOp, unidade 70 BPM).
+    # Só contagens por município/mês entram no data.json público — o export traz endereço/REDS e nunca sai daqui.
+    f = latest_csv('Polícia, Cidadão e Empresa')
+    if f:
+        if 'polcid' not in data:
+            _munis = [m['nome'] for m in data['padesc']['municipios']]
+            _mm = [0, 0] + [1]*(N_MESES-2)
+            _ma = [sum(_mm[:i+1]) for i in range(N_MESES)]
+            data['polcid'] = {'meses': data['padesc']['meses'], 'municipios': [
+                {'nome': n, 'realizado_mes': [0]*N_MESES, 'meta_mes': list(_mm), 'realizado_acum': [0]*N_MESES, 'meta_acum': list(_ma)} for n in _munis],
+                'total_mes': [0]*N_MESES, 'total_meta_mes': [len(_munis)*v for v in _mm], 'total_acum': [0]*N_MESES,
+                'total_meta_acum': [len(_munis)*v for v in _ma], 'atualizado_em': ''}
+        new_d = {}
+        matched = 0
+        for cod in ('A19000', 'A19001', 'A19004', 'A19099'):
+            dd, mt, _h = agg_bos_filter(f, cod)
+            matched += mt
+            for mun, arr in dd.items():
+                acc = new_d.setdefault(mun, [0]*N_MESES)
+                for i, v in enumerate(arr):
+                    acc[i] += v
+        new_list, ch, dr = merge_cell(data['polcid']['municipios'], new_d)
+        data['polcid']['municipios'] = new_list
+        recompute_totals(data['polcid'])
+        report['polcid'] = {'file': f, 'n_matched': matched, 'changes': ch, 'drops': dr}
+
     f = latest_csv('POG E PPAG')
     with open(f, encoding='utf-8') as fh:
         rat_rows = list(csv.DictReader(fh, delimiter=';'))
@@ -378,7 +405,7 @@ def main():
     # Auditoria acabava ponderando a meta contra uma data errada (velha). Passa a refletir
     # sempre o dia em que a rotina realmente rodou, não o dia do arquivo de origem.
     HOJE = datetime.date.today().isoformat()
-    for key in ('mv', 'cvpe', 'cvpa', 'furto', 'armas', 'cavaloaco', 'rolezinho', 'padesc', 'saque_seguro', 'pog'):
+    for key in ('mv', 'cvpe', 'cvpa', 'furto', 'armas', 'cavaloaco', 'rolezinho', 'padesc', 'saque_seguro', 'pog', 'polcid'):
         data[key]['atualizado_em'] = HOJE
     for key in data['ppag']:
         data['ppag'][key]['atualizado_em'] = HOJE
