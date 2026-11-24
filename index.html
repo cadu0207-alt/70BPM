@@ -1148,7 +1148,7 @@ function kpiPisoEf(label, d, mi, tipo) {
 function dataBr(dt) { return String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0'); }
 // "Dados fechados até DD/MM · Mês em andamento (N de M dias)": a data mais importante da página, que antes só aparecia no topo
 function posicaoDadosHtml() {
-  const chaves = ['mv', 'cvpe', 'cvpa', 'furto', 'armas', 'pog', 'padesc', 'saque_seguro', 'cavaloaco', 'rolezinho', 'idob', 'itvd', 'esforco_furto'];
+  const chaves = ['mv', 'cvpe', 'cvpa', 'furto', 'armas', 'pog', 'padesc', 'saque_seguro', 'cavaloaco', 'rolezinho', 'idob', 'itvd', 'esforco_furto', 'polcid'];
   const datas = chaves.map(k => dataAtualizacaoIndicador(DATA[k])).filter(Boolean);
   if (!datas.length) return '';
   const maisAntiga = new Date(Math.min(...datas.map(d => d.getTime())));
@@ -1265,7 +1265,7 @@ function renderHome() {
     <div class="ap-cta-arrow">&#8594;</div>
   </div>`;
   html += posicaoDadosHtml();
-  html += `<details class="fontes-home"><summary>Fontes e indicadores ainda sem dados</summary><div><b>Dados até ${DATA.saque_seguro.meses[Math.min(MES_ATUAL_IDX, DATA.saque_seguro.meses.length-1)]}/2026:</b> IMV, CVPe, CVPa, Furto Rural, Armas, POG, PPAG, IDOB, ITVD, Esforço-Furto, Cavalo de Aço, Rolezinho, Pad. Escolar e Saque Seguro. ITVD e Esforço-Furto saem direto do TODOS OS B.O desde 28/08/2026.<br>Ainda sem dados: IDOCA completo (faltam as vítimas MV/CVPe/CVPa do Cavalo de Aço). Pol.Cid.Em tem página própria (A19.000/001/004/099).</div></details>`;
+  html += `<details class="fontes-home"><summary>Fontes e indicadores ainda sem dados</summary><div><b>Dados até ${DATA.saque_seguro.meses[Math.min(MES_ATUAL_IDX, DATA.saque_seguro.meses.length-1)]}/2026:</b> IMV, CVPe, CVPa, Furto Rural, Armas, POG, PPAG, IDOB, ITVD, Esforço-Furto, Cavalo de Aço, Rolezinho, Pad. Escolar, Saque Seguro e Pol.Cid.Em. ITVD e Esforço-Furto saem direto do TODOS OS B.O desde 28/08/2026.<br>Ainda sem dados: IDOCA completo (faltam as vítimas MV/CVPe/CVPa do Cavalo de Aço).</div></details>`;
   // 9 cartões num grid só (3 colunas no desktop): crimes / outros indicadores / metas operacionais.
   // Antes eram 2 grids de 4 colunas e o "Saque Seguro" sobrava sozinho na última linha.
   const idobQop = DATA.idob.total_qtdeop_acum[miIdob];
@@ -1283,6 +1283,7 @@ function renderHome() {
   html += kpiPisoEf('POG acum (res/meta)', DATA.pog, miPog, 'pog');
   html += kpiPisoEf('Pad. Escolar acum (res/meta)', DATA.padesc, miPadesc, 'piso');
   html += kpiPisoEf('Saque Seguro acum (res/meta)', DATA.saque_seguro, miSaque, 'piso');
+  if (DATA.polcid) html += kpiPisoEf('Pol.Cid.Em acum (res/meta)', DATA.polcid, Math.min(MES_ATUAL_IDX, DATA.polcid.total_acum.length-1), 'piso');
   html += `</div><div class="rank-lateral">${renderRankingTable('acum', true)}</div></div>`;
   html += `<div class="vd-card" id="homeVD" hidden></div>`;
   const qMes = renderCumprimentoMatrix('mes', true), qAcum = renderCumprimentoMatrix('acum', true);
@@ -3893,6 +3894,7 @@ function comSerieValor(serie, periodo) {
 function comSerieDe(chave, bloco) {
   const C = DATA.comunicacao || {};
   const porNome = (lista, campo) => { const m = (lista || []).find(x => normMun(x.nome) === chave); return m ? m[campo] : null; };
+  if (bloco === 'polcid') { const p = DATA.polcid; if (!p) return null; return chave === 'BATALHAO' ? p.total_mes : porNome(p.municipios, 'realizado_mes'); }
   if (C.series && C.series[bloco]) return C.series[bloco][chave] || null;
   if (bloco === 'presos') return (C.presos || {})[chave] || null;
   if (bloco === 'rolezinho') {
@@ -3984,6 +3986,11 @@ function comCartoes(estado) {
   bal('visitas_tranq', kick, 'VISITAS TRANQUILIZADORAS A VÍTIMAS', nv('visitas_tranq'), 'Acolhimento após crimes e sinistros · ' + periodoTxt, `🤝 ${fmt(nv('visitas_tranq') || 0)} visitas tranquilizadoras a vítimas ${local} ${periodoLeg}. A PM também cuida de quem sofreu um crime.`);
   bal('visitas_prev', kick, 'VISITAS PREVENTIVAS', nv('visitas_prev'), 'Escolas, comércio, bancos e residências · ' + periodoTxt, `🏫 ${fmt(nv('visitas_prev') || 0)} visitas preventivas ${local} ${periodoLeg}: escolas, comércio, bancos e residências.`);
   bal('reunioes', kick, 'REUNIÕES COMUNITÁRIAS E DE REDES DE PROTEÇÃO', nv('reunioes'), 'Comunidade, comerciantes e vizinhos protegidos · ' + periodoTxt, `👥 ${fmt(nv('reunioes') || 0)} reuniões comunitárias e de redes de proteção ${local} ${periodoLeg}. Segurança se constrói junto com a comunidade.`);
+  { // projeto Pol.Cid.Em: vem de DATA.polcid (meta de 1 reunião por cidade por mês), não do bloco comunicacao
+    const pc = DATA.polcid; let subPc = 'Projeto Polícia, Cidadão e Empresa · ' + periodoTxt;
+    if (pc && terr === 'BATALHAO' && periodo === 'mes') { const u = Math.min(MES_ATUAL_IDX, pc.total_mes.length - 1); subPc = `${pc.municipios.filter(m => m.realizado_mes[u] >= 1).length} de ${pc.municipios.length} cidades com reunião · ${periodoTxt}`; }
+    bal('polcid', kick, 'REUNIÕES DO PROJETO POLÍCIA, CIDADÃO E EMPRESA', nv('polcid'), subPc, `🤝 ${fmt(nv('polcid') || 0)} reuniões do projeto Polícia, Cidadão e Empresa ${local} ${periodoLeg}. Polícia, comunidade e empresas trabalhando juntas pela segurança.`);
+  }
   bal('egressos', kick, 'EGRESSOS DO SISTEMA PRISIONAL ACOMPANHADOS', nv('egressos'), 'Fiscalização preventiva · ' + periodoTxt, `🔁 ${fmt(nv('egressos') || 0)} acompanhamentos de egressos do sistema prisional ${local} ${periodoLeg}.`);
   if (pres !== null && armas !== null && ops !== null && motos !== null) {
     cartoes.push({ ...base, id: 'resumo', tipo: 'grade', kicker: periodo === 'mes' ? 'NO MÊS' : 'EM 2026', titulo: 'POLICIAMENTO EM NÚMEROS', sub: periodoTxt, destaque: true, valor: ops, tagTxt: periodoTxt, rodape: `Registros do SiGOp até ${ref}`,
@@ -4012,7 +4019,7 @@ function comCartoes(estado) {
   }
   const GRUPO_DE = (id) => (id === 'balanco-2025' ? 'Comparativo com 2025' : id.startsWith('dias-') ? 'Dias sem ocorrência' : (id.startsWith('comp-') ? 'Comparativo com 2025' : (id.startsWith('recorde-') ? 'Recordes de 2026'
     : (['presos', 'armas', 'rolezinho', 'veic_recuperados', 'veic_retirados', 'drogas', 'foragidos'].includes(id) ? 'Resultados e apreensões'
-    : (['visitas_tranq', 'visitas_prev', 'reunioes', 'egressos'].includes(id) ? 'Proximidade e prevenção' : 'Policiamento e abordagem')))));
+    : (['visitas_tranq', 'visitas_prev', 'reunioes', 'polcid', 'egressos'].includes(id) ? 'Proximidade e prevenção' : 'Policiamento e abordagem')))));
   cartoes.forEach(c => { c.grupo = GRUPO_DE(c.id); });
   return cartoes;
 }
@@ -4760,6 +4767,26 @@ async function gerarApresentacaoGdo(mi) {
       gdoTabela(s, gdoLinhasSaldo(DATA[k], mi), GDO_COLS_SALDO);
     });
 
+    // 14b) Projeto Polícia, Cidadão e Empresa: cobertura cidade × mês (meta: pelo menos 1 reunião por cidade por mês, de março a dezembro)
+    if (DATA.polcid && DATA.polcid.municipios && DATA.polcid.municipios.length) {
+      const d = DATA.polcid, iIni = Math.max(d.municipios[0].meta_mes.findIndex(v => v > 0), 0), idx = [];
+      for (let i = iIni; i <= mi; i++) idx.push(i);
+      if (idx.length) {
+        s = gdoSlide(pptx, brasao.peq, 'Projeto Polícia, Cidadão e Empresa', { nota: 'Meta: pelo menos 1 reunião por cidade por mês' });
+        const aberto = (m, i) => i === MES_ATUAL_IDX && m.realizado_mes[i] < 1;
+        const cinza = { fill: { color: 'D9D9D9' }, bold: true };
+        const linhas = [[gdoCabec('Município', { align: 'left' })].concat(idx.map(i => gdoCabec(String(meses[i]).slice(0, 3)))).concat([gdoCabec('Cumpridos')])];
+        let totOk = 0, totF = 0;
+        d.municipios.forEach(m => {
+          const fech = idx.filter(i => !aberto(m, i)), ok = fech.filter(i => m.realizado_mes[i] >= 1).length;
+          totOk += ok; totF += fech.length;
+          linhas.push([gdoEsq(m.nome)].concat(idx.map(i => (m.realizado_mes[i] >= 1 ? gdoSem(m.realizado_mes[i], 'verde') : (aberto(m, i) ? gdoNor('em aberto', { color: '595959' }) : gdoSem('0', 'vermelho'))))).concat([gdoNor(ok + ' / ' + fech.length, { bold: true })]));
+        });
+        linhas.push([gdoEsq('70º BPM', { fill: { color: 'D9D9D9' } })].concat(idx.map(i => gdoNor(d.total_mes[i], cinza))).concat([gdoNor(totOk + ' / ' + totF, cinza)]));
+        gdoTabela(s, linhas, [2.8].concat(idx.map(() => Math.min(1.0, 8.4 / idx.length))).concat([1.5]), { rowH: 0.31 });
+      }
+    }
+
     // 15) Rolezinho (Meta/Op. — verde cumpriu, vermelho não cumpriu)
     s = gdoSlide(pptx, brasao.peq, 'Operação Rolezinho', { nota: 'Verde = cumpriu a meta · vermelho = não cumpriu' });
     {
@@ -4836,7 +4863,7 @@ function renderApresentacaoGdoPage() {
   let html = `<div class="page-title">Apresentação de GDO</div>`;
   html += `<div class="ppvd-card" id="gdoPronta" style="margin-bottom:22px;border-color:var(--amber)">
     <b style="color:var(--amber)">Apresentação pronta — PowerPoint do mês</b>
-    <div style="margin:8px 0 12px;color:var(--muted);font-size:12.5px;line-height:1.55">Gera o arquivo .pptx já com as tabelas montadas (editáveis no PowerPoint) na ordem da apresentação anterior: MV, CVPE e CVPA (tabela, gráficos e detalhamento por natureza), prisões de furto, POG, proximidade, ITVD, armas, Cavalo de Aço, Boemia/IDOB, Padrinhos, Saque Seguro, Rolezinho e análise por Companhia. Os números são os do painel.</div>
+    <div style="margin:8px 0 12px;color:var(--muted);font-size:12.5px;line-height:1.55">Gera o arquivo .pptx já com as tabelas montadas (editáveis no PowerPoint) na ordem da apresentação anterior: MV, CVPE e CVPA (tabela, gráficos e detalhamento por natureza), prisões de furto, POG, proximidade, ITVD, armas, Cavalo de Aço, Boemia/IDOB, Padrinhos, Saque Seguro, Polícia, Cidadão e Empresa (cobertura cidade × mês), Rolezinho e análise por Companhia. Os números são os do painel.</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <select class="month-select" id="gdoMes" style="width:auto">${mesesDeck.slice(0, Math.min(MES_ATUAL_IDX, DATA.mv.total_acum.length - 1) + 1).map((m, i) => `<option value="${i}" ${i === miDeck ? 'selected' : ''}>Janeiro a ${m}/2026</option>`).join('')}</select>
       <button class="ppvd-btn ppvd-btn-primary" id="gdoGerar">⬇ Baixar PowerPoint (.pptx)</button>
