@@ -8135,7 +8135,7 @@
           93,
           72,
           77,
-          53,
+          55,
           0
         ],
         "mv_mes": [
@@ -8191,8 +8191,8 @@
           315,
           387,
           464,
-          517,
-          517
+          519,
+          519
         ],
         "mv_acum": [
           0,
@@ -8702,7 +8702,7 @@
         "qop_mes": [
           32,
           21,
-          17,
+          16,
           23,
           59,
           49,
@@ -8710,7 +8710,7 @@
           89,
           56,
           41,
-          33,
+          34,
           0
         ],
         "mv_mes": [
@@ -8758,14 +8758,14 @@
         "qop_acum": [
           32,
           53,
-          70,
-          93,
-          152,
-          201,
-          257,
-          346,
-          402,
-          443,
+          69,
+          92,
+          151,
+          200,
+          256,
+          345,
+          401,
+          442,
           476,
           476
         ],
@@ -9506,7 +9506,7 @@
     "total_qtdeop_mes": [
       167,
       200,
-      187,
+      186,
       212,
       274,
       150,
@@ -9514,22 +9514,22 @@
       308,
       248,
       231,
-      207,
+      210,
       0
     ],
     "total_qtdeop_acum": [
       167,
       367,
-      554,
-      766,
-      1040,
-      1190,
-      1457,
-      1765,
-      2013,
-      2244,
-      2451,
-      2451
+      553,
+      765,
+      1039,
+      1189,
+      1456,
+      1764,
+      2012,
+      2243,
+      2453,
+      2453
     ],
     "total_mv_acum": [
       0,
@@ -24351,7 +24351,7 @@
           93,
           72,
           77,
-          53,
+          55,
           0
         ],
         "meta_mes": [
@@ -24379,8 +24379,8 @@
           315,
           387,
           464,
-          517,
-          517
+          519,
+          519
         ],
         "meta_acum": [
           3,
@@ -24643,7 +24643,7 @@
         "realizado_mes": [
           32,
           21,
-          17,
+          16,
           23,
           59,
           49,
@@ -24651,7 +24651,7 @@
           89,
           56,
           41,
-          33,
+          34,
           0
         ],
         "meta_mes": [
@@ -24671,14 +24671,14 @@
         "realizado_acum": [
           32,
           53,
-          70,
-          93,
-          152,
-          201,
-          257,
-          346,
-          402,
-          443,
+          69,
+          92,
+          151,
+          200,
+          256,
+          345,
+          401,
+          442,
           476,
           476
         ],
@@ -25061,7 +25061,7 @@
     "total_mes": [
       167,
       200,
-      187,
+      186,
       212,
       274,
       150,
@@ -25069,7 +25069,7 @@
       308,
       248,
       231,
-      207,
+      210,
       0
     ],
     "total_meta_mes": [
@@ -25089,16 +25089,16 @@
     "total_acum": [
       167,
       367,
-      554,
-      766,
-      1040,
-      1190,
-      1457,
-      1765,
-      2013,
-      2244,
-      2451,
-      2451
+      553,
+      765,
+      1039,
+      1189,
+      1456,
+      1764,
+      2012,
+      2243,
+      2453,
+      2453
     ],
     "total_meta_acum": [
       23,
@@ -28074,11 +28074,11 @@
     }
   },
   "idob_detalhe": {
-    "total": 2451,
+    "total": 2453,
     "bairro": [
       [
         "CENTRO",
-        852
+        851
       ],
       [
         "(sem bairro)",
@@ -28090,7 +28090,7 @@
       ],
       [
         "ALTO MERCADO",
-        99
+        100
       ],
       [
         "ESPERANCA",
@@ -28110,7 +28110,7 @@
       ],
       [
         "VILA NOVA",
-        59
+        60
       ],
       [
         "CIDADE NOVA",
@@ -28138,7 +28138,7 @@
       ],
       [
         "OUTROS BAIRROS",
-        607
+        608
       ]
     ],
     "bairro_municipio": {
@@ -28247,7 +28247,7 @@
       "ITAOBIM": [
         [
           "CENTRO",
-          199
+          198
         ],
         [
           "ESPERANCA",
@@ -28255,7 +28255,7 @@
         ],
         [
           "VILA NOVA",
-          55
+          56
         ],
         [
           "(sem bairro)",
@@ -28333,7 +28333,7 @@
         ],
         [
           "ALTO MERCADO",
-          99
+          100
         ],
         [
           "CENTRO",
@@ -28361,7 +28361,7 @@
         ],
         [
           "OUTROS BAIRROS",
-          104
+          105
         ]
       ],
       "CORONEL MURTA": [
@@ -28595,16 +28595,16 @@
           210
         ],
         [
-          31,
+          33,
           3,
           18,
-          153
+          154
         ],
         [
           28,
           9,
           30,
-          265
+          264
         ],
         [
           38,
@@ -28639,12 +28639,12 @@
         },
         {
           "nome": "ARACUAI",
-          "ops": 517,
+          "ops": 519,
           "dur_media_min": 34.5,
           "dur_mediana_min": 30,
           "efetivo_medio": 2.56,
           "vtr_media": 1.28,
-          "horas_policial": 738.3
+          "horas_policial": 740.8
         },
         {
           "nome": "CACHOEIRA DE PAJEU",
@@ -28747,12 +28747,12 @@
         }
       ],
       "total": {
-        "ops": 2451,
-        "dur_media_min": 56.4,
+        "ops": 2453,
+        "dur_media_min": 56.3,
         "dur_mediana_min": 60,
         "efetivo_medio": 2.38,
         "vtr_media": 1.07,
-        "horas_policial": 5273.8
+        "horas_policial": 5276.3
       },
       "duracao_suspeita": 5,
       "sem_duracao": 4,
@@ -28794,7 +28794,7 @@
       },
       "ARACUAI": {
         "NOVA ESPERANCA": 116,
-        "ALTO MERCADO": 99,
+        "ALTO MERCADO": 100,
         "CENTRO": 82,
         "ESPLANADA": 34,
         "CANOEIRO JOSE ALVES DE CARVALHO": 30,
@@ -28804,10 +28804,10 @@
         "GREBETHANIA": 13,
         "JUPARANA": 13,
         "SAO FRANCISCO": 9,
+        "SAO PEDRO": 9,
         "BELA VISTA": 8,
         "NOVA TERRA": 8,
         "SANTA TEREZA": 8,
-        "SAO PEDRO": 8,
         "ARRAIAL": 7,
         "SAO GERALDO": 6,
         "BAIRRO FATIMA": 3,
@@ -28864,9 +28864,9 @@
         "ALTO DA COPASA": 1
       },
       "ITAOBIM": {
-        "CENTRO": 199,
+        "CENTRO": 198,
         "ESPERANCA": 97,
-        "VILA NOVA": 55,
+        "VILA NOVA": 56,
         "(sem bairro)": 52,
         "ESTACAO DA LUZ": 30,
         "SANTO ANTONIO": 11,
@@ -28953,12 +28953,12 @@
       }
     },
     "local": {
-      "em_bar": 2280,
+      "em_bar": 2282,
       "fora_bar": 171,
       "lista": [
         [
           "BAR / LANCHONETE / RESTAURANTE / SIMILAR",
-          2280
+          2282
         ],
         [
           "VIA DE ACESSO PUBLICA",
@@ -29675,7 +29675,7 @@
           1
         ]
       },
-      "ate": "24/11/2026"
+      "ate": "25/11/2026"
     }
   },
   "idob_dia_faixa": {
